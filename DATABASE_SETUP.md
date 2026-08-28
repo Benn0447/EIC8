@@ -78,23 +78,70 @@ Firestore Database → tab **Rules** → hapus isinya → paste seluruh isi
 ## Langkah 5 — Buat Composite Index
 
 Beberapa query app memakai `where(...)` + `orderBy('createdAt','desc')` pada
-field berbeda → Firestore butuh **composite index**. Query yang butuh:
+field berbeda → Firestore butuh **composite index**. `firestore.indexes.json`
+di repo ini berisi **tepat 2 index** yang benar-benar dipakai oleh file HTML
+yang ada — hasil audit seluruh query Firestore di project:
 
-| Koleksi | Query | Dipakai di |
-|---|---|---|
-| `checksheets` | `assetTag ==` + `createdAt desc` | tiap check sheet ("load submission terakhir"), `dashboard.html` |
-| `checksheets` | `overallStatus ==` + `createdAt desc` | filter status di `dashboard.html` |
-| `approvals` | `checksheetId ==` + `createdAt desc` | banner revisi, kolom status di `dashboard.html` |
-| `approvals` | `status ==` + `createdAt desc` | filter inbox di `Review_Approval_Dashboard.html` |
+### Index 1 — `checksheets` : `assetTag` ASC + `createdAt` DESC
 
-**Cara A — otomatis (paling gampang):** jalankan saja app-nya, buka
-`dashboard.html` / sebuah check sheet, lakukan aksi yang memicu query itu.
-Query pertama yang gagal akan melempar error di Console browser (F12) berisi
-**link langsung** "create this index" — klik, **Create**, tunggu ~1–3 menit
-sampai status **Enabled**.
+Query: `db.collection('checksheets').where('assetTag','==',TAG).orderBy('createdAt','desc')`
 
-**Cara B — sekaligus lewat CLI:** `firebase deploy --only firestore:indexes`
-(pakai `firestore.indexes.json` yang sudah disiapkan). Lihat Langkah 8.
+Dipicu oleh **setiap check sheet** saat fitur "Load submission terakhir" /
+"Ambil dari database" / banner revisi / cek duplikat sebelum submit berjalan:
+
+- Lewat helper bersama (`db-helper.js` `DB.loadLastSubmission` & `DB.getAll({assetTag})`,
+  `load-merge-modal.js`, `submit-guard.js`) — dipakai oleh 26 check sheet:
+  `4000_Hours_Mill_PM.html`, `7EPLCB4_Maintenance.html`, `7EPMCC_Maintenance.html`,
+  `Battery_7EB-BY-125-250.html`, `DMH_Motor_PM_Checksheet.html`, `DRY_TRAFO_PM.html`,
+  `ESP_7BGPCP800A_B.html`, `esp_checksheet.html`, `GEN_BrushGear_PM_Checksheet.html`,
+  `Hoist_Inspection_Maintenance.html`, `HV_Motor_6Monthly_PM.html`, `HV_Motor_SWGR.html`,
+  `Lighting_Grounding_Etc_Checksheet.html`, `LV_Motor_Bearing_Replacement.html`,
+  `LV_Motor_MCC.html`, `Maintenance_Corrective_Action.html`, `PLTS_AshDisposal_PM.html`,
+  `PM_CheckSheet_BYC125.html`, `Transformer_AT_DGA_Weekly.html`,
+  `Transformer_AT_NoDGA_Weekly.html`, `Transformer_GIS_SF6.html`,
+  `Transformer_SST_CHCB_3Monthly.html`, `Transformer_SST_SWRO_3Monthly.html`,
+  `Transformer_USST_3Monthly.html`, `UPS_7EB-UPS-AB_Monthly.html`,
+  `Work_Activity_Record.html`
+
+  Asset tag ketiga check sheet terbaru: `MAINTENANCE-CORRECTIVE-ACTION`,
+  `LIGHTING-GROUNDING-ETC`, `LV-MOTOR-BEARING-REPLACEMENT`.
+- Ditulis inline (query `.where('assetTag'...).orderBy('createdAt'...)` langsung di file):
+  `4000_Hours_Mill_PM.html`, `GEN_BrushGear_PM_Checksheet.html`,
+  `Transformer_AT_DGA_Weekly.html`, `Transformer_AT_NoDGA_Weekly.html`,
+  `Transformer_GIS_SF6.html`, `Transformer_SST_CHCB_3Monthly.html`,
+  `Transformer_SST_SWRO_3Monthly.html`, `Transformer_USST_3Monthly.html`
+
+### Index 2 — `approvals` : `checksheetId` ASC + `createdAt` DESC
+
+Query: `db.collection('approvals').where('checksheetId','==',ID).orderBy('createdAt','desc')`
+
+Dipicu oleh `submit-guard.js` (`Approvals.getByChecksheetId()`) saat memutuskan
+insert-vs-overwrite waktu submit — dipakai oleh **semua check sheet di daftar
+Index 1**.
+
+### Query lain — TIDAK butuh composite index
+
+- `dashboard.html` (`DB.getAll()` / `Approvals.getAll()`) dan
+  `Review_Approval_Dashboard.html` (`Approvals.getAll()`) memanggil **tanpa
+  filter** → hanya `orderBy('createdAt','desc')` (single-field, auto-index).
+  Semua filter status/asset/tim di dua dashboard itu dikerjakan **client-side**
+  setelah data dimuat.
+- Semua query `where('username','==',...)` (login, cek duplikat user) →
+  single-field, auto-index.
+- `db-helper.js` / `approval-helper.js` secara teknis mendukung
+  `getAll({status})` / `getAll({assetTag, status})`, tapi **tidak ada file HTML
+  yang memanggilnya begitu**, jadi tidak ada index untuk itu. Kalau nanti Anda
+  menambah pemanggilan berfilter, Firestore akan melempar error berisi link
+  "create index" — tambahkan lalu masukkan juga ke `firestore.indexes.json`.
+
+**Cara A — otomatis:** jalankan app, buka sebuah check sheet, klik "Ambil dari
+database" / submit. Kalau ada query yang gagal, error di Console browser (F12)
+berisi **link langsung** "create this index" — klik, **Create**, tunggu ~1–3
+menit sampai **Enabled**.
+
+**Cara B — sekaligus lewat CLI (disarankan):**
+`firebase deploy --only firestore:indexes` — langsung membuat kedua index dari
+`firestore.indexes.json`. Lihat Langkah 8.
 
 ## Langkah 6 — Buat user admin pertama
 
