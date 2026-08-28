@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// ============================================================
+//  Firestore Security Rules — EIC8 Check Sheet (cloned system)
+//
+//  Trust model matches the original project: there is NO real
+//  per-request authentication anywhere in this app (login is a
+//  pure client-side check against the `dashboard_users`
+//  collection). Every collection this app touches is fully open.
+//  Rules are collection-allowlisted on purpose — a NEW collection
+//  with no matching `match` block is DENIED by default, so if you
+//  add a feature that writes a new collection, add its block here.
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Main check sheet submissions (append-only in practice)
+    match /checksheets/{doc} {
+      allow read, write: if true;
+    }
+
+    // Review / approval workflow records (mutated in place)
+    match /approvals/{doc} {
+      allow read, write: if true;
+    }
+
+    // Dashboard + technician login accounts, self-registration
+    match /dashboard_users/{doc} {
+      allow read, write: if true;
+    }
+
+    // Runtime config (e.g. dashboard_config/registration.code)
+    match /dashboard_config/{doc} {
+      allow read, write: if true;
+    }
+
+    // Weekly Report Dashboard — meta doc + its workOrders subcollection
+    match /weekly_dashboard/{doc} {
+      allow read, write: if true;
+      match /{sub=**} {
+        allow read, write: if true;
+      }
+    }
+  }
+}

@@ -1,20 +1,29 @@
 // ============================================================
-//  Firebase Configuration — ELECTRIC 7 POMI
-//  PENTING: Ganti nilai di bawah dengan config dari Firebase Console Anda
+//  Firebase Configuration — EIC8 CHECK SHEET (CLONE)
+//
+//  File ini SENGAJA dikosongkan dari kredensial project lama
+//  supaya hasil clone tidak menulis ke database program lain.
+//  Isi dengan config project Firebase BARU milik Anda.
+//
+//  CARA MENGISI:
 //  1. Buka https://console.firebase.google.com
-//  2. Buat project baru (atau pakai yang sudah ada)
-//  3. Tambahkan Web App
-//  4. Copy firebaseConfig dan paste di bawah
-//  5. Aktifkan Firestore Database di Firebase Console
+//  2. Buat project BARU (pakai akun Google Anda sendiri)
+//  3. Build > Firestore Database > Create database (mode production)
+//  4. Project settings (⚙️) > General > "Your apps" > Web (</>)
+//     -> daftarkan app, lalu copy object firebaseConfig-nya
+//  5. Ganti seluruh nilai di bawah dengan milik Anda
+//
+//  Lihat DATABASE_SETUP.md untuk langkah lengkap (rules, index,
+//  user admin pertama, dsb).
 // ============================================================
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB2c5ZFYRH8rKRcYlza175wTM36O8jwDGw",
-  authDomain: "pomi-checksheet-e7.firebaseapp.com",
-  projectId: "pomi-checksheet-e7",
-  storageBucket: "pomi-checksheet-e7.firebasestorage.app",
-  messagingSenderId: "459830825503",
-  appId: "1:459830825503:web:ef9356faa62b632f87fb2a"
+  apiKey: "ISI_API_KEY_ANDA",
+  authDomain: "PROJECT_ID_ANDA.firebaseapp.com",
+  projectId: "PROJECT_ID_ANDA",
+  storageBucket: "PROJECT_ID_ANDA.firebasestorage.app",
+  messagingSenderId: "ISI_SENDER_ID_ANDA",
+  appId: "ISI_APP_ID_ANDA"
 };
 
 firebase.initializeApp(firebaseConfig);

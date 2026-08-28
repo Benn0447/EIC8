@@ -30,8 +30,10 @@ merge-modal layer — not every check sheet needs these last three, but all 22 c
   are loaded from `<script src="https://...">` tags at the top of each file — an internet
   connection is required even when running locally.
 - Firestore project credentials live in `firebase-config.js` (shared by every check sheet).
-  There is no local emulator config (`firebase.json` doesn't exist) — writes go to the real
-  `pomi-checksheet-e7` project.
+  This is a clone: `firebase-config.js` ships with placeholder values and must be filled with
+  your own Firebase project's config before anything can read/write — see `DATABASE_SETUP.md`.
+  `firebase.json` / `firestore.rules` / `firestore.indexes.json` are included for
+  `firebase deploy`; there is no local emulator config.
 - There is no linter or test command. Verify JS changes with `node --check` on the extracted
   inline `<script>` body before considering an edit done, since a syntax error inside one
   `<script>` block silently kills every function defined after it on that page.
