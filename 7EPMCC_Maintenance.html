@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>7EP-MCC — MCC Switchboard 4 Yearly PM</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="db-helper.js"></script>
+<script src="storage-helper.js"></script>
+<script src="approval-helper.js"></script>
+<script src="submit-guard.js"></script>
+<script src="load-merge-modal.js"></script>
+<script src="auth-session.js"></script>
+<script src="technician-auth.js"></script>
+<script src="img-helper.js"></script>
+<script src="photo-kit.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1e3a5f;--navy2:#0f2744;--blue:#2563eb;--sky:#7dd3fc;--sky2:#bfdbfe;
+  --bg:#f8fbff;--bg2:#f0f7ff;--surf:#fff;--bdr:#bfdbfe;--bdr2:#dbeafe;
+  --ok:#16a34a;--ng:#dc2626;--idle:#e5e7eb;
+  --txt:#0f172a;--txt3:#3b82f6;--txt4:#64748b;
+  --mono:'Share Tech Mono',monospace;--sans:'Barlow',sans-serif;--raj:'Rajdhani',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:100vh}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;background:var(--navy2);height:52px;
+  display:flex;align-items:center;padding:0 14px;gap:8px;border-bottom:2px solid var(--blue)}
+.tb-logo{font-family:var(--raj);font-size:18px;font-weight:700;letter-spacing:3px;color:#fff}
+.tb-logo em{color:var(--sky);font-style:normal}
+.tb-sep{width:1px;height:26px;background:rgba(255,255,255,0.15);flex-shrink:0}
+.tb-sub{font-size:10px;color:var(--sky);font-family:var(--mono);letter-spacing:1px;white-space:nowrap}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--sky);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.tb-time{font-family:var(--mono);font-size:11px;color:var(--sky)}
+.btn{padding:6px 12px;border-radius:5px;border:none;cursor:pointer;font-family:var(--raj);font-size:13px;font-weight:600;letter-spacing:1px;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.btn-ol{background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.2)}
+.btn-ol:hover{background:rgba(255,255,255,0.2)}
+.btn-pdf{background:var(--blue);color:#fff}
+.btn-pdf:hover{background:#1d4ed8}
+.btn-sm{padding:4px 10px;font-size:12px}
+
+/* HERO */
+.hero{background:var(--navy);padding:20px 16px 18px}
+.hero-eyebrow{font-family:var(--mono);font-size:10px;color:var(--sky);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.hero-eyebrow::before{content:'';width:20px;height:1px;background:var(--sky)}
+.hero-title{font-family:var(--raj);font-size:clamp(24px,5vw,46px);font-weight:700;line-height:1;color:#fff}
+.hero-title em{color:var(--sky);font-style:normal}
+.hero-sub{font-size:12px;color:rgba(255,255,255,0.6);margin-top:6px}
+.hero-stats{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.hstat{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:9px 14px;text-align:center;min-width:66px}
+.hstat-n{font-family:var(--raj);font-size:22px;font-weight:700;color:#fff;line-height:1;display:block}
+.hstat-n.ok{color:#4ade80}.hstat-n.ng{color:#f87171}.hstat-n.ph{color:var(--sky)}
+.hstat-l{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,0.4);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;display:block}
+
+/* WRAP */
+.wrap{max-width:1100px;margin:0 auto;padding:16px 12px 80px}
+.panel{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 6px rgba(30,58,95,0.06)}
+
+/* SECTION HEADER */
+.sec-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--navy);cursor:pointer;user-select:none}
+.sec-icon{width:26px;height:26px;border-radius:6px;background:rgba(37,99,235,0.3);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.sec-title{font-family:var(--raj);font-size:14px;font-weight:700;color:#fff;letter-spacing:1.5px;text-transform:uppercase}
+.sec-sub{font-family:var(--mono);font-size:9px;color:var(--sky);margin-left:4px}
+.sec-cnt{margin-left:auto;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.4);padding:2px 8px;border:1px solid rgba(255,255,255,0.15);border-radius:10px;white-space:nowrap}
+.sec-arrow{color:rgba(255,255,255,0.4);font-size:13px;transition:transform .2s;margin-left:5px}
+.sec-hdr.open .sec-arrow{transform:rotate(180deg)}
+
+/* WO GRID */
+.wo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:14px}
+.mf{display:flex;flex-direction:column;gap:4px}
+.mf label{font-size:10px;color:var(--txt4);font-weight:500;letter-spacing:1px;text-transform:uppercase}
+.mf input,.mf select,.mf textarea{border:1.5px solid var(--bdr);border-radius:5px;padding:7px 10px;font-family:var(--sans);font-size:13px;background:var(--bg2);color:var(--txt);transition:border-color .18s;width:100%}
+.mf input:focus,.mf select:focus,.mf textarea:focus{outline:none;border-color:var(--blue);background:#fff}
+.mf input[type=date]{font-family:var(--mono)}
+.mf textarea{resize:vertical;min-height:70px}
+
+/* CAUTION */
+.caution{background:rgba(220,38,38,0.08);border:1.5px solid rgba(220,38,38,0.3);border-radius:6px;padding:10px 14px;margin:12px 14px;display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#b91c1c}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+.ct{width:100%;border-collapse:collapse;font-size:12px}
+.ct th{background:var(--navy);color:var(--sky2);padding:7px 10px;font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.08)}
+.ct th.tl{text-align:left}.ct th:last-child{border-right:none}
+.ct td{padding:7px 10px;border-bottom:1px solid var(--bdr2);background:var(--surf);vertical-align:middle;border-right:1px solid var(--bdr2)}
+.ct td:last-child{border-right:none}
+.ct tr:last-child td{border-bottom:none}
+.ct tr:hover td{background:var(--bg2)}
+.ct td.no{font-family:var(--mono);font-size:11px;color:var(--txt4);width:30px;text-align:center}
+.ct td.lbl{text-align:left;color:var(--txt);font-size:11.5px;min-width:260px;line-height:1.5}
+.ct td.ref{font-family:var(--mono);font-size:9.5px;color:var(--txt3);text-align:center;min-width:110px}
+.ct td.res{text-align:center;min-width:100px}
+.ct td.rmk{min-width:130px}
+.rmk-inp{width:100%;border:1.5px solid var(--bdr);border-radius:3px;padding:4px 7px;font-size:11.5px;background:var(--bg2);color:var(--txt);font-family:var(--sans)}
+.rmk-inp:focus{outline:none;border-color:var(--blue)}
+
+/* TOGGLE */
+.tog{display:inline-flex;gap:3px;justify-content:center}
+.rb{font-size:10px;padding:4px 9px;border-radius:4px;cursor:pointer;font-weight:700;letter-spacing:.5px;border:none;transition:all .15s;font-family:var(--mono)}
+.rb.ok-idle{background:var(--idle);color:#9ca3af}
+.rb.ng-idle{background:var(--idle);color:#9ca3af}
+.rb.ok-act{background:var(--ok);color:#fff;box-shadow:0 0 0 2px rgba(22,163,74,0.3)}
+.rb.ng-act{background:var(--ng);color:#fff;box-shadow:0 0 0 2px rgba(220,38,38,0.3)}
+.rb:hover{opacity:.85}
+
+/* PHOTO SECTION */
+.photo-wrap{padding:14px;background:var(--bg2);border-top:2px dashed var(--bdr)}
+.photo-sec-title{font-family:var(--raj);font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--navy);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.photo-dynamic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-bottom:12px;min-height:0}
+.photo-block{display:flex;flex-direction:column;gap:6px}
+.photo-num-lbl{font-family:var(--mono);font-size:10px;color:var(--txt4);text-align:center;padding:3px 0}
+.photo-drop{border:2px dashed var(--bdr);border-radius:8px;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#fff;position:relative;overflow:hidden;transition:border-color .2s}
+.photo-drop:hover{border-color:var(--blue)}
+.photo-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:2}
+.photo-drop img{width:100%;height:auto;display:block;border-radius:6px;position:relative;z-index:1}
+.photo-drop.has-photo .del-btn{display:flex}.photo-drop .pk-crop-btn{position:absolute;top:5px;left:5px;background:rgba(37,99,235,.85);border:none;color:#fff;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:12px;display:none;align-items:center;justify-content:center;z-index:5}.photo-drop.has-photo .pk-crop-btn{display:flex}.pk-sz{font-size:10px;color:#64748b;text-align:center;margin-top:3px;min-height:12px}
+.del-btn{position:absolute;top:5px;right:5px;background:rgba(220,38,38,.9);border:none;color:#fff;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:14px;display:none;align-items:center;justify-content:center;z-index:3;box-shadow:0 2px 6px rgba(0,0,0,0.3)}
+.ph-icon{font-size:22px;margin-bottom:5px;pointer-events:none;z-index:1}
+.ph-hint{font-size:10px;color:var(--txt4);text-align:center;pointer-events:none;font-family:var(--mono);z-index:1}
+.photo-cap-inp{width:100%;border:1.5px solid var(--bdr);border-radius:5px;padding:5px 8px;font-size:12px;background:#fff;color:var(--txt);font-family:var(--sans)}
+.photo-cap-inp:focus{outline:none;border-color:var(--blue)}
+.btn-add-photo{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px;background:var(--navy);color:#fff;border:2px dashed rgba(125,211,252,0.35);border-radius:8px;cursor:pointer;font-family:var(--raj);font-size:14px;font-weight:600;letter-spacing:1px;transition:all .2s}
+.btn-add-photo:hover{background:#1e3a5f;border-color:var(--sky)}
+.btn-add-photo .plus{font-size:20px;color:var(--sky);line-height:1}
+.photo-badge{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,0.5);padding:2px 8px;background:rgba(255,255,255,0.1);border-radius:10px}
+
+/* FINDINGS */
+.findings-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px}
+
+/* NOTICE */
+.notice{padding:10px 14px;border-radius:6px;font-size:13px;display:none;margin:10px 0 0}
+.notice.ok{background:#dcfce7;border:1px solid #86efac;color:#15803d;display:block}
+.notice.err{background:#fee2e2;border:1px solid #fca5a5;color:#b91c1c;display:block}
+.notice.info{background:#dbeafe;border:1px solid #93c5fd;color:#1e40af;display:block}
+
+/* ACTION ROW */
+.action-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding:4px 0 8px}
+
+/* FOOTER */
+.footer{background:var(--navy2);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:20px}
+.footer-l,.footer-r{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:1px}
+
+/* PRINT STYLES */
+@media print{
+  @page{size:A4 portrait;margin:12mm 15mm}
+  *,*::before,*::after{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .topbar,.action-row,.footer,.btn-add-photo,.del-btn,.tb-right,
+  .sec-hdr-arrow,.live-dot,.hero-stats,.ss-drop,.notice{display:none!important}
+  .print-header{display:flex!important}
+  body{background:#fff!important;font-size:11px}
+  .hero{padding:14px 20px 12px}
+  .wrap{padding:10px 0 0;max-width:100%!important}
+  .sec-body{display:block!important}
+  .panel{box-shadow:none!important;border:1px solid #bfdbfe;margin-bottom:10px;break-inside:avoid;page-break-inside:avoid}
+  .sec-hdr{cursor:default;padding:8px 14px}
+  input[type=text],input[type=date],input[type=number],select,textarea{
+    background:transparent!important;border:none!important;
+    border-bottom:1px solid #dbeafe!important;border-radius:0!important;
+    padding:2px 0!important;color:#0f172a!important;font-size:11px!important}
+  .rb{border:none!important;border-radius:3px!important;padding:2px 6px!important;font-size:10px!important;-webkit-appearance:none;appearance:none}
+  .rb.ok-act{background:#dcfce7!important;color:#16a34a!important}
+  .rb.ng-act{background:#fee2e2!important;color:#dc2626!important}
+  .rb.na-act{background:#fef3c7!important;color:#92400e!important}
+  .rmk-inp,.meas-inp,.meas-input{background:transparent!important;border:none!important;
+    border-bottom:1px solid #dbeafe!important;border-radius:0!important;padding:2px 0!important;font-size:10px!important}
+  .tbl-wrap{overflow:visible}
+  .ct{min-width:unset!important;width:100%}
+  .ct th,.ct td{font-size:10px!important;padding:5px 7px!important}
+  .photo-drop{border:1px solid #dbeafe!important;background:#fff!important;
+    aspect-ratio:unset!important;min-height:unset!important;padding:4px!important}
+  .photo-drop img{position:static!important;width:auto!important;height:auto!important;
+    max-width:100%!important;max-height:150px!important;object-fit:contain!important}
+  .photo-dynamic-grid{grid-template-columns:repeat(2,1fr)!important}
+  .findings-grid{grid-template-columns:1fr 1fr!important}
+}
+.print-header{display:none;font-family:var(--mono);font-size:10px;color:var(--txt4);
+  padding:4px 0 8px;border-bottom:2px solid var(--navy);margin-bottom:8px;
+  justify-content:space-between;align-items:center}
+.print-header strong{font-size:13px;color:var(--navy);font-family:var(--raj);letter-spacing:1px}
+
+@media(max-width:640px){
+  .tb-sub,.tb-sep{display:none}
+  .findings-grid{grid-template-columns:1fr}
+  .photo-dynamic-grid{grid-template-columns:repeat(2,1fr)}
+}
+.btn-back{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:5px;font-size:11px;font-weight:700;letter-spacing:1px;text-decoration:none;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.18);transition:background .15s;white-space:nowrap;cursor:pointer;flex-shrink:0}
+.btn-back:hover{background:rgba(255,255,255,0.2);color:#fff}
+</style>
+</head>
+<body>
+<div class="print-header" id="print-header">
+  <div><strong>POMI — 7EP-MCC SHUTDOWN MAINTENANCE</strong><br>
+    <span id="ph-tag">—</span> · <span id="ph-desc">—</span></div>
+  <div style="text-align:right">Date: <span id="ph-date">—</span><br>
+    WO: <span id="ph-wo">—</span></div>
+</div>
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="live-dot"></div>
+  <span class="tb-logo">7EP-<em>MCC</em></span>
+  <div class="tb-sep"></div>
+  <span class="tb-sub">MOTOR CONTROL CENTER · 4 YEARLY SHUTDOWN MAINTENANCE</span>
+  <div class="tb-right">
+    <a class="btn-back" href="index.html" title="Back to Portal">&#8592; Portal</a>
+    
+    <span class="tb-time" id="clock">--:--:--</span>
+    <button class="btn btn-ol btn-sm" onclick="saveDraft()">💾 Draft</button>
+    <button class="btn btn-pdf btn-sm" onclick="printPage()">🖨️ Print / PDF</button>
+    <button class="btn btn-sm" style="background:#16a34a;color:#fff;border:none" onclick="submitToDb()">🗄️ Submit DB</button>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">4 Yearly MCC Switchboard Shutdown Maintenance</div>
+  <div class="hero-title">7EP-<em>MCC</em></div>
+  <div class="hero-sub">Motor Control Center · QCP & Work Completion Report</div>
+  <div class="hero-stats">
+    <div class="hstat"><span class="hstat-n" id="h-total">12</span><span class="hstat-l">Total</span></div>
+    <div class="hstat"><span class="hstat-n ok" id="h-ok">0</span><span class="hstat-l">OK</span></div>
+    <div class="hstat"><span class="hstat-n ng" id="h-ng">0</span><span class="hstat-l">NG</span></div>
+    <div class="hstat"><span class="hstat-n ph" id="h-photos">0</span><span class="hstat-l">Photos</span></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- WORK ORDER -->
+<div class="panel">
+  <div class="sec-hdr open" onclick="toggleSec(this)">
+    <div class="sec-icon">📋</div>
+    <div><div class="sec-title">Work Order Information</div></div>
+    <span class="sec-arrow">▼</span>
+  </div>
+  <div class="sec-body">
+    <div class="wo-grid">
+      <div class="mf"><label>Plant Tag No.</label><input type="text" id="tag-no" placeholder="7EP-MCC-XXX"></div>
+      <div class="mf"><label>Date</label><input type="date" id="wo-date"></div>
+      <div class="mf"><label>Tag Description</label><input type="text" id="tag-desc" placeholder="Motor Control Center XXX"></div>
+      <div class="mf"><label>Done By</label><input type="text" id="done-by" placeholder="Technician name"></div>
+      <div class="mf"><label>Acknowledge By</label><input type="text" id="ack-by" placeholder="Supervisor name"></div>
+      <div class="mf"><label>Acknowledge Date</label><input type="date" id="ack-date"></div>
+      <div class="mf"><label>WO Number</label><input type="text" id="wo-no" placeholder="WO-2026-XXXX"></div>
+      <div class="mf"><label>Signature / Initial</label><input type="text" id="signature" placeholder="Initial / signature"></div>
+    </div>
+    <div class="wo-grid" style="padding-top:0;border-top:1px solid var(--bdr2)">
+      <div class="mf"><label>XFMR Type</label><input type="text" id="xfmr-type" placeholder="MCC Type"></div>
+      <div class="mf"><label>Voltage</label><input type="text" id="voltage" placeholder="Voltage rating"></div>
+      <div class="mf"><label>Capacity</label><input type="text" id="capacity" placeholder="Capacity"></div>
+      <div class="mf"><label>Location</label><input type="text" id="location" placeholder="MCC location"></div>
+    </div>
+    <div style="padding:0 14px 14px">
+      <button class="btn btn-ol btn-sm" id="btn-load-last" onclick="LoadMergeModal.open()">📥 Pilih & Gabung Data dari Database</button>
+      <span style="font-size:11px;color:var(--txt4);margin-left:8px">Pilih satu atau lebih submission sebelumnya untuk digabung (union, tidak menghapus) ke form ini &mdash; berguna saat beberapa teknisi mengisi bagian berbeda secara terpisah.</span>
+    </div>
+  </div>
+</div>
+
+<!-- CHECK ITEMS -->
+<div class="panel">
+  <div class="sec-hdr open" onclick="toggleSec(this)">
+    <div class="sec-icon">✅</div>
+    <div><div class="sec-title">Check Items</div></div>
+    <span class="sec-cnt">12 items</span>
+    <span class="sec-arrow">▼</span>
+  </div>
+  <div class="sec-body">
+    <div class="caution">
+      <span style="font-size:16px;flex-shrink:0">⚠️</span>
+      <span><strong>CAUTION:</strong> This maintenance work must be done with MCC de-energized (both primary and control power supply)</span>
+    </div>
+    <div class="tbl-wrap">
+    <table class="ct">
+      <thead>
+        <tr>
+          <th style="width:30px;text-align:center">No.</th>
+          <th class="tl" style="min-width:280px">Check Items / Point</th>
+          <th style="min-width:130px">Criteria</th>
+          <th style="min-width:110px">Result</th>
+          <th style="min-width:140px">Remark</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-check"></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- FOTO KEGIATAN -->
+<div class="panel">
+  <div class="sec-hdr open" onclick="toggleSec(this)">
+    <div class="sec-icon">📸</div>
+    <div><div class="sec-title">Foto Kegiatan</div><span class="sec-sub">Activity Documentation</span></div>
+    <span class="sec-cnt" id="cnt-activity">0 foto</span>
+    <span class="sec-arrow">▼</span>
+  </div>
+  <div class="sec-body">
+    <div class="photo-wrap" style="border-top:none">
+      <div class="photo-sec-title"><span>📸</span> Dokumentasi Kegiatan Maintenance</div>
+      <div class="photo-dynamic-grid" id="activity-grid"></div>
+      <button class="btn-add-photo" onclick="addPhoto('activity')">
+        <span class="plus">＋</span>
+        <span>Add Photo Kegiatan</span>
+        <span class="photo-badge" id="badge-activity">0 foto</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- FOTO AFTER CLEANING -->
+<div class="panel">
+  <div class="sec-hdr open" onclick="toggleSec(this)">
+    <div class="sec-icon">🧹</div>
+    <div><div class="sec-title">Foto After Cleaning</div><span class="sec-sub">Post-Cleaning Evidence</span></div>
+    <span class="sec-cnt" id="cnt-cleaning">0 foto</span>
+    <span class="sec-arrow">▼</span>
+  </div>
+  <div class="sec-body">
+    <div class="photo-wrap" style="border-top:none">
+      <div class="photo-sec-title"><span>🧹</span> Kondisi Setelah Cleaning</div>
+      <div class="photo-dynamic-grid" id="cleaning-grid"></div>
+      <button class="btn-add-photo" onclick="addPhoto('cleaning')">
+        <span class="plus">＋</span>
+        <span>Add Photo After Cleaning</span>
+        <span class="photo-badge" id="badge-cleaning">0 foto</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- COMMENTS -->
+<div class="panel">
+  <div class="sec-hdr open" onclick="toggleSec(this)">
+    <div class="sec-icon">📝</div>
+    <div><div class="sec-title">Comments & Conclusion</div></div>
+    <span class="sec-arrow">▼</span>
+  </div>
+  <div class="sec-body">
+    <div class="findings-grid">
+      <div class="mf"><label>Comments / Findings</label>
+        <textarea id="comments" placeholder="Record all findings, observations, defects found..."></textarea>
+      </div>
+      <div class="mf"><label>Corrective Actions / Recommendations</label>
+        <textarea id="actions" placeholder="Actions taken and follow-up recommendations..."></textarea>
+      </div>
+    </div>
+    <div class="wo-grid" style="padding-top:0">
+      <div class="mf"><label>Overall Condition</label>
+        <select id="overall">
+          <option>GOOD - Normal Operation</option>
+          <option>FAIR - Requires Monitoring</option>
+          <option>POOR - Maintenance Required</option>
+          <option>CRITICAL - Must Shutdown</option>
+        </select>
+      </div>
+      <div class="mf"><label>Next PM Due</label><input type="date" id="next-pm"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ACTION ROW -->
+<div class="action-row">
+  <button class="btn" style="background:#f1f5f9;color:var(--navy);border:1px solid var(--bdr)" onclick="resetForm()">🔄 Reset</button>
+  <button class="btn btn-ol" style="background:var(--navy)" onclick="saveDraft()">💾 Save Draft</button>
+  <button class="btn btn-pdf" onclick="printPage()">🖨️ Print / Save PDF</button>
+  <button class="btn" style="background:#16a34a;color:#fff;font-size:15px;padding:10px 24px" onclick="submitToDb()">&#128202; Submit to Database</button>
+</div>
+<div id="notice" class="notice"></div>
+
+</div><!-- /wrap -->
+
+<footer class="footer">
+  <div class="footer-l">7EP-MCC · MOTOR CONTROL CENTER · 4 YEARLY SHUTDOWN MAINTENANCE</div>
+  <div class="footer-r" id="fdate">--</div>
+</footer>
+
+<script>
+// ── CLOCK ──────────────────────────────────────────
+function tick(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.toLocaleTimeString('id-ID');
+  document.getElementById('fdate').textContent=n.toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+setInterval(tick,1000);tick();
+
+// ── TOGGLE SECTION ─────────────────────────────────
+function toggleSec(hdr){
+  hdr.classList.toggle('open');
+  hdr.nextElementSibling.style.display=hdr.classList.contains('open')?'':'none';
+}
+
+// ── STATE ──────────────────────────────────────────
+const ST={};
+function setBtn(id,val,btn){
+  btn.closest('.tog').querySelectorAll('.rb').forEach(b=>b.className='rb '+(b.dataset.v==='OK'?'ok-idle':'ng-idle'));
+  if(ST[id]===val){delete ST[id];}
+  else{btn.className='rb '+(val==='OK'?'ok-act':'ng-act');ST[id]=val;}
+  updateStats();
+}
+function mkTog(id){
+  return '<div class="tog">'
+    +'<button class="rb ok-idle" data-v="OK" onclick="setBtn(\''+id+'\',\'OK\',this)">OK</button>'
+    +'<button class="rb ng-idle" data-v="NG" onclick="setBtn(\''+id+'\',\'NG\',this)">NG</button>'
+    +'</div>';
+}
+
+// ── CHECK ITEMS ────────────────────────────────────
+const ITEMS=[
+  {no:'1',  desc:'Visually inspect the equipment panel for any obvious signs of damage',                   crit:'No sign of damage'},
+  {no:'2',  desc:'Visually inspect compartment for ingress of dust and foreign material',                  crit:'No dust / foreign material'},
+  {no:'3',  desc:'Remove accumulation dust and dirt — use brush, soft cloth or vacuum cleaner',            crit:'No dust or dirty'},
+  {no:'4',  desc:'Wipe clean all main bus insulator and vertical bus barriers',                            crit:'No dust or dirty'},
+  {no:'5',  desc:'Inspect main and vertical bus joints and main bus supports — tighten if necessary',      crit:'No damage / tight'},
+  {no:'6',  desc:'Inspect all internal wiring of the unit for deterioration of insulation',               crit:'No deterioration'},
+  {no:'7',  desc:'Check all starter contacts. Replace if silver coating worn out or contact tip exposed',  crit:'No sign of damage'},
+  {no:'8',  desc:'Operate each magnetic device by hand to see that all moving parts operate freely',       crit:'Parts operate freely'},
+  {no:'9',  desc:'Check unit door interlocks for correct operation',                                       crit:'Correct operation'},
+  {no:'10', desc:'Verify that all required grounding connections are providing a good contact to ground',  crit:'Good contact to ground'},
+  {no:'11', desc:'Check all indicating lights and replace as required',                                    crit:'No sign of damage'},
+  {no:'12', desc:'Check that the circuit breaker of the heater panels are switched to the ON condition',   crit:'Switched ON'},
+];
+
+function buildCheckTable(){
+  const tb=document.getElementById('tbody-check');
+  ITEMS.forEach(item=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td class="no">'+item.no+'</td>'
+      +'<td class="lbl">'+item.desc+'</td>'
+      +'<td class="ref">'+item.crit+'</td>'
+      +'<td class="res">'+mkTog('item_'+item.no)+'</td>'
+      +'<td class="rmk"><input class="rmk-inp" id="rmk_'+item.no+'" placeholder="Remark..."></td>';
+    tb.appendChild(tr);
+  });
+}
+
+// ── STATS ──────────────────────────────────────────
+function updateStats(){
+  const vals=Object.values(ST);
+  document.getElementById('h-total').textContent=ITEMS.length;
+  document.getElementById('h-ok').textContent=vals.filter(v=>v==='OK').length;
+  document.getElementById('h-ng').textContent=vals.filter(v=>v==='NG').length;
+}
+
+// ── PHOTO SYSTEM ───────────────────────────────────
+const photoStore={}; // {id: {src, w, h}}
+const photoCounts={activity:0,cleaning:0};
+
+function addPhoto(type){
+  photoCounts[type]++;
+  const n=photoCounts[type];
+  const id=type+'_'+n;
+  const grid=document.getElementById(type+'-grid');
+  const wrap=document.createElement('div');
+  wrap.className='photo-block';
+  wrap.id='wrap_'+id;
+  const lbl=type==='activity'?'Kegiatan':'After Cleaning';
+  wrap.innerHTML=
+    '<div class="photo-num-lbl">'+lbl+' #'+n+'</div>'
+    +'<div class="photo-drop" id="'+id+'">'
+    +'<input type="file" accept="image/*" onchange="loadPhoto(this,\''+id+'\',\''+type+'\','+n+')">'
+    +'<button class="del-btn" onclick="delPhoto(\''+id+'\',\''+type+'\',event)">x</button>'
+    +'<div class="ph-icon">&#128247;</div>'
+    +'<div class="ph-hint">Tap untuk upload</div>'
+    +'</div>'
+    +'<input class="photo-cap-inp" id="cap_'+id+'" placeholder="Keterangan foto...">';
+  grid.appendChild(wrap);
+  pkWireDrops();
+  refreshBadge(type);
+  setTimeout(function(){wrap.scrollIntoView({behavior:'smooth',block:'nearest'});},150);
+}
+
+// ── PhotoKit layer ─────────────────────────────────
+// Photos go through PhotoKit: source picker -> EXIF-upright downscale (img-helper)
+// -> crop modal (Default / ratio preset / 1:1 / manual cm) -> an entry that knows
+// both its pixel size and its print size in cm. The PDF draws it at that exact
+// size at its own aspect ratio, so a photo can never come out stretched.
+var PE={};   // slotId -> PhotoKit entry
+function pkEntry(id){
+  var e=PE[id];if(e)return e;
+  var p=photoStore[id];if(!p)return null;
+  return {src:p.src||p,w:p.w,h:p.h};
+}
+function setPhoto(id,type,entry){
+  PE[id]=entry;
+  photoStore[id]={src:entry.src,w:entry.w,h:entry.h,widthCm:entry.widthCm,heightCm:entry.heightCm};
+  var slot=document.getElementById(id);
+  if(slot){
+    var existing=slot.querySelector('img');
+    if(existing)existing.remove();
+    var imgEl=document.createElement('img');
+    imgEl.src=entry.src;
+    imgEl.style.width='100%';imgEl.style.height='auto';imgEl.style.display='block';imgEl.style.borderRadius='6px';
+    slot.insertBefore(imgEl,slot.querySelector('.del-btn'));
+    slot.classList.add('has-photo');
+    var ic=slot.querySelector('.ph-icon'),hi=slot.querySelector('.ph-hint'),db=slot.querySelector('.del-btn');
+    if(ic)ic.style.display='none';if(hi)hi.style.display='none';if(db)db.style.display='flex';
+  }
+  var sz=document.getElementById('sz_'+id);
+  if(sz)sz.textContent='Cetak '+entry.widthCm.toFixed(1)+' \u00d7 '+entry.heightCm.toFixed(1)+' cm';
+  refreshBadge(type);
+}
+function pickPhoto(slot,id,type){PhotoKit.upload(slot,{},function(e){if(e)setPhoto(id,type,e);});}
+function recropPhoto(id,type,ev){
+  ev.stopPropagation();
+  var cur=pkEntry(id);if(!cur)return;
+  PhotoKit.recrop(cur,function(e){if(e)setPhoto(id,type,e);});
+}
+function delPhoto(slotId,type,e){
+  if(e&&e.stopPropagation)e.stopPropagation();
+  var slot=document.getElementById(slotId);
+  if(slot){
+    var img=slot.querySelector('img');if(img)img.remove();
+    slot.classList.remove('has-photo');
+    var icon=slot.querySelector('.ph-icon'),hint=slot.querySelector('.ph-hint'),delbtn=slot.querySelector('.del-btn');
+    if(icon)icon.style.display='';if(hint)hint.style.display='';if(delbtn)delbtn.style.display='none';
+  }
+  var sz=document.getElementById('sz_'+slotId);if(sz)sz.textContent='';
+  delete photoStore[slotId];delete PE[slotId];
+  refreshBadge(type);
+}
+// Slots are created at runtime by addPhoto(), so this runs after each one: it
+// swaps the hidden <input type=file> for the PhotoKit picker and adds a re-crop
+// button, keeping the markup builder itself untouched.
+function pkWireDrops(){
+  document.querySelectorAll('.photo-drop').forEach(function(slot){
+    if(slot.dataset.pkWired)return;
+    var inp=slot.querySelector('input[type=file]');
+    var id=slot.id,type='';
+    if(inp){
+      var m=(inp.getAttribute('onchange')||'').match(/'([^']+)'\s*,\s*'([^']+)'/);
+      if(m){id=m[1];type=m[2];}
+      inp.remove();
+    }
+    if(!id)return;
+    slot.dataset.pkWired='1';
+    if(!slot.querySelector('.pk-crop-btn')){
+      var b=document.createElement('button');b.type='button';b.className='pk-crop-btn';
+      b.title='Crop & ukuran cetak';b.innerHTML='&#9986;';
+      b.onclick=function(ev){recropPhoto(id,type,ev);};
+      slot.appendChild(b);
+    }
+    slot.addEventListener('click',function(ev){if(ev.target.closest('button'))return;pickPhoto(slot,id,type);});
+    if(!document.getElementById('sz_'+id)){
+      var d=document.createElement('div');d.className='pk-sz';d.id='sz_'+id;
+      slot.parentNode.insertBefore(d,slot.nextSibling);
+    }
+  });
+}
+
+
+function refreshBadge(type){
+  const total=photoCounts[type];
+  const filled=Object.keys(photoStore).filter(function(k){return k.startsWith(type);}).length;
+  const totalFilled=Object.keys(photoStore).length;
+  document.getElementById('badge-'+type).textContent=filled+' / '+total;
+  document.getElementById('cnt-'+type).textContent=total+' foto';
+  document.getElementById('h-photos').textContent=totalFilled;
+}
+
+// Adapts photoStore (flat, keyed by slot id like "activity_1") into the
+// {groupKey: [{src, caption}, ...]} shape Approvals.submitWithFiles() expects
+// (same shape PhotoKit/hand-rolled PHOTOS objects use elsewhere in this repo)
+// — grouped by the "activity"/"cleaning" prefix each slot id already carries.
+function buildPhotosForUpload(){
+  var out={};
+  Object.keys(photoStore).forEach(function(id){
+    var p=photoStore[id];
+    if(!p||!p.src)return;
+    var type=id.split('_')[0];
+    if(!out[type])out[type]=[];
+    out[type].push({src:p.src,caption:gv('cap_'+id)});
+  });
+  return out;
+}
+
+// Reverse of buildPhotosForUpload(): takes the {groupKey:[{url,caption,w,h,
+// widthCm,heightCm}]} bundle load-merge-modal.js builds from Drive-uploaded
+// photos (see its restorePhotosIfSupported()) and rebuilds real photoStore
+// slots from it. groupKey here is "activity"/"cleaning", same prefix
+// buildPhotosForUpload() grouped by and the same string addPhoto(type)/the
+// '<type>-grid' DOM ids use, so this is a straight round-trip of that shape.
+// overwrite:true replaces a group's existing slots outright; overwrite:false
+// (merge mode) only fills a group that currently has ZERO photos, so a
+// technician's own in-progress photos in a group are never touched.
+async function restorePhotosFromUrls(photoUrls,overwrite){
+  if(!photoUrls||typeof photoUrls!=='object')return 0;
+  var total=0;
+  var groups=Object.keys(photoUrls);
+  for(var gi=0;gi<groups.length;gi++){
+    var type=groups[gi];
+    var entries=photoUrls[type];
+    if(!Array.isArray(entries)||!entries.length)continue;
+    // Only "activity"/"cleaning" have a grid/badge/counter in this file's
+    // DOM (addPhoto() assumes they exist) — skip anything else defensively.
+    if(!document.getElementById(type+'-grid'))continue;
+
+    var hasExisting=Object.keys(photoStore).some(function(k){return k.indexOf(type+'_')===0;});
+    if(hasExisting&&!overwrite)continue; // fill-blank-only: group already has photos
+
+    if(hasExisting&&overwrite){
+      Object.keys(photoStore).filter(function(k){return k.indexOf(type+'_')===0;}).forEach(function(k){
+        delete photoStore[k];delete PE[k];
+      });
+      var grid=document.getElementById(type+'-grid');
+      if(grid)grid.innerHTML='';
+      photoCounts[type]=0;
+    }
+
+    for(var i=0;i<entries.length;i++){
+      var entry=entries[i];
+      if(!entry||!entry.url)continue;
+      var dataUrl;
+      try{
+        dataUrl=await Storage.toDataUrl(entry.url);
+      }catch(err){
+        console.error('restorePhotosFromUrls: gagal memuat foto ('+type+'):',err);
+        continue;
+      }
+      if(!dataUrl)continue;
+
+      var widthCm=entry.widthCm,heightCm=entry.heightCm;
+      if(!(widthCm>0)||!(heightCm>0)){
+        // Older/incomplete entries have no print size saved — fit into this
+        // file's configured default box (PhotoKit.configure above) at the
+        // photo's own aspect ratio rather than guessing a fixed size.
+        var box=(window.IMG&&IMG.fit)?IMG.fit(8.5,6,{w:entry.w,h:entry.h}):{w:8.5,h:6};
+        widthCm=box.w;heightCm=box.h;
+      }
+
+      addPhoto(type); // creates a fresh empty slot, increments photoCounts[type]
+      var n=photoCounts[type];
+      var id=type+'_'+n;
+      setPhoto(id,type,{src:dataUrl,dataUrl:dataUrl,w:entry.w,h:entry.h,widthCm:widthCm,heightCm:heightCm});
+      var capEl=document.getElementById('cap_'+id);
+      if(capEl)capEl.value=entry.caption||'';
+      total++;
+    }
+    refreshBadge(type);
+  }
+  return total;
+}
+window.restorePhotosFromUrls=restorePhotosFromUrls;
+
+// ── HELPERS ────────────────────────────────────────
+function gv(id){var e=document.getElementById(id);return e?e.value.trim():'';}
+function gT(id){return ST[id]||'—';}
+function shortStr(s,n){if(!s)return '';return s.length>n?s.slice(0,n)+'...':s;}
+
+// ── DRAFT ──────────────────────────────────────────
+function saveDraft(){
+  var d={};
+  var inputs=document.querySelectorAll('input[type=text],input[type=date],select,textarea');
+  for(var i=0;i<inputs.length;i++)d['f'+i]=inputs[i].value;
+  d._st=ST;d._counts=photoCounts;
+  try{
+    localStorage.setItem('mcc_draft_v3',JSON.stringify(d));
+    showNote('Draft tersimpan.','ok');
+  }catch(ex){showNote('Gagal simpan: '+ex.message,'err');}
+}
+function loadDraft(){
+  try{
+    var raw=localStorage.getItem('mcc_draft_v3');
+    if(!raw)return;
+    var d=JSON.parse(raw);
+    if(d._counts){
+      for(var i=0;i<(d._counts.activity||0);i++)addPhoto('activity');
+      for(var i=0;i<(d._counts.cleaning||0);i++)addPhoto('cleaning');
+    }
+    var inputs=document.querySelectorAll('input[type=text],input[type=date],select,textarea');
+    for(var i=0;i<inputs.length;i++){if(d['f'+i]!==undefined)inputs[i].value=d['f'+i];}
+    if(d._st){
+      Object.keys(d._st).forEach(function(id){
+        var val=d._st[id];ST[id]=val;
+        var btns=document.querySelectorAll('.tog .rb[data-v="'+val+'"]');
+        btns.forEach(function(b){
+          if(b.getAttribute('onclick')&&b.getAttribute('onclick').indexOf("'"+id+"'")>-1){
+            b.className='rb '+(val==='OK'?'ok-act':'ng-act');
+          }
+        });
+      });
+    }
+    updateStats();
+  }catch(ex){}
+}
+function resetForm(){
+  if(!confirm('Reset semua data?'))return;
+  var inputs=document.querySelectorAll('input:not([type=file]),select,textarea');
+  inputs.forEach(function(el){el.value='';});
+  Object.keys(ST).forEach(function(k){delete ST[k];});
+  document.querySelectorAll('.rb').forEach(function(b){b.className='rb '+(b.dataset.v==='OK'?'ok-idle':'ng-idle');});
+  Object.keys(photoStore).forEach(function(k){delete photoStore[k];});
+  document.getElementById('activity-grid').innerHTML='';
+  document.getElementById('cleaning-grid').innerHTML='';
+  photoCounts.activity=0;photoCounts.cleaning=0;
+  refreshBadge('activity');refreshBadge('cleaning');
+  updateStats();
+}
+function showNote(msg,t){
+  var n=document.getElementById('notice');
+  n.textContent=msg;n.className='notice '+t;
+  setTimeout(function(){n.className='notice';},5000);
+}
+
+// ── PDF GENERATION ─────────────────────────────────
+// opts.silent:true builds and returns the jsPDF object without calling
+// .save()/showNote() — used by Approvals.submitWithFiles()'s pdfBuilder to
+// generate the archival PDF for upload without triggering a browser
+// download or the normal user-facing progress notice. See
+// PLTS_AshDisposal_PM.html / CLAUDE.md for the reference pattern.
+async function generatePDF(opts){
+  opts=opts||{};
+  if(!opts.silent){
+    showNote('Membuat PDF, harap tunggu...','info');
+    await new Promise(function(r){setTimeout(r,300);});
+  }
+
+  try{
+    var jsPDF=(window.jspdf||{}).jsPDF;
+    if(!jsPDF){showNote('❌ jsPDF gagal dimuat. Pastikan koneksi internet aktif.','err');return;}
+    var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+
+    var PW=210,PH=297,LM=14,RM=14,TM=14,BM=16;
+    var CW=PW-LM-RM;
+    var NAVY=[30,58,95],BLUE=[37,99,235],SKY_C=[125,211,252],
+        LT=[245,248,255],OK_C=[22,163,74],NG_C=[220,38,38],
+        GR=[120,130,145],WHITE=[255,255,255],RED=[180,30,30];
+    var pageNum=0;
+    var y=TM;
+
+    // ── Page management ──────────────────────────────
+    function addPage(){
+      drawFooter();
+      doc.addPage();
+      pageNum++;
+      y=TM;
+      drawPageHeader();
+    }
+    function checkY(need){
+      if(y+need>PH-BM-4)addPage();
+    }
+
+    function drawPageHeader(){
+      if(pageNum===0)return;
+      doc.setFillColor(NAVY[0],NAVY[1],NAVY[2]);
+      doc.rect(0,0,PW,10,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(7);
+      doc.setTextColor(SKY_C[0],SKY_C[1],SKY_C[2]);
+      doc.text('7EP-MCC  |  4 YEARLY MCC SHUTDOWN MAINTENANCE',LM,6.5);
+      doc.setFont('helvetica','normal');doc.setFontSize(6.5);
+      var info='WO: '+(gv('wo-no')||'-')+'   Date: '+(gv('wo-date')||'-')+'   By: '+(gv('done-by')||'-');
+      doc.text(info,PW-RM,6.5,{align:'right'});
+      y=14;
+    }
+    function drawFooter(){
+      var pg=doc.internal.getCurrentPageInfo().pageNumber;
+      doc.setDrawColor(200,210,220);doc.setLineWidth(0.3);
+      doc.line(LM,PH-BM+2,PW-RM,PH-BM+2);
+      doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(150,150,150);
+      doc.text('7EP-MCC  |  QCP & Work Completion Report  |  4 Yearly MCC Shutdown Maintenance',LM,PH-BM+6);
+      doc.text('Page '+pg,PW-RM,PH-BM+6,{align:'right'});
+    }
+
+    function sectionBar(title){
+      checkY(12);
+      doc.setFillColor(NAVY[0],NAVY[1],NAVY[2]);
+      doc.roundedRect(LM,y,CW,8,1.5,1.5,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(9);
+      doc.setTextColor(WHITE[0],WHITE[1],WHITE[2]);
+      doc.text(title,LM+4,y+5.5);
+      y+=11;
+    }
+
+    // ── COVER PAGE ────────────────────────────────────
+    pageNum=0;
+    // Navy header
+    doc.setFillColor(NAVY[0],NAVY[1],NAVY[2]);
+    doc.rect(0,0,PW,58,'F');
+    doc.setFillColor(BLUE[0],BLUE[1],BLUE[2]);
+    doc.rect(0,55,PW,3,'F');
+
+    doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+    doc.setTextColor(SKY_C[0],SKY_C[1],SKY_C[2]);
+    doc.text('QCP & WORK COMPLETION REPORT',LM,16);
+
+    doc.setFontSize(28);doc.setTextColor(WHITE[0],WHITE[1],WHITE[2]);
+    doc.text('7EP-MCC',LM,36);
+
+    doc.setFontSize(10.5);doc.setTextColor(SKY_C[0],SKY_C[1],SKY_C[2]);
+    doc.text('4 Yearly Motor Control Center Switchboard Shutdown Maintenance',LM,48);
+
+    // Info box
+    y=66;
+    doc.setFillColor(LT[0],LT[1],LT[2]);
+    doc.setDrawColor(190,205,225);doc.setLineWidth(0.3);
+    doc.roundedRect(LM,y,CW,52,2,2,'FD');
+
+    function infoCell(label,value,cx,cy,maxW){
+      doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(GR[0],GR[1],GR[2]);
+      doc.text(label.toUpperCase(),cx,cy);
+      doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(NAVY[0],NAVY[1],NAVY[2]);
+      doc.text(shortStr(value||'-',Math.floor(maxW/2)),cx,cy+5.5);
+    }
+    var H=CW/2;
+    infoCell('Plant Tag No.',gv('tag-no'),LM+4,y+9,H);
+    infoCell('Tag Description',gv('tag-desc'),LM+4+H,y+9,H);
+    infoCell('Date',gv('wo-date'),LM+4,y+21,H);
+    infoCell('Done By',gv('done-by'),LM+4+H,y+21,H);
+    infoCell('WO Number',gv('wo-no'),LM+4,y+33,H);
+    infoCell('Acknowledge By',gv('ack-by'),LM+4+H,y+33,H);
+    infoCell('Ack. Date',gv('ack-date'),LM+4,y+45,H);
+    infoCell('Signature',gv('signature'),LM+4+H,y+45,H);
+    y+=58;
+
+    // Summary chips
+    var okCount=Object.values(ST).filter(function(x){return x==='OK';}).length;
+    var ngCount=Object.values(ST).filter(function(x){return x==='NG';}).length;
+    var photoCount=Object.keys(photoStore).length;
+    var chips=[
+      {val:''+ITEMS.length,lbl:'Total Items',c:NAVY},
+      {val:''+okCount,      lbl:'Items OK',   c:OK_C},
+      {val:''+ngCount,      lbl:'Items NG',   c:NG_C},
+      {val:''+photoCount,   lbl:'Photos',     c:BLUE}
+    ];
+    var chipW=(CW-6)/4;
+    chips.forEach(function(chip,i){
+      var cx=LM+i*(chipW+2);
+      doc.setFillColor(chip.c[0],chip.c[1],chip.c[2]);
+      doc.setGState(new doc.GState({opacity:0.1}));
+      doc.roundedRect(cx,y,chipW,18,2,2,'F');
+      doc.setGState(new doc.GState({opacity:1}));
+      doc.setDrawColor(chip.c[0],chip.c[1],chip.c[2]);
+      doc.setLineWidth(0.5);doc.roundedRect(cx,y,chipW,18,2,2,'S');
+      doc.setFont('helvetica','bold');doc.setFontSize(17);
+      doc.setTextColor(chip.c[0],chip.c[1],chip.c[2]);
+      doc.text(chip.val,cx+chipW/2,y+11.5,{align:'center'});
+      doc.setFont('helvetica','normal');doc.setFontSize(7);
+      doc.text(chip.lbl,cx+chipW/2,y+16.5,{align:'center'});
+    });
+    y+=24;
+
+    // Caution banner
+    doc.setFillColor(255,242,242);
+    doc.setDrawColor(RED[0],RED[1],RED[2]);
+    doc.setLineWidth(0.5);doc.roundedRect(LM,y,CW,9,1.5,1.5,'FD');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(RED[0],RED[1],RED[2]);
+    doc.text('CAUTION: MCC must be de-energized — both primary and control power supply',LM+3,y+5.5);
+    y+=14;
+
+    drawFooter();
+
+    // ── PAGE 2 — CHECK ITEMS ──────────────────────────
+    doc.addPage();pageNum++;y=TM;
+    drawPageHeader();
+    sectionBar('Maintenance Check Items');
+
+    // Build table rows
+    var tableBody=ITEMS.map(function(item){
+      return [item.no, item.desc, item.crit, gT('item_'+item.no), gv('rmk_'+item.no)||''];
+    });
+
+    doc.autoTable({
+      startY:y,
+      head:[['No.','Check Item / Point','Criteria','Result','Remark']],
+      body:tableBody,
+      theme:'grid',
+      styles:{font:'helvetica',fontSize:8,cellPadding:3,textColor:[15,23,42],lineColor:[200,215,230],lineWidth:0.2,overflow:'linebreak'},
+      headStyles:{fillColor:[NAVY[0],NAVY[1],NAVY[2]],textColor:[SKY_C[0],SKY_C[1],SKY_C[2]],fontStyle:'bold',fontSize:7.5,halign:'center',cellPadding:4},
+      columnStyles:{
+        0:{halign:'center',cellWidth:10,fontStyle:'bold'},
+        1:{cellWidth:80},
+        2:{cellWidth:34,halign:'center',fontSize:7,textColor:[GR[0],GR[1],GR[2]]},
+        3:{halign:'center',cellWidth:18,fontStyle:'bold'},
+        4:{cellWidth:CW-10-80-34-18}
+      },
+      didParseCell:function(data){
+        var val=data.cell.text[0];
+        if(val==='OK'){
+          data.cell.styles.textColor=[OK_C[0],OK_C[1],OK_C[2]];
+          data.cell.styles.fontStyle='bold';
+          data.cell.styles.fillColor=[240,255,245];
+        }
+        if(val==='NG'){
+          data.cell.styles.textColor=[NG_C[0],NG_C[1],NG_C[2]];
+          data.cell.styles.fontStyle='bold';
+          data.cell.styles.fillColor=[255,242,242];
+        }
+      },
+      alternateRowStyles:{fillColor:[248,251,255]},
+      margin:{left:LM,right:RM}
+    });
+    y=doc.lastAutoTable.finalY+8;
+
+    // ── CONCLUSION ────────────────────────────────────
+    checkY(50);
+    sectionBar('Comments & Conclusion');
+    doc.autoTable({
+      startY:y,
+      body:[
+        ['Overall Condition',gv('overall')||'-'],
+        ['Next PM Due',gv('next-pm')||'-'],
+        ['Comments / Findings',gv('comments')||'-'],
+        ['Corrective Actions',gv('actions')||'-'],
+      ],
+      theme:'grid',
+      styles:{font:'helvetica',fontSize:8.5,cellPadding:4,textColor:[15,23,42],lineColor:[200,215,230],lineWidth:0.2,overflow:'linebreak'},
+      columnStyles:{0:{cellWidth:46,fontStyle:'bold',fillColor:[LT[0],LT[1],LT[2]],textColor:[NAVY[0],NAVY[1],NAVY[2]],fontSize:8}},
+      margin:{left:LM,right:RM}
+    });
+    y=doc.lastAutoTable.finalY+10;
+    drawFooter();
+
+    // ── PHOTO PAGES ───────────────────────────────────
+    function renderPhotoPage(type,title,icon){
+      var keys=Object.keys(photoStore).filter(function(k){return k.startsWith(type+'_');});
+      if(!keys.length)return;
+
+      doc.addPage();pageNum++;y=TM;
+      drawPageHeader();
+      sectionBar(icon+'  '+title);
+
+      var colW=(CW-6)/2;
+      var maxPhotoH=90;
+
+      for(var i=0;i<keys.length;i+=2){
+        var pair=keys.slice(i,i+2);
+
+        // Row height = the TALLEST photo in the pair once each has been fitted to
+        // the column at its own aspect ratio. (It used to take the SHORTEST, so a
+        // taller photo overflowed its frame and ran into the caption below.)
+        var fits={};
+        var rowH=0;
+        pair.forEach(function(pid){
+          var p=photoStore[pid];
+          if(!p)return;
+          fits[pid]=PhotoKit.fit(pkEntry(pid),colW,maxPhotoH);
+          if(fits[pid].h>rowH)rowH=fits[pid].h;
+        });
+        if(!rowH)rowH=maxPhotoH;
+        var blockH=rowH+24;
+        checkY(blockH);
+
+        pair.forEach(function(pid,pi){
+          var p=photoStore[pid];
+          if(!p)return;
+          var xo=LM+(pi*(colW+6));
+          var num=pid.split('_')[1];
+          var cap=gv('cap_'+pid);
+
+          // Label bar
+          doc.setFillColor(NAVY[0],NAVY[1],NAVY[2]);
+          doc.roundedRect(xo,y,colW,6.5,1,1,'F');
+          doc.setFont('helvetica','bold');doc.setFontSize(7);
+          doc.setTextColor(WHITE[0],WHITE[1],WHITE[2]);
+          var label=(type==='activity'?'Foto Kegiatan':'After Cleaning')+' #'+num;
+          doc.text(label,xo+3,y+4.5);
+
+          // Display size comes straight from the fit computed above — never the
+          // raw box, which is what stretched photos out of shape.
+          var fit=fits[pid]||PhotoKit.fit(pkEntry(pid),colW,maxPhotoH);
+          var dispW=fit.w,dispH=fit.h;
+          var xImg=xo+fit.dx;
+          var yImg=y+7.5;
+
+          // Photo border
+          doc.setDrawColor(190,205,225);doc.setLineWidth(0.3);
+          doc.rect(xo,y+7,colW,rowH+1,'S');
+
+          // Add image
+          try{
+            PhotoKit.draw(doc,pkEntry(pid),xImg,yImg,dispW,dispH,{align:'center',compression:'FAST'});
+          }catch(imgErr){
+            doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(150,150,150);
+            doc.text('[Image could not be rendered]',xo+colW/2,yImg+rowH/2,{align:'center'});
+          }
+
+          // Caption
+          var capY=y+7+rowH+2;
+          doc.setFillColor(248,251,255);doc.rect(xo,capY,colW,8,'F');
+          doc.setFont('helvetica','italic');doc.setFontSize(7);doc.setTextColor(GR[0],GR[1],GR[2]);
+          doc.text(cap?shortStr(cap,45):'—',xo+3,capY+5.5);
+        });
+        y+=rowH+22;
+      }
+      drawFooter();
+    }
+
+    renderPhotoPage('activity','Foto Kegiatan — Activity Documentation','[DOC]');
+    renderPhotoPage('cleaning','Foto After Cleaning — Post-Cleaning Evidence','[CLN]');
+
+    // ── UPDATE PAGE NUMBERS ───────────────────────────
+    var totalPages=doc.internal.getNumberOfPages();
+    for(var pg=1;pg<=totalPages;pg++){
+      doc.setPage(pg);
+      doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(150,150,150);
+      // Update footer page number
+      doc.text('Page '+pg+' / '+totalPages,PW-RM,PH-BM+6,{align:'right'});
+    }
+
+    // ── SAVE ──────────────────────────────────────────
+    var tag=(gv('tag-no')||'MCC').replace(/[^a-zA-Z0-9]/g,'-');
+    var dt=(gv('wo-date')||new Date().toISOString().slice(0,10)).replace(/-/g,'');
+    var fname='MCC_PM_'+tag+'_'+dt+'.pdf';
+    if(opts.silent){
+      return doc;
+    }
+    doc.save(fname);
+    showNote('PDF berhasil disimpan: '+fname,'ok');
+    return doc;
+
+  }catch(err){
+    console.error('PDF Error:',err);
+    if(opts.silent) throw err;
+    showNote('Error membuat PDF: '+err.message,'err');
+  }
+}
+
+// ── INIT ───────────────────────────────────────────
+PhotoKit.configure({maxWcm:8.5,maxHcm:20,defaultWcm:8.5,defaultHcm:6});
+buildCheckTable();
+loadDraft();
+updateStats();
+LoadMergeModal.init({assetTag:'7EP-MCC'});
+SubmitGuard.init({ assetTag:'7EP-MCC' });
+LoadMergeModal.initRevisionBanner();
+TechnicianAuth.init({ checkedByFieldId: "done-by" });
+
+// Auto-load last submission from database
+setTimeout(async()=>{
+  const d=await DB.loadLastSubmission('7EP-MCC');
+  if(d)showNote('📂 Data terakhir dimuat dari database.','ok');
+},800);
+
+function printPage(){
+  const tag  = document.querySelector('[id*=tag],[id*=equip],[id*=asset]')?.value || '—';
+  const date = document.querySelector('input[type=date]')?.value || '—';
+  const wo   = document.querySelector('[id*=wo],[id*=work-order]')?.value || '—';
+  document.getElementById('ph-tag').textContent  = tag;
+  document.getElementById('ph-date').textContent = date;
+  document.getElementById('ph-wo').textContent   = wo;
+  document.querySelectorAll('.sec-hdr').forEach(h => h.classList.add('open'));
+  document.querySelectorAll('.sec-body').forEach(b => b.style.display = 'block');
+  const MAX_PX = 560, QUALITY = 0.45;
+  const imgs = Array.from(document.querySelectorAll('.photo-drop img'));
+  const origSrcs = imgs.map(el => el.src);
+  function compressDataUrl(src){
+    return new Promise(resolve => {
+      const im = new Image();
+      im.onload = () => {
+        const W = im.naturalWidth, H = im.naturalHeight;
+        const scale = Math.min(1, MAX_PX / Math.max(W, H));
+        const cv = document.createElement('canvas');
+        cv.width = Math.round(W * scale); cv.height = Math.round(H * scale);
+        cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+        resolve(cv.toDataURL('image/jpeg', QUALITY));
+      };
+      im.onerror = () => resolve(src);
+      im.src = src;
+    });
+  }
+  if(!imgs.length){ window.print(); return; }
+  Promise.all(origSrcs.map(compressDataUrl)).then(compressed => {
+    imgs.forEach((el, i) => { el.src = compressed[i]; });
+    const restore = () => {
+      imgs.forEach((el, i) => { el.src = origSrcs[i]; });
+      window.removeEventListener('afterprint', restore);
+    };
+    window.addEventListener('afterprint', restore);
+    window.print();
+  });
+}
+
+async function submitToDb(){
+  const data=DB.collectCheckSheetData('mcc','7EP-MCC','MCC Switchboard PM','4 YEARLY');
+  const iv=id=>{const e=document.getElementById(id);return e&&e.value.trim()?e.value.trim():'—'};
+  data.checkedBy=data.checkedBy||document.getElementById('done-by')?.value.trim()||'';
+  data.reviewedBy=data.reviewedBy||document.getElementById('ack-by')?.value.trim()||'';
+  data.findings=data.findings||document.getElementById('comments')?.value.trim()||'';
+  data.recommendations=data.recommendations||document.getElementById('actions')?.value.trim()||'';
+
+  data.sheets={
+    check:{
+      title:'MCC Switchboard — Check Items',
+      columns:['Result','Remark'],
+      rows:ITEMS.map(item=>({no:item.no,desc:item.desc,crit:item.crit,
+        values:{Result:ST['item_'+item.no]||'—',Remark:iv('rmk_'+item.no)}}))
+    }
+  };
+
+  if(!data.executionDate){DB.showSubmitResult(false,'Isi tanggal eksekusi terlebih dahulu.');return;}
+  if(!data.checkedBy){DB.showSubmitResult(false,'Isi nama teknisi terlebih dahulu.');return;}
+
+  const target=await SubmitGuard.resolveSubmitTarget(data.woNumber);
+  if(target.mode==='cancel') return;
+
+  let id;
+  try{
+    SubmitGuard.setProgress(5,'Menyimpan data checklist...');
+    id = target.mode==='overwrite' ? await DB.update(target.targetId,data) : await DB.save(data);
+    DB.showSubmitResult(true,'Data berhasil disimpan ke database! ID: '+id);
+  }catch(e){
+    SubmitGuard.hideProgress();
+    DB.showSubmitResult(false,'Gagal menyimpan: '+e.message);
+    return;
+  }
+
+  // Photos + archival PDF + the review/approval workflow record are all
+  // best-effort ON TOP of the checksheet doc saved above. A Storage hiccup
+  // (e.g. Storage not yet enabled, or a slow connection dropping mid-upload)
+  // must never make this look like the whole submission failed — the
+  // checklist data the technician actually filled in is already safely
+  // saved by this point. Mirrors PLTS_AshDisposal_PM.html's submitToDb().
+  let filesOk=true;
+  try{
+    showNote('⏳ Mengunggah foto & PDF untuk alur review/approval...','info');
+    filesOk=await Approvals.submitWithFiles(id,{
+      photos:buildPhotosForUpload(),
+      pdfBuilder:()=>generatePDF({silent:true}),
+      assetTag:'7EP-MCC',
+      assetName:'MCC Switchboard PM',
+      checksheetFile:'7EPMCC_Maintenance.html',
+      submittedBy:data.checkedBy,
+      revisionOf:LoadMergeModal.getReviseOfApprovalId(),
+      existingApprovalId: target.mode==='overwrite' ? target.approvalId : null,
+      onProgress:(pct,label)=>SubmitGuard.setProgress(10+Math.round(pct*0.85),label),
+    });
+  }catch(e){
+    filesOk=false;
+    console.error('Upload foto/PDF/approval record gagal:',e);
+  }
+
+  SubmitGuard.markSubmitted(id,{woNumber:data.woNumber,executionDate:data.executionDate,checkedBy:data.checkedBy});
+  SubmitGuard.setProgress(100,'Selesai!');
+  setTimeout(()=>SubmitGuard.hideProgress(),500);
+
+  if(filesOk){
+    showNote('✅ Foto, PDF & alur review/approval berhasil disiapkan.','ok');
+  }else{
+    showNote('⚠️ Data checklist tersimpan (ID: '+id+'), tapi foto/PDF gagal diunggah untuk alur review — pastikan Firebase Storage sudah aktif, lalu coba submit ulang.','err');
+  }
+}
+</script>
+</body>
+</html>

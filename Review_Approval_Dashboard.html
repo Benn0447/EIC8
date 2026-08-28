@@ -1,0 +1,2327 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Review &amp; Approval — ELECTRIC 7 POMI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script><script src="firebase-config.js"></script>
+<script src="db-helper.js"></script>
+<script src="storage-helper.js"></script>
+<script src="approval-helper.js"></script>
+<script src="auth-session.js"></script>
+<style>
+:root{
+  --bg:#f4f7fb; --bg-2:#eaf0f7; --surf:#ffffff; --surf-2:#f8fafc;
+  --bdr:#e3e8f0; --bdr-2:#d6dde7;
+  --txt:#0b1220; --txt-2:#475569; --txt-3:#94a3b8;
+  --pri:#2563eb; --pri-soft:#dbeafe; --pri-deep:#1d4ed8;
+  --acc:#f59e0b; --acc-soft:#fef3c7;
+  --ind:#6366f1; --ind-soft:#e0e7ff;
+  --ok:#10b981; --ok-soft:#d1fae5;
+  --ng:#f43f5e; --ng-soft:#ffe4e6;
+  --amber-ink:#92400e; --green-ink:#047857; --rose-ink:#9f1239; --rose-ink-2:#be123c;
+  --chip-bg:#e2e8f0; --chip-ink:#334155;
+  --warn-bdr:#fde68a; --danger-surf:#fff5f6; --danger-btn-surf:#fff1f2; --danger-btn-bdr:#fecdd3;
+  --btn-ok-hover:#059669; --btn-danger-hover:#ffe4e6;
+  --overlay-scrim:rgba(11,18,32,.55);
+  --display:'Space Grotesk',system-ui,sans-serif;
+  --body:'Manrope',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --shadow:0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04);
+  --shadow-lg:0 14px 40px -10px rgba(37,99,235,0.18),0 4px 12px rgba(15,23,42,0.06);
+}
+:root[data-theme="dark"]{
+  --bg:#0f172a; --bg-2:#131c30; --surf:#1b2536; --surf-2:#141d2e;
+  --bdr:#2c3850; --bdr-2:#3a4a66;
+  --txt:#e7edf6; --txt-2:#a8b5c8; --txt-3:#6b7a91;
+  --pri:#3b82f6; --pri-soft:#1d3355; --pri-deep:#7db0ff;
+  --acc:#fbbf24; --acc-soft:#3b2f13;
+  --ind:#818cf8; --ind-soft:#272b4e;
+  --ok:#34d399; --ok-soft:#123227;
+  --ng:#fb7185; --ng-soft:#3b1720;
+  --amber-ink:#fcd34d; --green-ink:#6ee7b7; --rose-ink:#fda4af; --rose-ink-2:#fda4af;
+  --chip-bg:#2c3850; --chip-ink:#cbd5e1;
+  --warn-bdr:#5a4a1f; --danger-surf:#2a1620; --danger-btn-surf:#3a1720; --danger-btn-bdr:#7f1d33;
+  --btn-ok-hover:#059669; --btn-danger-hover:#4a1c28;
+  --overlay-scrim:rgba(2,6,15,.72);
+  --shadow:0 2px 8px rgba(0,0,0,0.45),0 1px 2px rgba(0,0,0,0.35);
+  --shadow-lg:0 16px 44px -10px rgba(0,0,0,0.62),0 4px 12px rgba(0,0,0,0.45);
+}
+:root{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--body);background:var(--bg);color:var(--txt);min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:var(--body);cursor:pointer}
+textarea,input{font-family:var(--body)}
+
+/* LOGIN (mirrors dashboard.html) */
+.login-overlay{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;transition:opacity .4s}
+.login-overlay.hide{opacity:0;pointer-events:none}
+.login-box{position:relative;z-index:1;background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:42px 38px;max-width:420px;width:100%;box-shadow:0 30px 80px -20px rgba(37,99,235,.25),0 10px 30px rgba(15,23,42,.08);text-align:center;overflow:hidden}
+.login-box::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--pri),var(--ind),var(--pri))}
+.login-mark{width:56px;height:56px;border-radius:16px;margin:0 auto 16px;background:linear-gradient(135deg,var(--pri) 0%,var(--ind) 100%);display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:700;font-size:20px;box-shadow:0 10px 24px -6px rgba(37,99,235,.5)}
+.login-logo{font-family:var(--display);font-size:22px;font-weight:700;color:var(--txt);margin-bottom:6px;letter-spacing:-.4px}
+.login-logo span{color:var(--pri)}
+.login-sub{font-size:13px;color:var(--txt-2);margin-bottom:26px}
+.login-field{width:100%;background:var(--surf-2);border:1px solid var(--bdr);border-radius:12px;padding:13px 16px;color:var(--txt);font-size:14px;font-weight:500;outline:none;margin-bottom:12px;transition:all .15s}
+.login-field:focus{border-color:var(--pri);background:var(--surf);box-shadow:0 0 0 4px rgba(37,99,235,.10)}
+.login-btn{width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--pri) 0%,var(--pri-deep) 100%);color:#fff;font-size:15px;font-weight:700;letter-spacing:.4px;transition:all .15s;margin-top:6px;box-shadow:0 8px 20px -6px rgba(37,99,235,.45)}
+.login-btn:hover{transform:translateY(-1px)}
+.login-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.login-err{font-size:13px;color:var(--ng);margin-top:14px;min-height:20px;font-weight:500}
+.login-info{font-size:11px;color:var(--txt-3);margin-top:20px;line-height:1.6}
+.auth-switch{font-size:12.5px;color:var(--txt-2);margin-top:14px}
+.auth-switch a{color:var(--pri);font-weight:700;text-decoration:none;cursor:pointer}
+.auth-switch a:hover{text-decoration:underline}
+.login-hint{font-size:11px;color:var(--txt-3);margin:-6px 0 12px;text-align:left;line-height:1.4}
+
+/* segmented control (theme picker) */
+.seg{display:flex;gap:4px;background:var(--surf-2);border:1px solid var(--bdr);border-radius:10px;padding:3px}
+.seg button{flex:1;border:none;background:transparent;color:var(--txt-2);font-family:var(--body);font-weight:700;font-size:12.5px;padding:8px 10px;border-radius:7px;transition:all .15s}
+.seg button.on{background:var(--pri);color:#fff}
+
+/* topbar icon buttons (theme toggle + settings) */
+.icon-btn{background:none;border:1px solid var(--bdr);color:var(--txt-2);width:32px;height:32px;border-radius:9px;font-size:15px;display:inline-flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0}
+.icon-btn:hover{border-color:var(--bdr-2);color:var(--txt);background:var(--surf-2)}
+
+/* SETTINGS MODAL (reuses .login-overlay scrim/box; adds a close + scroll) */
+#settings-overlay .login-box,#manual-overlay .login-box{max-width:460px;text-align:left;max-height:90vh;overflow-y:auto}
+#manual-overlay input[type=file]{background:var(--surf-2);cursor:pointer}
+#manual-overlay textarea.dinput{margin-bottom:4px}
+.settings-x{position:absolute;top:12px;right:14px;background:var(--surf-2);border:1px solid var(--bdr);color:var(--txt-2);width:28px;height:28px;border-radius:8px;font-size:15px}
+.settings-x:hover{color:var(--txt);border-color:var(--bdr-2)}
+.settings-sec{border-top:1px solid var(--bdr);padding-top:16px;margin-top:16px}
+.settings-sec:first-of-type{border-top:none;padding-top:0;margin-top:4px}
+.settings-sec h4{font-family:var(--display);font-size:13px;font-weight:700;color:var(--txt);margin-bottom:10px;letter-spacing:.2px}
+.settings-ok{font-size:12px;color:var(--ok);margin-top:8px;min-height:16px;font-weight:600}
+
+/* FILE DOWNLOAD PROGRESS (opening a PDF / building the final PDF) */
+#file-progress{display:none;position:fixed;inset:0;z-index:700;align-items:center;justify-content:center;background:var(--overlay-scrim);backdrop-filter:blur(3px)}
+#file-progress.show{display:flex}
+.fp-card{background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:26px 30px;width:min(330px,90vw);text-align:center;box-shadow:var(--shadow-lg)}
+.fp-spinner{width:38px;height:38px;margin:0 auto 14px;border:3px solid var(--bdr-2);border-top-color:var(--pri);border-radius:50%;animation:fp-spin .8s linear infinite}
+@keyframes fp-spin{to{transform:rotate(360deg)}}
+.fp-label{font-family:var(--display);font-weight:700;font-size:14px;color:var(--txt);margin-bottom:12px}
+.fp-bar{height:9px;background:var(--surf-2);border:1px solid var(--bdr);border-radius:20px;overflow:hidden}
+.fp-fill{height:100%;width:0;background:linear-gradient(90deg,var(--pri),var(--ind));border-radius:20px;transition:width .3s ease}
+.fp-meta{font-family:var(--mono);font-size:11.5px;color:var(--txt-3);margin-top:9px}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;background:var(--surf);border-bottom:1px solid var(--bdr);height:56px;display:flex;align-items:center;padding:0 20px;gap:16px}
+.tb-brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:15px;flex-shrink:0}
+.tb-logo-mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--pri),var(--ind));color:#fff;display:grid;place-items:center;font-size:12px}
+.tb-brand .accent{color:var(--pri)}
+.tb-nav{display:flex;gap:4px;flex:1}
+.tb-nav a{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;color:var(--txt-2);text-decoration:none;font-size:13px;font-weight:600;transition:all .15s}
+.tb-nav a:hover{background:var(--surf-2);color:var(--txt)}
+.tb-nav a.active{background:var(--pri-soft);color:var(--pri-deep)}
+.tb-right{display:flex;align-items:center;gap:10px}
+.user-pill{background:var(--surf-2);border:1px solid var(--bdr);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--txt-2)}
+.role-pill{border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+.role-pill.techop2{background:var(--ind-soft);color:var(--ind)}
+.role-pill.supervisor{background:var(--acc-soft);color:var(--amber-ink)}
+.role-pill.admin{background:var(--ok-soft);color:var(--green-ink)}
+.role-pill.technician{background:var(--chip-bg);color:var(--chip-ink)}
+.role-pill.none{background:var(--ng-soft);color:var(--ng)}
+.logout-btn{background:none;border:1px solid var(--bdr);color:var(--txt-2);padding:6px 14px;border-radius:9px;font-size:12px;font-weight:600}
+.logout-btn:hover{border-color:var(--bdr-2);color:var(--txt)}
+
+/* MAIN */
+.main{max-width:1100px;margin:0 auto;padding:28px 20px 60px}
+.page-hdr{margin-bottom:20px}
+.eyebrow-d{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--pri);margin-bottom:6px}
+.pip{width:6px;height:6px;border-radius:50%;background:var(--pri)}
+.page-title{font-family:var(--display);font-size:26px;font-weight:700;letter-spacing:-.5px}
+.page-sub{font-size:13px;color:var(--txt-2);margin-top:4px}
+
+.role-note{display:none;align-items:center;gap:10px;background:var(--acc-soft);border:1px solid var(--warn-bdr);color:var(--amber-ink);border-radius:10px;padding:10px 14px;font-size:12.5px;margin-bottom:16px}
+.dedupe-note{display:none;align-items:center;gap:10px;background:var(--ind-soft);border:1px solid rgba(99,102,241,.25);color:var(--ind);border-radius:10px;padding:10px 14px;font-size:12.5px;margin-bottom:16px}
+.scope-note{display:none;align-items:center;gap:10px;background:var(--pri-soft);border:1px solid rgba(37,99,235,.22);color:var(--pri-deep);border-radius:10px;padding:10px 14px;font-size:12.5px;margin-bottom:16px}
+.scope-note b{font-weight:800}
+.sig-note{display:none;align-items:center;gap:12px;flex-wrap:wrap;background:var(--acc-soft);border:1px solid var(--warn-bdr);color:var(--amber-ink);border-radius:10px;padding:10px 14px;font-size:12.5px;margin-bottom:16px}
+.sig-note b{font-weight:800}
+.sig-note .btn{flex-shrink:0}
+/* signature pad used in the register form + the "save signature" modal */
+canvas.reg-sig{border:1.5px dashed var(--bdr-2);border-radius:10px;background:#fff;touch-action:none;cursor:crosshair;width:100%;max-width:300px;height:130px;display:block;margin:0 auto 6px}
+.reg-sig-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:4px}
+/* team/area selects inside the login + team-setup cards */
+select.login-field{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2364748b' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:38px;cursor:pointer}
+select.login-field:disabled{opacity:.55;cursor:not-allowed}
+.login-field-lbl{font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--txt-3);text-align:left;margin:2px 0 5px}
+.area-checks{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.area-chk{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--txt);background:var(--surf-2);border:1px solid var(--bdr);border-radius:8px;padding:8px 11px;cursor:pointer;user-select:none}
+.area-chk:hover{border-color:var(--bdr-2)}
+.area-chk input{width:16px;height:16px;flex-shrink:0;accent-color:var(--pri)}
+.area-hint{font-size:11.5px;color:var(--txt-3);padding:3px 1px}
+.card-scope-tag{display:inline-block;background:var(--surf-2);border:1px solid var(--bdr);border-radius:6px;padding:1px 7px;font-size:10.5px;font-family:var(--mono);color:var(--txt-2);margin-left:6px}
+
+/* TABS */
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--bdr);margin-bottom:16px}
+.tab-btn{background:none;border:none;padding:10px 4px;margin-right:18px;font-size:13.5px;font-weight:700;color:var(--txt-3);border-bottom:2.5px solid transparent;position:relative;top:1px}
+.tab-btn.active{color:var(--pri);border-color:var(--pri)}
+.tab-count{display:inline-block;background:var(--bdr);color:var(--txt-2);border-radius:10px;padding:1px 7px;font-size:10.5px;margin-left:5px;font-family:var(--mono)}
+.tab-btn.active .tab-count{background:var(--pri-soft);color:var(--pri-deep)}
+
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.filter-sel{background:var(--surf);border:1px solid var(--bdr);border-radius:9px;padding:8px 12px;font-size:12.5px;color:var(--txt-2);font-weight:600}
+
+/* RECAP TAB */
+.recap-filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.recap-field{display:flex;flex-direction:column;gap:5px}
+.recap-field label{font-size:10.5px;color:var(--txt-3);font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+.recap-card{background:var(--surf);border:1px solid var(--bdr);border-radius:14px;padding:20px;box-shadow:var(--shadow);margin-bottom:18px}
+.recap-card-title{font-family:var(--display);font-size:15px;font-weight:700;margin-bottom:14px}
+.recap-legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.recap-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--txt-2);font-weight:600}
+.recap-legend-swatch{width:10px;height:10px;border-radius:3px}
+.recap-chart-body{position:relative;height:320px}
+.recap-empty{text-align:center;padding:50px 20px;color:var(--txt-3);font-size:13px}
+.recap-table-wrap{overflow-x:auto}
+.recap-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+.recap-table th{background:var(--surf-2);color:var(--txt-2);text-align:center;padding:8px 10px;font-weight:700;border-bottom:1px solid var(--bdr)}
+.recap-table th:first-child{text-align:left}
+.recap-table td{text-align:center;padding:7px 10px;border-bottom:1px solid var(--bdr-2)}
+.recap-table td:first-child{text-align:left;font-weight:600;font-family:var(--mono);font-size:11.5px}
+.danger-zone{border:1px solid var(--ng-soft);background:var(--danger-surf);border-radius:12px;padding:14px 16px}
+.danger-zone .dsec-title{color:var(--ng)}
+.btn{padding:9px 16px;border-radius:9px;border:1px solid var(--bdr);background:var(--surf);color:var(--txt-2);font-size:12.5px;font-weight:700;transition:all .15s}
+.btn:hover{border-color:var(--bdr-2);color:var(--txt)}
+.btn-pri{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn-pri:hover{background:var(--pri-deep)}
+.btn-ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn-ok:hover{background:var(--btn-ok-hover)}
+.btn-danger{background:var(--danger-btn-surf);border-color:var(--danger-btn-bdr);color:var(--rose-ink-2)}
+.btn-danger:hover{background:var(--btn-danger-hover)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:6px 12px;font-size:11.5px}
+
+/* LIST */
+.list-empty,.list-loading{text-align:center;padding:60px 20px;color:var(--txt-3)}
+.list-empty .msg,.list-loading .msg{font-family:var(--display);font-size:15px;font-weight:600;color:var(--txt);margin-bottom:6px}
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:14px;padding:16px 18px;margin-bottom:10px;box-shadow:var(--shadow);display:flex;align-items:center;gap:16px;flex-wrap:wrap;transition:border-color .15s}
+.card:hover{border-color:var(--bdr-2)}
+.card-main{flex:1;min-width:220px}
+.card-title{font-family:var(--display);font-weight:700;font-size:14.5px}
+.card-meta{font-size:11.5px;color:var(--txt-3);font-family:var(--mono);margin-top:3px}
+.card-badge{font-size:10.5px;font-weight:800;letter-spacing:.4px;padding:4px 11px;border-radius:20px;text-transform:uppercase;white-space:nowrap}
+.card-badge.submitted{background:var(--ind-soft);color:var(--ind)}
+.card-badge.reviewed{background:var(--acc-soft);color:var(--amber-ink)}
+.card-badge.approved{background:var(--ok-soft);color:var(--green-ink)}
+.card-badge.returned_to_technician{background:var(--ng-soft);color:var(--ng)}
+
+/* DETAIL OVERLAY */
+#detail-overlay{display:none;position:fixed;inset:0;background:var(--overlay-scrim);z-index:600;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto;backdrop-filter:blur(3px)}
+#detail-overlay.show{display:flex}
+.detail-box{background:var(--surf);border-radius:18px;width:min(820px,100%);box-shadow:var(--shadow-lg);overflow:hidden;margin-bottom:30px}
+.detail-hdr{background:linear-gradient(120deg,var(--pri),var(--ind));padding:20px 24px;color:#fff;display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.detail-hdr h2{font-family:var(--display);font-size:19px;font-weight:700}
+.detail-hdr .sub{font-size:12px;opacity:.85;margin-top:3px;font-family:var(--mono)}
+.detail-x{background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:8px;font-size:16px;flex-shrink:0}
+.detail-x:hover{background:rgba(255,255,255,.28)}
+.detail-body{padding:22px 24px}
+.dsec{margin-bottom:22px}
+.dsec-title{font-family:var(--display);font-size:12.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--txt-2);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.info-cell{background:var(--surf-2);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px}
+.info-cell .k{font-size:10.5px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px}
+.info-cell .v{font-size:13px;font-weight:700;word-break:break-word}
+.file-links{display:flex;gap:10px;flex-wrap:wrap}
+.photo-groups{display:flex;flex-direction:column;gap:10px}
+.photo-group-lbl{font-size:11.5px;font-weight:700;color:var(--txt-2);font-family:var(--mono)}
+.photo-thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.photo-thumbs img{width:78px;height:78px;object-fit:cover;border-radius:8px;border:1px solid var(--bdr)}
+.note-box{background:var(--surf-2);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.6;white-space:pre-wrap}
+.note-box.returned{background:var(--ng-soft);border-color:var(--danger-btn-bdr);color:var(--rose-ink)}
+.sig-preview{margin-top:8px}
+.sig-preview img{max-width:220px;max-height:100px;border:1px solid var(--bdr);border-radius:8px;background:#fff}
+textarea.dinput{width:100%;border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;font-size:13px;resize:vertical;min-height:70px;outline:none}
+textarea.dinput:focus{border-color:var(--pri)}
+.field-lbl{font-size:12px;font-weight:700;color:var(--txt-2);margin-bottom:5px;display:block}
+.sig-pad-wrap{margin-top:10px}
+canvas.sig-canvas{border:1.5px dashed var(--bdr-2);border-radius:10px;background:#fff;touch-action:none;cursor:crosshair;width:100%;max-width:330px;height:150px}
+.sig-actions{margin-top:6px;display:flex;gap:8px;flex-wrap:wrap}
+.action-row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.readonly-hint{font-size:12px;color:var(--txt-3);font-style:italic}
+.edit-cs-box{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--pri-soft);border:1px solid rgba(37,99,235,.22);border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:12.5px;color:var(--pri-deep)}
+.edit-cs-box b{font-weight:800}
+.edit-cs-box a{flex-shrink:0;text-decoration:none}
+
+@media(max-width:640px){
+  .detail-hdr{flex-direction:column}
+  .action-row{justify-content:stretch}
+  .action-row button{flex:1}
+  /* Topbar: wrap to a second row so the nav (incl. this page's own link back
+     to Portal/Dashboard) stays fully visible & tappable instead of clipping. */
+  .topbar{height:auto;flex-wrap:wrap;padding:9px 14px;gap:10px}
+  .tb-brand{font-size:14px}
+  .tb-right{order:2;margin-left:auto;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+  .tb-nav{order:3;flex:1 0 100%;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .tb-nav a{padding:7px 10px;font-size:12px;white-space:nowrap;flex-shrink:0}
+}
+</style>
+<script>
+// Apply saved theme before first paint (no flash). 'ra_theme' is a per-device
+// preference in localStorage; with none, follow the OS setting.
+(function(){try{
+  var t = localStorage.getItem('ra_theme');
+  if(t!=='light' && t!=='dark') t = matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+}catch(e){ document.documentElement.setAttribute('data-theme','light'); }})();
+</script>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="login-mark">R&amp;A</div>
+    <div class="login-logo">REVIEW &amp; <span>APPROVAL</span></div>
+
+    <div id="login-panel">
+      <div class="login-sub">🔒 Login memakai akun dashboard yang sama</div>
+      <form onsubmit="doLogin(event)">
+        <input type="text" class="login-field" id="login-user" placeholder="Username" autocomplete="username" required>
+        <input type="password" class="login-field" id="login-pass" placeholder="Password" autocomplete="current-password" required>
+        <button type="submit" class="login-btn" id="login-btn">SIGN IN</button>
+      </form>
+      <div class="login-err" id="login-err"></div>
+      <div class="login-info">Hubungi admin untuk akses role TechOp2 / Supervisor / Admin.</div>
+      <div class="auth-switch">Teknisi baru? <a onclick="toggleAuthMode('register')">Daftar akun di sini</a>
+        &nbsp;·&nbsp; <a onclick="toggleAuthMode('forgot')">Lupa password?</a></div>
+    </div>
+
+    <div id="forgot-panel" style="display:none">
+      <div class="login-sub">🔑 Reset password</div>
+      <div class="login-hint">Butuh <b>kode akses</b> dari admin (kode yang sama untuk daftar TechOp2/Supervisor). Setelah reset, login dengan password baru.</div>
+      <form onsubmit="doForgotPassword(event)">
+        <input type="text" class="login-field" id="fp-user" placeholder="Username akun Anda" autocomplete="username" required>
+        <input type="text" class="login-field" id="fp-code" placeholder="Kode akses dari admin" autocomplete="off" required>
+        <input type="password" class="login-field" id="fp-pass" placeholder="Password baru" autocomplete="new-password" required minlength="4">
+        <input type="password" class="login-field" id="fp-pass2" placeholder="Ulangi password baru" autocomplete="new-password" required minlength="4">
+        <button type="submit" class="login-btn" id="fp-btn">RESET PASSWORD</button>
+      </form>
+      <div class="login-err" id="fp-err"></div>
+      <div class="auth-switch"><a onclick="toggleAuthMode('login')">← Kembali ke login</a></div>
+    </div>
+
+    <div id="register-panel" style="display:none">
+      <div class="login-sub">📝 Daftar akun baru</div>
+      <div class="login-hint">Pilih level akun sesuai peran Anda. <b>TechOp2</b> &amp; <b>Supervisor</b> butuh <b>kode akses</b> dari admin, plus draft tanda tangan (nanti terisi otomatis saat review/approve).</div>
+      <form onsubmit="doRegister(event)">
+        <input type="text" class="login-field" id="reg-name" placeholder="Nama Lengkap (untuk isi Checked By otomatis)" autocomplete="name" required>
+        <input type="text" class="login-field" id="reg-user" placeholder="Pilih username" autocomplete="username" required>
+        <input type="password" class="login-field" id="reg-pass" placeholder="Pilih password" autocomplete="new-password" required minlength="4">
+        <input type="password" class="login-field" id="reg-pass2" placeholder="Ulangi password" autocomplete="new-password" required minlength="4">
+        <div class="login-field-lbl">Level Akun / Role</div>
+        <select class="login-field" id="reg-role" onchange="onRegRoleChange()" required>
+          <option value="technician">Level 1 — Teknisi (submit check sheet)</option>
+          <option value="techop2">Level 2 — TechOp2 (review)</option>
+          <option value="supervisor">Level 3 — Supervisor (approve)</option>
+        </select>
+        <div id="reg-team-wrap">
+          <div class="login-field-lbl">Team</div>
+          <select class="login-field" id="reg-team" onchange="renderAreaChecks('reg-area-checks', this.value)">
+            <option value="">— Pilih Team —</option>
+            <option value="E7">E7</option>
+            <option value="C7">C7</option>
+          </select>
+          <div class="login-field-lbl">Area <span id="reg-area-note" style="text-transform:none;font-weight:400;color:var(--txt-3)"></span></div>
+          <div id="reg-area-checks" class="area-checks"><div class="area-hint">Pilih Team dulu.</div></div>
+        </div>
+        <div id="reg-code-wrap" style="display:none">
+          <div class="login-field-lbl">Kode Akses (dari admin)</div>
+          <input type="text" class="login-field" id="reg-access-code" placeholder="Kode akses TechOp2 / Supervisor" autocomplete="off">
+        </div>
+        <div id="reg-sig-wrap" style="display:none">
+          <div class="login-field-lbl">Draft Tanda Tangan (gambar di kotak atau upload)</div>
+          <canvas class="reg-sig" id="reg-sig-canvas" width="300" height="130"></canvas>
+          <div class="reg-sig-actions">
+            <button type="button" class="btn btn-sm" onclick="clearSignature('reg-sig-canvas')">Hapus</button>
+            <button type="button" class="btn btn-sm" onclick="document.getElementById('reg-sig-file').click()">&#128193; Upload Gambar</button>
+            <input type="file" id="reg-sig-file" accept="image/png,image/jpeg" style="display:none" onchange="handleSignatureFile('reg-sig-canvas', this)">
+          </div>
+        </div>
+        <button type="submit" class="login-btn" id="register-btn">DAFTAR</button>
+      </form>
+      <div class="login-err" id="register-err"></div>
+      <div class="auth-switch">Sudah punya akun? <a onclick="toggleAuthMode('login')">Login di sini</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- TEAM / AREA SETUP (mandatory for accounts without team recorded) -->
+<div class="login-overlay" id="team-overlay" style="display:none">
+  <div class="login-box">
+    <div class="login-mark">T</div>
+    <div class="login-logo">LENGKAPI <span>DATA TEAM</span></div>
+    <div class="login-sub">Akun Anda belum punya Team &amp; Area. Data ini menentukan PIC yang mereview submission Anda &mdash; wajib diisi untuk melanjutkan.</div>
+    <div class="login-field-lbl">Team</div>
+    <select class="login-field" id="ts-team" onchange="renderAreaChecks('ts-area-checks', this.value)">
+      <option value="">— Pilih Team —</option>
+      <option value="E7">E7</option>
+      <option value="C7">C7</option>
+    </select>
+    <div class="login-field-lbl">Area <span id="ts-area-note" style="text-transform:none;font-weight:400;color:var(--txt-3)"></span></div>
+    <div id="ts-area-checks" class="area-checks"><div class="area-hint">Pilih Team dulu.</div></div>
+    <button class="login-btn" id="ts-btn" onclick="saveTeamSetup()">SIMPAN &amp; LANJUT</button>
+    <div class="login-err" id="ts-err"></div>
+  </div>
+</div>
+
+<!-- SIGNATURE DRAFT SETUP (for TechOp2 / Supervisor without a saved signature) -->
+<div class="login-overlay" id="sig-overlay" style="display:none">
+  <div class="login-box">
+    <div class="login-mark">✍</div>
+    <div class="login-logo">DRAFT <span>TANDA TANGAN</span></div>
+    <div class="login-sub">Simpan tanda tangan Anda sekali di sini &mdash; nanti terisi otomatis di kolom tanda tangan saat review/approve.</div>
+    <canvas class="reg-sig" id="sig-setup-canvas" width="300" height="130"></canvas>
+    <div class="reg-sig-actions">
+      <button type="button" class="btn btn-sm" onclick="clearSignature('sig-setup-canvas')">Hapus</button>
+      <button type="button" class="btn btn-sm" onclick="document.getElementById('sig-setup-file').click()">&#128193; Upload Gambar</button>
+      <input type="file" id="sig-setup-file" accept="image/png,image/jpeg" style="display:none" onchange="handleSignatureFile('sig-setup-canvas', this)">
+    </div>
+    <button class="login-btn" id="sig-setup-btn" onclick="saveSignatureSetup()">SIMPAN TANDA TANGAN</button>
+    <button class="btn btn-sm" style="width:100%;margin-top:8px" onclick="closeSignatureSetup()">Nanti saja</button>
+    <div class="login-err" id="sig-setup-err"></div>
+  </div>
+</div>
+
+<!-- ACCOUNT SETTINGS -->
+<div class="login-overlay" id="settings-overlay" style="display:none">
+  <div class="login-box">
+    <button class="settings-x" onclick="closeSettings()" title="Tutup">&times;</button>
+    <div class="login-logo" style="font-size:18px">SETTING <span>AKUN</span></div>
+    <div class="login-sub" id="set-whoami" style="margin-bottom:14px">&mdash;</div>
+
+    <div class="settings-sec">
+      <h4>Tampilan</h4>
+      <div class="seg" id="theme-seg">
+        <button type="button" data-theme-val="light" onclick="setTheme('light')">☀️ Terang</button>
+        <button type="button" data-theme-val="dark" onclick="setTheme('dark')">🌙 Gelap</button>
+        <button type="button" data-theme-val="system" onclick="setTheme('system')">🖥️ Sistem</button>
+      </div>
+    </div>
+
+    <div class="settings-sec">
+      <h4>Profil</h4>
+      <div class="login-field-lbl">Nama Lengkap</div>
+      <input type="text" class="login-field" id="set-name" placeholder="Nama lengkap">
+      <div class="login-field-lbl">Username</div>
+      <input type="text" class="login-field" id="set-user" placeholder="username" autocomplete="off">
+      <button class="login-btn" id="set-profile-btn" onclick="saveProfile()">Simpan Profil</button>
+      <div class="login-err" id="set-profile-err"></div>
+      <div class="settings-ok" id="set-profile-ok"></div>
+    </div>
+
+    <div class="settings-sec" id="set-team-sec">
+      <h4>Team &amp; Area</h4>
+      <div class="login-hint" style="margin-top:0">Menentukan submission mana yang masuk kotak masuk "Menunggu Saya".</div>
+      <div class="login-field-lbl">Team</div>
+      <select class="login-field" id="set-team" onchange="renderAreaChecks('set-area-checks', this.value)">
+        <option value="">— Pilih Team —</option>
+        <option value="E7">E7</option>
+        <option value="C7">C7</option>
+      </select>
+      <div class="login-field-lbl">Area <span id="set-area-note" style="text-transform:none;font-weight:400;color:var(--txt-3)"></span></div>
+      <div id="set-area-checks" class="area-checks"><div class="area-hint">Pilih Team dulu.</div></div>
+      <button class="login-btn" id="set-team-btn" onclick="saveTeamAreaFromSettings()">Simpan Team &amp; Area</button>
+      <div class="login-err" id="set-team-err"></div>
+      <div class="settings-ok" id="set-team-ok"></div>
+    </div>
+
+    <div class="settings-sec">
+      <h4>Ganti Password</h4>
+      <input type="password" class="login-field" id="set-pass-cur" placeholder="Password saat ini" autocomplete="current-password">
+      <input type="password" class="login-field" id="set-pass-new" placeholder="Password baru" autocomplete="new-password" minlength="4">
+      <input type="password" class="login-field" id="set-pass-new2" placeholder="Ulangi password baru" autocomplete="new-password" minlength="4">
+      <button class="login-btn" id="set-pass-btn" onclick="changePassword()">Ubah Password</button>
+      <div class="login-err" id="set-pass-err"></div>
+      <div class="settings-ok" id="set-pass-ok"></div>
+    </div>
+
+    <div class="settings-sec" id="set-sig-sec">
+      <h4>Tanda Tangan</h4>
+      <div class="login-hint" style="margin-top:0">Dipakai otomatis di kolom tanda tangan saat review/approve.</div>
+      <canvas class="reg-sig" id="set-sig-canvas" width="300" height="130"></canvas>
+      <div class="reg-sig-actions">
+        <button type="button" class="btn btn-sm" onclick="clearSignature('set-sig-canvas')">Hapus</button>
+        <button type="button" class="btn btn-sm" onclick="document.getElementById('set-sig-file').click()">&#128193; Upload Gambar</button>
+        <input type="file" id="set-sig-file" accept="image/png,image/jpeg" style="display:none" onchange="handleSignatureFile('set-sig-canvas', this)">
+      </div>
+      <button class="login-btn" id="set-sig-btn" onclick="saveSignatureFromSettings()">Simpan Tanda Tangan</button>
+      <div class="login-err" id="set-sig-err"></div>
+      <div class="settings-ok" id="set-sig-ok"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MANUAL PDF UPLOAD — a report done outside the check-sheet system, pushed into the approval flow -->
+<div class="login-overlay" id="manual-overlay" style="display:none">
+  <div class="login-box">
+    <button class="settings-x" onclick="closeManualUpload()" title="Tutup">&times;</button>
+    <div class="login-logo" style="font-size:18px">UPLOAD <span>MANUAL</span></div>
+    <div class="login-sub" style="margin-bottom:14px">Masukkan laporan yang tidak lewat check sheet ke alur Review &amp; Approval. Isi data, lampirkan PDF, dan gambar (opsional).</div>
+
+    <div class="login-field-lbl">Judul / Nama Laporan *</div>
+    <input type="text" class="login-field" id="mu-name" placeholder="cth. Kalibrasi Flow Meter FGD">
+    <div class="mg2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><div class="login-field-lbl">No. WO</div><input type="text" class="login-field" id="mu-wo" placeholder="opsional"></div>
+      <div><div class="login-field-lbl">Tanggal *</div><input type="date" class="login-field" id="mu-date"></div>
+    </div>
+    <div class="mg2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><div class="login-field-lbl">Kode / Asset Tag</div><input type="text" class="login-field" id="mu-tag" placeholder="opsional"></div>
+      <div><div class="login-field-lbl">PIC / Dikerjakan oleh *</div><input type="text" class="login-field" id="mu-pic" placeholder="Nama pelaksana"></div>
+    </div>
+    <div class="login-field-lbl">Team *</div>
+    <select class="login-field" id="mu-team" onchange="renderAreaChecks('mu-area-checks', this.value)">
+      <option value="">— Pilih Team —</option>
+      <option value="E7">E7</option>
+      <option value="C7">C7</option>
+    </select>
+    <div class="login-field-lbl">Area * <span style="text-transform:none;font-weight:400;color:var(--txt-3)">(pilih satu — menentukan PIC yang mereview)</span></div>
+    <div id="mu-area-checks" class="area-checks"><div class="area-hint">Pilih Team dulu.</div></div>
+    <div class="login-field-lbl">Catatan / Deskripsi</div>
+    <textarea class="dinput" id="mu-notes" placeholder="Ringkasan pekerjaan / temuan (opsional)"></textarea>
+
+    <div class="settings-sec" style="margin-top:14px">
+      <h4>File PDF Laporan *</h4>
+      <input type="file" id="mu-pdf" accept="application/pdf,.pdf" class="login-field" style="padding:9px">
+      <h4 style="margin-top:14px">Gambar / Foto (opsional, bisa banyak)</h4>
+      <input type="file" id="mu-images" accept="image/*" multiple class="login-field" style="padding:9px">
+      <div class="login-hint" id="mu-img-count" style="margin-top:4px"></div>
+    </div>
+
+    <button class="login-btn" id="mu-btn" onclick="submitManualUpload()">&#128228; Submit ke Review &amp; Approval</button>
+    <div class="login-err" id="mu-err"></div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-brand"><div class="tb-logo-mark">E7</div><span>ELECTRIC <span class="accent">7</span></span></div>
+  <div class="tb-nav">
+    <a href="index.html">Portal</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="Review_Approval_Dashboard.html" class="active">Review &amp; Approval</a>
+  </div>
+  <div class="tb-right">
+    <span class="role-pill" id="role-label" style="display:none"></span>
+    <span class="user-pill" id="user-label" style="display:none"></span>
+    <button class="icon-btn" id="theme-btn" onclick="cycleTheme()" title="Ganti tema terang/gelap">🌗</button>
+    <button class="icon-btn" id="settings-btn" onclick="openSettings()" title="Setting akun" style="display:none">⚙️</button>
+    <button class="logout-btn" id="logout-btn" onclick="doLogout()" style="display:none">Sign out</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="page-hdr">
+    <div class="eyebrow-d"><span class="pip"></span>Review &amp; Approval Workflow</div>
+    <div class="page-title">Review &amp; Approval Check Sheet</div>
+    <div class="page-sub">Semua PM Check Sheet. Submit &rarr; Review (TechOp2) &rarr; Approve (Supervisor) &rarr; PDF final untuk Maximo.</div>
+  </div>
+
+  <div class="role-note" id="role-note"></div>
+  <div class="scope-note" id="scope-note"></div>
+  <div class="sig-note" id="sig-note"></div>
+  <div class="dedupe-note" id="dedupe-note"></div>
+
+  <div class="tabs" id="tabs-bar">
+    <button class="tab-btn active" data-tab="inbox" onclick="switchTab('inbox')">Menunggu Saya <span class="tab-count" id="count-inbox">0</span></button>
+    <button class="tab-btn" data-tab="returned" onclick="switchTab('returned')">Dikembalikan <span class="tab-count" id="count-returned">0</span></button>
+    <button class="tab-btn" data-tab="all" onclick="switchTab('all')">Semua Riwayat <span class="tab-count" id="count-all">0</span></button>
+    <button class="tab-btn" data-tab="recap" onclick="switchTab('recap')">&#128202; Rekap Bulanan</button>
+  </div>
+
+  <div class="toolbar" id="list-toolbar">
+    <button class="btn btn-sm" onclick="loadAll()">&#8635; Refresh</button>
+    <button class="btn btn-sm btn-pri" id="btn-manual-upload" onclick="openManualUpload()" style="display:none">&#128206; Upload Manual</button>
+    <div id="history-filters" style="display:none;flex:1;flex-wrap:wrap;gap:8px;align-items:center">
+      <input type="text" class="filter-sel" id="hf-search" placeholder="Cari nama / tag / PIC / WO…" oninput="renderList()" style="min-width:190px;flex:1">
+      <select class="filter-sel" id="status-filter" onchange="renderList()">
+        <option value="">Semua status</option>
+        <option value="submitted">Menunggu Review</option>
+        <option value="reviewed">Menunggu Approval</option>
+        <option value="approved">Disetujui</option>
+        <option value="returned_to_technician">Dikembalikan</option>
+      </select>
+      <select class="filter-sel" id="hf-team" onchange="populateHistoryAreaOptions();renderList()">
+        <option value="">Semua team</option><option value="E7">E7</option><option value="C7">C7</option>
+      </select>
+      <select class="filter-sel" id="hf-area" onchange="renderList()"><option value="">Semua area</option></select>
+      <select class="filter-sel" id="hf-sort" onchange="renderList()">
+        <option value="newest">Terbaru dulu</option>
+        <option value="oldest">Terlama dulu</option>
+        <option value="name_az">Nama A→Z</option>
+        <option value="name_za">Nama Z→A</option>
+        <option value="status">Urut status</option>
+      </select>
+      <button class="btn btn-sm" onclick="resetHistoryFilters()">Reset</button>
+    </div>
+  </div>
+
+  <div id="history-count" style="display:none;font-size:12px;color:var(--txt-3);margin:-6px 0 10px"></div>
+  <div id="list-area"><div class="list-loading"><div class="msg">Memuat...</div></div></div>
+
+  <!-- REKAP BULANAN — Submitted/Reviewed/Approved per bulan, opsional
+       difilter ke satu submitter atau satu reviewer TechOp2 -->
+  <div id="recap-area" style="display:none">
+    <div class="recap-filters">
+      <div class="recap-field">
+        <label>Filter Orang</label>
+        <select class="filter-sel" id="recap-person-type" onchange="onRecapPersonTypeChange()">
+          <option value="">Semua (org-wide)</option>
+          <option value="submitter">Submitter tertentu</option>
+          <option value="reviewer">TechOp2 Reviewer tertentu</option>
+        </select>
+      </div>
+      <div class="recap-field" id="recap-person-name-wrap" style="display:none">
+        <label>Nama</label>
+        <select class="filter-sel" id="recap-person-name" onchange="renderRecapChart()"></select>
+      </div>
+    </div>
+    <div class="recap-card">
+      <div class="recap-card-title" id="recap-title">Rekap Bulanan — Semua Data</div>
+      <div class="recap-legend">
+        <span class="recap-legend-item"><span class="recap-legend-swatch" style="background:var(--pri)"></span>Submitted</span>
+        <span class="recap-legend-item"><span class="recap-legend-swatch" style="background:var(--acc)"></span>Reviewed</span>
+        <span class="recap-legend-item"><span class="recap-legend-swatch" style="background:var(--ok)"></span>Approved</span>
+      </div>
+      <div class="recap-chart-body"><canvas id="chartRecap"></canvas></div>
+      <div class="recap-empty" id="recap-empty" style="display:none">Belum ada data untuk direkap.</div>
+    </div>
+    <div class="recap-card">
+      <div class="recap-card-title">Tabel Rekap</div>
+      <div class="recap-table-wrap">
+        <table class="recap-table" id="recap-table">
+          <thead><tr><th>Bulan</th><th>Submitted</th><th>Reviewed</th><th>Approved</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL OVERLAY -->
+<div id="detail-overlay">
+  <div class="detail-box">
+    <div class="detail-hdr">
+      <div>
+        <h2 id="d-title">&mdash;</h2>
+        <div class="sub" id="d-sub">&mdash;</div>
+      </div>
+      <button class="detail-x" onclick="closeDetail()">&#10005;</button>
+    </div>
+    <div class="detail-body" id="d-body"></div>
+  </div>
+</div>
+
+<!-- FILE DOWNLOAD PROGRESS -->
+<div id="file-progress" aria-hidden="true">
+  <div class="fp-card">
+    <div class="fp-spinner"></div>
+    <div class="fp-label" id="fp-label">Memuat file…</div>
+    <div class="fp-bar"><div class="fp-fill" id="fp-fill"></div></div>
+    <div class="fp-meta" id="fp-meta">0%</div>
+  </div>
+</div>
+
+<script>
+/* ── THEME (light / dark / system) ── */
+// 'ra_theme' in localStorage: 'light' | 'dark' | absent(=follow OS). The
+// pre-paint <head> script already applied it; these keep it in sync at runtime.
+function currentThemePref(){ try{ const t=localStorage.getItem('ra_theme'); return (t==='light'||t==='dark') ? t : 'system'; }catch(e){ return 'system'; } }
+function resolvedTheme(){ const p=currentThemePref(); return p==='system' ? (matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light') : p; }
+function setTheme(mode){
+  try{
+    if(mode==='system') localStorage.removeItem('ra_theme');
+    else localStorage.setItem('ra_theme', mode);
+  }catch(e){}
+  document.documentElement.setAttribute('data-theme', resolvedTheme());
+  syncThemeUI();
+}
+function cycleTheme(){ setTheme(resolvedTheme()==='dark' ? 'light' : 'dark'); }
+function syncThemeUI(){
+  const pref = currentThemePref();
+  document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('on', b.dataset.themeVal===pref));
+  const tb = document.getElementById('theme-btn');
+  if(tb) tb.textContent = resolvedTheme()==='dark' ? '☀️' : '🌙';
+}
+// keep in sync if the OS theme flips while on "system"
+try{ matchMedia('(prefers-color-scheme:dark)').addEventListener('change', () => { if(currentThemePref()==='system'){ document.documentElement.setAttribute('data-theme', resolvedTheme()); syncThemeUI(); } }); }catch(e){}
+syncThemeUI();
+
+/* ── AUTH (mirrors dashboard.html's login, plus a role lookup) ── */
+let loggedInUser = null, loggedInRole = null;
+let loggedInName = null;
+let loggedInTeam = null;
+let loggedInAreas = [];   // this account's area(s). Technician = 1; TechOp2 = 1+ (multi).
+let loggedInSignature = null; // this account's saved signature data URL (TechOp2/Supervisor)
+let _myUserDocId = null;      // cached dashboard_users doc id of the logged-in account
+let _teamSetupDocId = null;   // dashboard_users doc id awaiting a team/area save
+
+// Roles that sign during the workflow — their account carries a saved
+// signature draft so review/approve can auto-fill it without re-signing.
+function roleUsesSignature(role){ return role==='techop2' || role==='supervisor' || role==='admin'; }
+// Self-registerable roles (Admin stays Firestore-provisioned only).
+const SELF_REG_ROLES = ['technician','techop2','supervisor'];
+// Elevated self-registration (TechOp2 / Supervisor) needs an access code.
+function roleNeedsAccessCode(role){ return role==='techop2' || role==='supervisor'; }
+// Fallback code — CHANGE THIS, or (better) override it without a deploy by
+// creating Firestore doc `dashboard_config/registration` with field `code`.
+const ELEVATED_REG_CODE = 'POMI-EIC7-2026';
+async function getElevatedRegCode(){
+  try{
+    const doc = await db.collection('dashboard_config').doc('registration').get();
+    if(doc.exists && doc.data().code) return String(doc.data().code);
+  }catch(e){ /* collection not allowed / offline — use the fallback */ }
+  return ELEVATED_REG_CODE;
+}
+
+// Team -> valid Area options. A submission is routed to the TechOp2 (PIC)
+// whose own account carries the SAME team + area (see inboxItems()).
+const TEAM_AREAS = {
+  E7: ['Common', 'Powerblock'],
+  C7: ['Turbine', 'Boiler', 'Common (CHCB)', 'Common (WWTP-Ashdisposal)'],
+};
+// Team/area only drives TechOp2 inbox routing (and a technician's submissions
+// being routable to a PIC). Supervisor & Admin are never scoped, so they are
+// NOT forced through the mandatory team-setup form on login.
+function roleNeedsTeam(role){ return role !== 'supervisor' && role !== 'admin'; }
+// TechOp2 can be PIC for more than one area; a technician belongs to exactly one.
+function roleAllowsMultiArea(role){ return role === 'techop2'; }
+
+// Firestore stores `area` as a string (legacy / technician) or an array
+// (multi-area TechOp2) — always read it through this.
+function toAreaList(a){
+  if(Array.isArray(a)) return a.filter(Boolean);
+  if(typeof a === 'string' && a){
+    try{ const p = JSON.parse(a); if(Array.isArray(p)) return p.filter(Boolean); }catch(e){}
+    return [a];
+  }
+  return [];
+}
+
+// Render the area picker as checkboxes into `containerId` for `team`, with
+// `selected` (array/string) pre-checked. getCheckedAreas() reads them back.
+function renderAreaChecks(containerId, team, selected){
+  const c = document.getElementById(containerId);
+  if(!c) return;
+  const opts = TEAM_AREAS[team] || [];
+  if(!opts.length){ c.innerHTML = '<div class="area-hint">Pilih Team dulu.</div>'; return; }
+  const sel = new Set(toAreaList(selected));
+  c.innerHTML = opts.map(a =>
+    `<label class="area-chk"><input type="checkbox" value="${escHtml(a)}"${sel.has(a)?' checked':''}> ${escHtml(a)}</label>`
+  ).join('');
+}
+function getCheckedAreas(containerId){
+  return [...document.querySelectorAll('#'+containerId+' input[type=checkbox]:checked')].map(x => x.value);
+}
+// Validate a picked area list for a role. Returns an error string, or '' if OK.
+function areaListError(role, areas){
+  if(!areas.length) return 'Pilih minimal satu Area.';
+  if(!roleAllowsMultiArea(role) && areas.length > 1) return 'Untuk role ini pilih tepat satu Area.';
+  return '';
+}
+function areaNoteFor(role){ return roleAllowsMultiArea(role) ? '(bisa pilih lebih dari satu)' : '(pilih satu)'; }
+
+// Register form: show Team/Area only for roles that need routing, and the
+// signature pad only for roles that sign (TechOp2/Supervisor).
+function onRegRoleChange(){
+  const role = document.getElementById('reg-role').value;
+  document.getElementById('reg-team-wrap').style.display = roleNeedsTeam(role) ? '' : 'none';
+  document.getElementById('reg-code-wrap').style.display = roleNeedsAccessCode(role) ? '' : 'none';
+  document.getElementById('reg-area-note').textContent = areaNoteFor(role);
+  renderAreaChecks('reg-area-checks', document.getElementById('reg-team').value);
+  const sigWrap = document.getElementById('reg-sig-wrap');
+  const showSig = roleUsesSignature(role);
+  sigWrap.style.display = showSig ? '' : 'none';
+  if(showSig) attachSignaturePad('reg-sig-canvas');
+}
+
+async function hashPass(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function doLogin(e){
+  e.preventDefault();
+  const user = document.getElementById('login-user').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-err');
+  const btn = document.getElementById('login-btn');
+  if(!user || !pass){ errEl.textContent='Masukkan username dan password.'; return; }
+  btn.disabled = true; btn.textContent = 'Memverifikasi...'; errEl.textContent = '';
+  try{
+    const hashed = await hashPass(pass);
+    const snap = await db.collection('dashboard_users').where('username','==',user).limit(1).get();
+    if(snap.empty){ errEl.textContent='Username tidak ditemukan.'; btn.disabled=false; btn.textContent='SIGN IN'; return; }
+    const userData = snap.docs[0].data();
+    if(userData.password !== hashed){ errEl.textContent='Password salah.'; btn.disabled=false; btn.textContent='SIGN IN'; return; }
+    loggedInUser = userData.username;
+    loggedInRole = userData.role || null;
+    loggedInName = userData.name || loggedInUser;
+    _myUserDocId = snap.docs[0].id;
+    // Shared login session (auth-session.js) — localStorage, carries across
+    // every tab/page of this app, idle-expires after 1h. dashboard_name is
+    // also what check sheets' technician-auth.js widget fills into Checked By.
+    AuthSession.set({ user: loggedInUser, role: loggedInRole || '', name: loggedInName });
+    setSignatureSession(userData.signature || null);
+    // Mandatory Team/Area for technician/techop2 accounts without one yet —
+    // block on the setup form until saved. Supervisor/Admin skip it entirely.
+    if(roleNeedsTeam(loggedInRole) && (!TEAM_AREAS[userData.team] || !toAreaList(userData.area).length)){
+      promptTeamSetup(snap.docs[0].id, userData.team, toAreaList(userData.area));
+      return; // showApp() runs after saveTeamSetup()
+    }
+    setTeamSession(userData.team, toAreaList(userData.area));
+    showApp();
+  }catch(err){
+    console.error('Login error:', err);
+    errEl.textContent = 'Gagal terhubung ke database.';
+    btn.disabled=false; btn.textContent='SIGN IN';
+  }
+}
+function toggleAuthMode(mode){
+  document.getElementById('login-panel').style.display = mode==='login' ? '' : 'none';
+  document.getElementById('register-panel').style.display = mode==='register' ? '' : 'none';
+  document.getElementById('forgot-panel').style.display = mode==='forgot' ? '' : 'none';
+  document.getElementById('login-err').textContent = '';
+  document.getElementById('register-err').textContent = '';
+  document.getElementById('fp-err').textContent = '';
+  if(mode==='register') onRegRoleChange();
+}
+
+// Forgot password — no email system, so reset is gated by the same admin
+// access code that gates TechOp2/Supervisor registration (getElevatedRegCode()).
+async function doForgotPassword(e){
+  e.preventDefault();
+  const user = document.getElementById('fp-user').value.trim().toLowerCase();
+  const code = document.getElementById('fp-code').value.trim();
+  const pass = document.getElementById('fp-pass').value;
+  const pass2 = document.getElementById('fp-pass2').value;
+  const errEl = document.getElementById('fp-err');
+  const btn = document.getElementById('fp-btn');
+  errEl.textContent = '';
+  if(!user || !code){ errEl.textContent='Isi username dan kode akses.'; return; }
+  if(pass.length < 4){ errEl.textContent='Password baru minimal 4 karakter.'; return; }
+  if(pass !== pass2){ errEl.textContent='Konfirmasi password tidak cocok.'; return; }
+  btn.disabled = true; btn.textContent = 'Memproses...';
+  try{
+    if(code !== (await getElevatedRegCode())){ errEl.textContent='Kode akses salah. Minta kode reset ke admin.'; btn.disabled=false; btn.textContent='RESET PASSWORD'; return; }
+    const snap = await db.collection('dashboard_users').where('username','==',user).limit(1).get();
+    if(snap.empty){ errEl.textContent='Username tidak ditemukan.'; btn.disabled=false; btn.textContent='RESET PASSWORD'; return; }
+    await db.collection('dashboard_users').doc(snap.docs[0].id).update({
+      password: await hashPass(pass), passwordUpdatedAt: new Date().toISOString(),
+    });
+    errEl.style.color = 'var(--ok)';
+    errEl.textContent = '✅ Password berhasil direset. Silakan login dengan password baru.';
+    setTimeout(() => { errEl.style.color=''; toggleAuthMode('login'); document.getElementById('login-user').value = user; }, 1800);
+  }catch(err){
+    console.error('Forgot password error:', err);
+    errEl.textContent = 'Gagal reset: ' + err.message;
+  }
+  btn.disabled = false; btn.textContent = 'RESET PASSWORD';
+}
+
+// Self-registration now lets the new account pick its own role
+// (Level 1 Technician / Level 2 TechOp2 / Level 3 Supervisor) — an explicit
+// user decision for this internal tool (Firestore is already fully open here,
+// see CLAUDE.md's trust model). Admin stays Firestore-provisioned only.
+// TechOp2/Supervisor must also register a signature draft so review/approve
+// can auto-fill it later.
+async function doRegister(e){
+  e.preventDefault();
+  const name = document.getElementById('reg-name').value.trim();
+  const user = document.getElementById('reg-user').value.trim().toLowerCase();
+  const pass = document.getElementById('reg-pass').value;
+  const pass2 = document.getElementById('reg-pass2').value;
+  let role = document.getElementById('reg-role').value;
+  if(!SELF_REG_ROLES.includes(role)) role = 'technician';
+  const team = document.getElementById('reg-team').value;
+  const areas = getCheckedAreas('reg-area-checks');
+  const signature = roleUsesSignature(role) ? getSignatureDataUrl('reg-sig-canvas') : null;
+  const errEl = document.getElementById('register-err');
+  const btn = document.getElementById('register-btn');
+  errEl.textContent = '';
+
+  if(!name){ errEl.textContent='Isi nama lengkap.'; return; }
+  if(!user || !pass){ errEl.textContent='Isi username dan password.'; return; }
+  if(!/^[a-z0-9._-]+$/.test(user)){ errEl.textContent='Username hanya boleh huruf kecil, angka, titik, garis bawah/strip (tanpa spasi).'; return; }
+  if(pass.length < 4){ errEl.textContent='Password minimal 4 karakter.'; return; }
+  if(pass !== pass2){ errEl.textContent='Konfirmasi password tidak cocok.'; return; }
+  if(roleNeedsTeam(role)){
+    if(!TEAM_AREAS[team]){ errEl.textContent='Pilih Team (E7 / C7).'; return; }
+    const ae = areaListError(role, areas);
+    if(ae){ errEl.textContent = ae; return; }
+  }
+  if(roleUsesSignature(role) && !signature){ errEl.textContent='Gambar / upload draft tanda tangan dulu untuk role ini.'; return; }
+
+  btn.disabled = true; btn.textContent = 'Mendaftarkan...';
+  try{
+    if(roleNeedsAccessCode(role)){
+      const entered = document.getElementById('reg-access-code').value.trim();
+      if(!entered){ errEl.textContent='Isi kode akses (hubungi admin).'; btn.disabled=false; btn.textContent='DAFTAR'; return; }
+      if(entered !== (await getElevatedRegCode())){ errEl.textContent='Kode akses salah. Role TechOp2 / Supervisor hanya bisa didaftarkan dengan kode dari admin.'; btn.disabled=false; btn.textContent='DAFTAR'; return; }
+    }
+    const existing = await db.collection('dashboard_users').where('username','==',user).limit(1).get();
+    if(!existing.empty){ errEl.textContent='Username sudah dipakai, pilih yang lain.'; btn.disabled=false; btn.textContent='DAFTAR'; return; }
+
+    const hashed = await hashPass(pass);
+    await db.collection('dashboard_users').add({
+      username: user,
+      password: hashed,
+      role: role,
+      name: name,
+      ...(roleNeedsTeam(role) ? { team, area: areas } : {}),
+      ...(signature ? { signature } : {}),
+      createdAt: new Date().toISOString(),
+    });
+
+    loggedInUser = user;
+    loggedInRole = role;
+    loggedInName = name;
+    AuthSession.set({ user: loggedInUser, role: loggedInRole, name: name });
+    setTeamSession(roleNeedsTeam(role) ? team : null, roleNeedsTeam(role) ? areas : []);
+    setSignatureSession(signature);
+    showApp();
+  }catch(err){
+    console.error('Register error:', err);
+    errEl.textContent = 'Gagal mendaftar: ' + err.message;
+    btn.disabled = false; btn.textContent = 'DAFTAR';
+  }
+}
+
+// ── MANDATORY TEAM/AREA SETUP ──────────────────────────────────
+// Shown when a logged-in account has no valid team/area on its
+// dashboard_users doc. The overlay has no close button and blocks the app
+// until saveTeamSetup() writes the fields back to Firestore.
+function setTeamSession(team, areas){
+  loggedInTeam = team || null;
+  loggedInAreas = toAreaList(areas);
+  try{
+    if(team) localStorage.setItem('dashboard_team', team); else localStorage.removeItem('dashboard_team');
+    if(loggedInAreas.length) localStorage.setItem('dashboard_area', JSON.stringify(loggedInAreas));
+    else localStorage.removeItem('dashboard_area');
+  }catch(e){}
+}
+function setSignatureSession(sig){
+  loggedInSignature = sig || null;
+  try{
+    if(sig) localStorage.setItem('dashboard_signature', sig);
+    else localStorage.removeItem('dashboard_signature');
+  }catch(e){ /* quota — signature just won't persist across a reload, re-fetched on next login */ }
+}
+function promptTeamSetup(docId, preTeam, preAreas){
+  _teamSetupDocId = docId;
+  document.getElementById('login-overlay').style.display = 'none';
+  const ov = document.getElementById('team-overlay');
+  ov.style.display = 'flex';
+  ov.classList.remove('hide');
+  document.getElementById('ts-err').textContent = '';
+  document.getElementById('ts-area-note').textContent = areaNoteFor(loggedInRole);
+  const teamSel = document.getElementById('ts-team');
+  teamSel.value = TEAM_AREAS[preTeam] ? preTeam : '';
+  renderAreaChecks('ts-area-checks', teamSel.value, preAreas || []);
+}
+async function saveTeamSetup(){
+  const team = document.getElementById('ts-team').value;
+  const areas = getCheckedAreas('ts-area-checks');
+  const errEl = document.getElementById('ts-err');
+  const btn = document.getElementById('ts-btn');
+  errEl.textContent = '';
+  if(!TEAM_AREAS[team]){ errEl.textContent='Pilih Team (E7 / C7).'; return; }
+  const ae = areaListError(loggedInRole, areas);
+  if(ae){ errEl.textContent = ae; return; }
+  if(!_teamSetupDocId){ errEl.textContent='Sesi tidak valid, silakan login ulang.'; return; }
+  btn.disabled = true; btn.textContent = 'Menyimpan...';
+  try{
+    await db.collection('dashboard_users').doc(_teamSetupDocId).update({
+      team, area: areas, teamUpdatedAt: new Date().toISOString(),
+    });
+    setTeamSession(team, areas);
+    document.getElementById('team-overlay').classList.add('hide');
+    setTimeout(()=>{ document.getElementById('team-overlay').style.display='none'; }, 400);
+    showApp();
+  }catch(err){
+    console.error('Team setup error:', err);
+    errEl.textContent = 'Gagal menyimpan: ' + err.message;
+    btn.disabled = false; btn.textContent = 'SIMPAN & LANJUT';
+  }
+}
+// ── TEAM/AREA FROM SETTINGS (non-blocking, after login) ──
+async function saveTeamAreaFromSettings(){
+  const errEl = document.getElementById('set-team-err'), okEl = document.getElementById('set-team-ok');
+  const btn = document.getElementById('set-team-btn');
+  errEl.textContent = ''; okEl.textContent = '';
+  const team = document.getElementById('set-team').value;
+  const areas = getCheckedAreas('set-area-checks');
+  if(!TEAM_AREAS[team]){ errEl.textContent = 'Pilih Team (E7 / C7).'; return; }
+  const ae = areaListError(loggedInRole, areas);
+  if(ae){ errEl.textContent = ae; return; }
+  btn.disabled = true; btn.textContent = 'Menyimpan...';
+  try{
+    const doc = await _myUserDoc();
+    await db.collection('dashboard_users').doc(doc.id).update({ team, area: areas, teamUpdatedAt: new Date().toISOString() });
+    setTeamSession(team, areas);
+    refreshScopeNote();
+    okEl.textContent = '✅ Tersimpan. Kotak masuk diperbarui.';
+    loadAll();
+  }catch(err){ console.error(err); errEl.textContent = 'Gagal menyimpan: ' + err.message; }
+  btn.disabled = false; btn.textContent = 'Simpan Team & Area';
+}
+
+// ── SIGNATURE DRAFT SETUP (post-login, non-blocking) ──────────
+function openSignatureSetup(){
+  const ov = document.getElementById('sig-overlay');
+  ov.style.display = 'flex';
+  ov.classList.remove('hide');
+  document.getElementById('sig-setup-err').textContent = '';
+  clearSignature('sig-setup-canvas');
+  if(_sigState['sig-setup-canvas']) _sigState['sig-setup-canvas'].hasInk = false;
+  attachSignaturePad('sig-setup-canvas');
+  // seed with the current signature if there is one (lets them tweak/replace it)
+  if(loggedInSignature){
+    const img = new Image();
+    img.onload = () => drawImageFitted('sig-setup-canvas', img);
+    img.src = loggedInSignature;
+  }
+}
+function closeSignatureSetup(){
+  const ov = document.getElementById('sig-overlay');
+  ov.classList.add('hide');
+  setTimeout(()=>{ ov.style.display='none'; ov.classList.remove('hide'); }, 300);
+}
+async function saveSignatureSetup(){
+  const errEl = document.getElementById('sig-setup-err');
+  const btn = document.getElementById('sig-setup-btn');
+  errEl.textContent = '';
+  const sig = getSignatureDataUrl('sig-setup-canvas');
+  if(!sig){ errEl.textContent = 'Gambar atau upload tanda tangan dulu.'; return; }
+  btn.disabled = true; btn.textContent = 'Menyimpan...';
+  try{
+    const snap = await db.collection('dashboard_users').where('username','==',loggedInUser).limit(1).get();
+    if(snap.empty) throw new Error('Akun tidak ditemukan.');
+    await db.collection('dashboard_users').doc(snap.docs[0].id).update({
+      signature: sig, signatureUpdatedAt: new Date().toISOString(),
+    });
+    setSignatureSession(sig);
+    document.getElementById('sig-note').style.display = 'none';
+    closeSignatureSetup();
+  }catch(err){
+    console.error('Simpan tanda tangan gagal:', err);
+    errEl.textContent = 'Gagal menyimpan: ' + err.message;
+  }
+  btn.disabled = false; btn.textContent = 'SIMPAN TANDA TANGAN';
+}
+// Load this account's saved signature into a review/approval canvas so the
+// reviewer doesn't re-sign. hasInk is set so getSignatureDataUrl() returns it;
+// they can still "Hapus Tanda Tangan" and redraw to override for one item.
+function prefillSignatureCanvas(canvasId){
+  if(!loggedInSignature) return;
+  const img = new Image();
+  img.onload = () => drawImageFitted(canvasId, img);
+  img.src = loggedInSignature;
+}
+
+// ── ACCOUNT SETTINGS ─────────────────────────────────────────
+async function _myUserDoc(){
+  if(_myUserDocId){
+    const d = await db.collection('dashboard_users').doc(_myUserDocId).get();
+    if(d.exists) return d;
+  }
+  const snap = await db.collection('dashboard_users').where('username','==',loggedInUser).limit(1).get();
+  if(snap.empty) throw new Error('Akun tidak ditemukan.');
+  _myUserDocId = snap.docs[0].id;
+  return snap.docs[0];
+}
+function openSettings(){
+  const ov = document.getElementById('settings-overlay');
+  ov.style.display = 'flex'; ov.classList.remove('hide');
+  document.getElementById('set-whoami').textContent = '👤 ' + loggedInUser + ' · ' + (ROLE_LABELS[loggedInRole||'none']||loggedInRole);
+  ['set-profile-err','set-profile-ok','set-pass-err','set-pass-ok','set-sig-err','set-sig-ok','set-team-err','set-team-ok'].forEach(id=>document.getElementById(id).textContent='');
+  document.getElementById('set-name').value = loggedInName || '';
+  document.getElementById('set-user').value = loggedInUser || '';
+  ['set-pass-cur','set-pass-new','set-pass-new2'].forEach(id=>document.getElementById(id).value='');
+  syncThemeUI();
+  // Team & Area section — only for roles that are routed (technician/techop2)
+  const teamSec = document.getElementById('set-team-sec');
+  teamSec.style.display = roleNeedsTeam(loggedInRole) ? '' : 'none';
+  if(roleNeedsTeam(loggedInRole)){
+    document.getElementById('set-team').value = TEAM_AREAS[loggedInTeam] ? loggedInTeam : '';
+    document.getElementById('set-area-note').textContent = areaNoteFor(loggedInRole);
+    renderAreaChecks('set-area-checks', loggedInTeam, loggedInAreas);
+  }
+  // signature section only for roles that sign
+  document.getElementById('set-sig-sec').style.display = roleUsesSignature(loggedInRole) ? '' : 'none';
+  if(roleUsesSignature(loggedInRole)){
+    delete _sigState['set-sig-canvas'];
+    clearSignature('set-sig-canvas');
+    attachSignaturePad('set-sig-canvas');
+    if(_sigState['set-sig-canvas']) _sigState['set-sig-canvas'].hasInk = false;
+    if(loggedInSignature){ const img=new Image(); img.onload=()=>drawImageFitted('set-sig-canvas',img); img.src=loggedInSignature; }
+  }
+}
+function closeSettings(){
+  const ov = document.getElementById('settings-overlay');
+  ov.classList.add('hide');
+  setTimeout(()=>{ ov.style.display='none'; ov.classList.remove('hide'); }, 300);
+}
+async function saveProfile(){
+  const errEl = document.getElementById('set-profile-err'), okEl = document.getElementById('set-profile-ok');
+  const btn = document.getElementById('set-profile-btn');
+  errEl.textContent = ''; okEl.textContent = '';
+  const name = document.getElementById('set-name').value.trim();
+  const newUser = document.getElementById('set-user').value.trim().toLowerCase();
+  if(!name){ errEl.textContent = 'Nama tidak boleh kosong.'; return; }
+  if(!newUser || !/^[a-z0-9._-]+$/.test(newUser)){ errEl.textContent = 'Username: huruf kecil/angka/titik/strip, tanpa spasi.'; return; }
+  btn.disabled = true; btn.textContent = 'Menyimpan...';
+  try{
+    if(newUser !== loggedInUser){
+      const clash = await db.collection('dashboard_users').where('username','==',newUser).limit(1).get();
+      if(!clash.empty){ errEl.textContent = 'Username sudah dipakai akun lain.'; btn.disabled=false; btn.textContent='Simpan Profil'; return; }
+    }
+    const doc = await _myUserDoc();
+    await db.collection('dashboard_users').doc(doc.id).update({ name, username: newUser, profileUpdatedAt: new Date().toISOString() });
+    loggedInName = name; loggedInUser = newUser;
+    AuthSession.set({ user: newUser, role: loggedInRole || '', name });
+    document.getElementById('user-label').textContent = '👤 ' + newUser;
+    okEl.textContent = '✅ Profil tersimpan.';
+  }catch(err){ console.error(err); errEl.textContent = 'Gagal menyimpan: ' + err.message; }
+  btn.disabled = false; btn.textContent = 'Simpan Profil';
+}
+async function changePassword(){
+  const errEl = document.getElementById('set-pass-err'), okEl = document.getElementById('set-pass-ok');
+  const btn = document.getElementById('set-pass-btn');
+  errEl.textContent = ''; okEl.textContent = '';
+  const cur = document.getElementById('set-pass-cur').value;
+  const nw = document.getElementById('set-pass-new').value;
+  const nw2 = document.getElementById('set-pass-new2').value;
+  if(nw.length < 4){ errEl.textContent = 'Password baru minimal 4 karakter.'; return; }
+  if(nw !== nw2){ errEl.textContent = 'Konfirmasi password baru tidak cocok.'; return; }
+  btn.disabled = true; btn.textContent = 'Menyimpan...';
+  try{
+    const doc = await _myUserDoc();
+    if(doc.data().password !== await hashPass(cur)){ errEl.textContent = 'Password saat ini salah.'; btn.disabled=false; btn.textContent='Ubah Password'; return; }
+    await db.collection('dashboard_users').doc(doc.id).update({ password: await hashPass(nw), passwordUpdatedAt: new Date().toISOString() });
+    ['set-pass-cur','set-pass-new','set-pass-new2'].forEach(id=>document.getElementById(id).value='');
+    okEl.textContent = '✅ Password diperbarui.';
+  }catch(err){ console.error(err); errEl.textContent = 'Gagal: ' + err.message; }
+  btn.disabled = false; btn.textContent = 'Ubah Password';
+}
+async function saveSignatureFromSettings(){
+  const errEl = document.getElementById('set-sig-err'), okEl = document.getElementById('set-sig-ok');
+  const btn = document.getElementById('set-sig-btn');
+  errEl.textContent = ''; okEl.textContent = '';
+  const sig = getSignatureDataUrl('set-sig-canvas');
+  if(!sig){ errEl.textContent = 'Gambar atau upload tanda tangan dulu.'; return; }
+  btn.disabled = true; btn.textContent = 'Menyimpan...';
+  try{
+    const doc = await _myUserDoc();
+    await db.collection('dashboard_users').doc(doc.id).update({ signature: sig, signatureUpdatedAt: new Date().toISOString() });
+    setSignatureSession(sig);
+    document.getElementById('sig-note').style.display = 'none';
+    okEl.textContent = '✅ Tanda tangan diperbarui.';
+  }catch(err){ console.error(err); errEl.textContent = 'Gagal: ' + err.message; }
+  btn.disabled = false; btn.textContent = 'Simpan Tanda Tangan';
+}
+
+// ── MANUAL PDF UPLOAD ─────────────────────────────────────────
+// Push a report done OUTSIDE the check-sheet system into the review/approval
+// flow: writes a `checksheets` doc + uploads the PDF + images to Drive +
+// creates an `approvals` doc (status 'submitted') with explicit team/area
+// routing. scopeOfApproval() reads that team/area straight off the approval.
+function openManualUpload(){
+  const ov = document.getElementById('manual-overlay');
+  ov.style.display = 'flex'; ov.classList.remove('hide');
+  ['mu-name','mu-wo','mu-tag','mu-pic','mu-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mu-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('mu-pic').value = loggedInName || loggedInUser || '';
+  document.getElementById('mu-team').value = TEAM_AREAS[loggedInTeam] ? loggedInTeam : '';
+  renderAreaChecks('mu-area-checks', document.getElementById('mu-team').value, loggedInAreas.slice(0,1));
+  document.getElementById('mu-pdf').value = '';
+  document.getElementById('mu-images').value = '';
+  document.getElementById('mu-img-count').textContent = '';
+  document.getElementById('mu-err').textContent = '';
+}
+function closeManualUpload(){
+  const ov = document.getElementById('manual-overlay');
+  ov.classList.add('hide');
+  setTimeout(()=>{ ov.style.display='none'; ov.classList.remove('hide'); }, 300);
+}
+document.addEventListener('change', e => {
+  if(e.target && e.target.id === 'mu-images'){
+    const n = e.target.files.length;
+    document.getElementById('mu-img-count').textContent = n ? (n + ' gambar dipilih') : '';
+  }
+});
+// Read an image File -> downscaled JPEG data URL (dashboard doesn't load
+// img-helper/photo-kit, so a tiny canvas resize keeps the Drive upload sane).
+function _muImageToDataUrl(file, maxEdge, quality){
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.naturalWidth, h = img.naturalHeight;
+        const s = Math.min(1, maxEdge / Math.max(w, h));
+        w = Math.max(1, Math.round(w * s)); h = Math.max(1, Math.round(h * s));
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(cv.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('Gambar tidak bisa dibaca.'));
+      img.src = fr.result;
+    };
+    fr.onerror = () => reject(new Error('File gambar gagal dibaca.'));
+    fr.readAsDataURL(file);
+  });
+}
+async function submitManualUpload(){
+  const errEl = document.getElementById('mu-err'), btn = document.getElementById('mu-btn');
+  errEl.textContent = '';
+  const assetName = document.getElementById('mu-name').value.trim();
+  const woNumber  = document.getElementById('mu-wo').value.trim();
+  const assetTag  = document.getElementById('mu-tag').value.trim();
+  const executionDate = document.getElementById('mu-date').value;
+  const pic = document.getElementById('mu-pic').value.trim();
+  const notes = document.getElementById('mu-notes').value.trim();
+  const team = document.getElementById('mu-team').value;
+  const areas = getCheckedAreas('mu-area-checks');
+  const pdfFile = document.getElementById('mu-pdf').files[0];
+  const imgFiles = [...document.getElementById('mu-images').files];
+
+  if(!assetName){ errEl.textContent = 'Isi judul / nama laporan.'; return; }
+  if(!executionDate){ errEl.textContent = 'Isi tanggal.'; return; }
+  if(!pic){ errEl.textContent = 'Isi PIC / pelaksana.'; return; }
+  if(!TEAM_AREAS[team]){ errEl.textContent = 'Pilih Team.'; return; }
+  if(areas.length !== 1){ errEl.textContent = 'Pilih tepat satu Area.'; return; }
+  if(!pdfFile){ errEl.textContent = 'Lampirkan file PDF laporan.'; return; }
+  if(pdfFile.type && pdfFile.type.indexOf('pdf') === -1){ errEl.textContent = 'File utama harus PDF.'; return; }
+
+  btn.disabled = true; btn.textContent = 'Mengunggah...';
+  showFileProgress('Menyiapkan laporan manual…');
+  try{
+    const area = areas[0];
+    const base = {
+      assetTag: assetTag || 'MANUAL-UPLOAD', assetName, frequency: 'MANUAL',
+      woNumber, executionDate, timeStart: '', timeEnd: '',
+      checkedBy: pic, nik: '', reviewedBy: '', shift: '',
+      findings: notes, recommendations: '',
+      countOk: 0, countNg: 0, countNa: 0, overallStatus: '—',
+      manualUpload: true,
+      // who put this into the system (may differ from the PIC) — dashboard.html
+      // scopes a technician's view to their own submissions, and matches this
+      // too so the uploader can track its status there.
+      uploadedBy: loggedInName || loggedInUser || '',
+      uploadedByUsername: loggedInUser || '',
+      sheets: { info: { title: 'Laporan Manual (Upload)', columns: ['Value'], rows: [
+        { no: '1', desc: 'Judul', values: { Value: assetName } },
+        { no: '2', desc: 'No. WO', values: { Value: woNumber || '—' } },
+        { no: '3', desc: 'Tanggal', values: { Value: executionDate } },
+        { no: '4', desc: 'PIC / Pelaksana', values: { Value: pic } },
+        { no: '5', desc: 'Team / Area', values: { Value: team + ' / ' + area } },
+        { no: '6', desc: 'Diinput oleh', values: { Value: loggedInName || loggedInUser } },
+        { no: '7', desc: 'Catatan', values: { Value: notes || '—' } },
+      ] } },
+    };
+    setFileProgressPct(6, 'Menyimpan data laporan…');
+    const id = await DB.save(base);
+
+    // Compress images up front so submitWithFiles just uploads them.
+    const photoEntries = [];
+    for(let i=0;i<imgFiles.length;i++){
+      setFileProgressPct(6 + Math.round(i/Math.max(1,imgFiles.length)*4), 'Menyiapkan gambar ' + (i+1) + '/' + imgFiles.length + '…');
+      try{ photoEntries.push({ src: await _muImageToDataUrl(imgFiles[i], 1600, 0.85), caption: '' }); }
+      catch(e){ console.warn('skip 1 gambar:', e); }
+    }
+
+    const ok = await Approvals.submitWithFiles(id, {
+      photos: photoEntries.length ? { manual: photoEntries } : null,
+      // No jsPDF here — hand submitWithFiles the uploaded file directly; it
+      // only ever calls pdf.output('blob') on this.
+      pdfBuilder: () => ({ output: () => pdfFile }),
+      assetTag: assetTag || 'MANUAL-UPLOAD', assetName,
+      checksheetFile: '', submittedBy: pic,
+      team, area, src: 'Upload manual',
+      onProgress: (pct, label) => setFileProgressPct(10 + Math.round(pct * 0.85), label),
+    });
+    if(!ok) throw new Error('Upload file / pencatatan approval gagal — cek koneksi lalu coba lagi.');
+
+    finishFileProgress();
+    closeManualUpload();
+    alert('✅ Laporan manual masuk ke Review & Approval (team ' + team + ' · ' + area + ').');
+    await loadAll();
+  }catch(err){
+    hideFileProgress();
+    console.error('Manual upload gagal:', err);
+    errEl.textContent = 'Gagal: ' + (err.message || err);
+  }
+  btn.disabled = false; btn.textContent = '📤 Submit ke Review & Approval';
+}
+
+function doLogout(){
+  AuthSession.clear();
+  location.reload();
+}
+async function checkSession(){
+  AuthSession.onExpire(() => location.reload()); // idle 1h -> back to login overlay
+  const sess = AuthSession.get();
+  if(sess){
+    loggedInUser = sess.user;
+    loggedInRole = sess.role || null;
+    loggedInName = sess.name || loggedInUser;
+    loggedInTeam = sess.team || null;
+    loggedInAreas = toAreaList(sess.area);
+    loggedInSignature = sess.signature || null;
+    // Backfill team/area from Firestore for sessions created before this
+    // feature (or on another page); force the setup form if still missing.
+    // Supervisor/Admin skip this entirely — team/area doesn't apply to them.
+    const needTeamBackfill = roleNeedsTeam(loggedInRole) && (!TEAM_AREAS[loggedInTeam] || !loggedInAreas.length);
+    const needSigBackfill = roleUsesSignature(loggedInRole) && !loggedInSignature;
+    if(needTeamBackfill || needSigBackfill){
+      try{
+        const snap = await db.collection('dashboard_users').where('username','==',loggedInUser).limit(1).get();
+        if(!snap.empty){
+          const u = snap.docs[0].data();
+          if(needSigBackfill && u.signature) setSignatureSession(u.signature);
+          if(needTeamBackfill){
+            if(TEAM_AREAS[u.team] && toAreaList(u.area).length){
+              setTeamSession(u.team, toAreaList(u.area));
+            }else{
+              promptTeamSetup(snap.docs[0].id, u.team, toAreaList(u.area));
+              return;
+            }
+          }
+        }
+      }catch(e){ console.error('Backfill gagal:', e); }
+    }
+    showApp();
+  }
+}
+function showApp(){
+  document.getElementById('login-overlay').classList.add('hide');
+  setTimeout(()=>{ document.getElementById('login-overlay').style.display='none'; }, 400);
+  document.getElementById('user-label').textContent = '👤 ' + loggedInUser;
+  document.getElementById('user-label').style.display = '';
+  document.getElementById('logout-btn').style.display = '';
+  document.getElementById('settings-btn').style.display = '';
+  document.getElementById('btn-manual-upload').style.display = '';  // semua level bisa upload manual
+  const roleEl = document.getElementById('role-label');
+  const roleKey = loggedInRole || 'none';
+  roleEl.textContent = ROLE_LABELS[roleKey] || roleKey;
+  roleEl.className = 'role-pill ' + roleKey;
+  roleEl.style.display = '';
+  if(!loggedInRole){
+    const note = document.getElementById('role-note');
+    note.style.display = 'flex';
+    note.innerHTML = '&#9888;&#65039; Akun Anda belum memiliki role (TechOp2/Supervisor) — Anda hanya bisa melihat riwayat, tidak bisa review/approve. Hubungi admin untuk menambahkan field <code>role</code> pada dokumen user ini di collection <code>dashboard_users</code>.';
+  }
+  refreshScopeNote();
+  const sigNote = document.getElementById('sig-note');
+  if(roleUsesSignature(loggedInRole) && !loggedInSignature){
+    sigNote.style.display = 'flex';
+    sigNote.innerHTML = '&#9888;&#65039; <span style="flex:1"><b>Anda belum punya draft tanda tangan.</b> Simpan sekali agar kolom tanda tangan terisi otomatis saat review/approve.</span>'
+      + '<button class="btn btn-sm btn-pri" onclick="openSignatureSetup()">&#9997;&#65039; Simpan Tanda Tangan</button>';
+  }else{
+    sigNote.style.display = 'none';
+  }
+  loadAll();
+}
+function refreshScopeNote(){
+  const scope = document.getElementById('scope-note');
+  if(loggedInRole==='techop2' && loggedInTeam && loggedInAreas.length){
+    scope.style.display = 'flex';
+    scope.innerHTML = '&#128100; Kotak masuk <b>"Menunggu Saya"</b> disaring ke submission dari teknisi team <b>'
+      + escHtml(loggedInTeam) + ' &middot; ' + loggedInAreas.map(escHtml).join(', ') + '</b>. '
+      + 'Submission yang team submitternya belum tercatat ditangani lewat akun Admin. Tab "Semua Riwayat" tetap menampilkan seluruh submission.';
+  }else{
+    scope.style.display = 'none';
+  }
+}
+const ROLE_LABELS = { techop2:'TechOp2', supervisor:'Supervisor', admin:'Admin', technician:'Technician', none:'Tanpa Role' };
+
+/* ── DATA ── */
+let _allApprovals = [];
+const _checksheetCache = {};
+
+// dashboard_users directory: submitter name/username -> {team, area}. Used to
+// route a submission to the TechOp2 (PIC) whose account carries the same
+// team+area. Name-match is a known-imperfect heuristic (submittedBy is the
+// free-typed "Checked By" name, same trust model dashboard.html's technician
+// scoping already uses) — not a security boundary, just inbox routing.
+let _userDir = null;
+async function loadUserDir(force){
+  if(_userDir && !force) return _userDir;
+  const dir = {};
+  try{
+    const snap = await db.collection('dashboard_users').get();
+    snap.docs.forEach(d => {
+      const u = d.data();
+      // A submission's routing area is the SUBMITTER's (technician's) single
+      // area — take the first if their account somehow lists several.
+      const rec = { team: TEAM_AREAS[u.team] ? u.team : null, area: toAreaList(u.area)[0] || null };
+      if(u.name) dir['n:' + u.name.trim().toLowerCase()] = rec;
+      if(u.username) dir['u:' + u.username.trim().toLowerCase()] = rec;
+    });
+  }catch(e){ console.error('loadUserDir gagal:', e); }
+  _userDir = dir;
+  return dir;
+}
+// Submissions pushed in from OTHER POMI mini-apps that can't hold
+// `dashboard_users` accounts (e.g. mahfudjtf's PM-UNIT-7, which posts to the
+// same `checksheets`/`approvals` collections via Approvals.submitWithFiles).
+// They can't be routed by a real technician name, so they send a FIXED
+// synthetic `submittedBy` per plant area. Keyed lowercased. `src` shows on
+// the card so a reviewer knows it's an external feed (and the "edit check
+// sheet" actions are hidden — that form lives in the other app).
+const EXTERNAL_SUBMITTER_SCOPE = {
+  'pm unit 7 - boiler':       { team: 'C7', area: 'Boiler',                     src: 'PM Unit 7' },
+  'pm unit 7 - turbine':      { team: 'C7', area: 'Turbine',                    src: 'PM Unit 7' },
+  'pm unit 7 - common chcb':  { team: 'C7', area: 'Common (CHCB)',              src: 'PM Unit 7' },
+  'pm unit 7 - common wwtp':  { team: 'C7', area: 'Common (WWTP-Ashdisposal)',  src: 'PM Unit 7' },
+};
+function scopeOfApproval(a){
+  const by = (a.submittedBy || '').trim().toLowerCase();
+  const ext = EXTERNAL_SUBMITTER_SCOPE[by];
+  if(ext) return { team: ext.team, area: ext.area, src: ext.src };
+  // Explicit routing stored on the approval doc (manual PDF uploads — see
+  // openManualUpload() — set team/area/src directly).
+  if(a.team && a.area) return { team: a.team, area: a.area, src: a.src || null };
+  if(!_userDir) return { team:null, area:null };
+  return _userDir['n:'+by] || _userDir['u:'+by] || { team:null, area:null };
+}
+// A submission is "mine" as a TechOp2 PIC when its submitter's team matches
+// the reviewer's AND the submitter's area is one of the reviewer's areas
+// (a TechOp2 can cover multiple areas). Admin/Supervisor are never scoped.
+function inMyReviewScope(a){
+  if(loggedInRole !== 'techop2') return true;
+  if(!loggedInTeam || !loggedInAreas.length) return true; // reviewer has no scope set — fail open
+  const s = scopeOfApproval(a);
+  return s.team === loggedInTeam && loggedInAreas.includes(s.area);
+}
+
+async function loadAll(){
+  document.getElementById('list-area').innerHTML = '<div class="list-loading"><div class="msg">Memuat...</div></div>';
+  document.getElementById('dedupe-note').style.display = 'none';
+  try{
+    _allApprovals = await Approvals.getAll();
+  }catch(e){
+    document.getElementById('list-area').innerHTML = '<div class="list-empty"><div class="msg">Gagal memuat data</div><div>'+e.message+'</div></div>';
+    return;
+  }
+  await loadUserDir(true);
+  _allApprovals.forEach(a => {
+    const s = scopeOfApproval(a);
+    a._team = s.team; a._area = s.area; a._src = s.src || null;
+  });
+  try{
+    const removed = await cleanupDuplicateApprovals(_allApprovals);
+    if(removed.length){
+      const removedIds = new Set(removed.map(a=>a.id));
+      _allApprovals = _allApprovals.filter(a => !removedIds.has(a.id));
+      showDedupeNote(removed.length);
+    }
+  }catch(e){ console.error('Cleanup duplikat approval gagal:', e); }
+  // cleanupDuplicateApprovals() populated _checksheetCache for every approval —
+  // fold WO number + execution date onto the approval for history search/sort.
+  _allApprovals.forEach(a => {
+    const cs = _checksheetCache[a.checksheetId];
+    a._wo = (cs && cs.woNumber) || '';
+    a._date = (cs && cs.executionDate) || '';
+  });
+  updateTabCounts();
+  populateHistoryAreaOptions();
+  if(_activeTab === 'recap'){ populateRecapPersonOptions(); renderRecapChart(); }
+  else renderList();
+  maybeOpenFromUrl();
+}
+function showDedupeNote(n){
+  const note = document.getElementById('dedupe-note');
+  note.style.display = 'flex';
+  note.innerHTML = '&#129529; '+n+' submission duplikat (resubmit yang belum sempat direview) otomatis dibersihkan — hanya submission terbaru per kunjungan yang ditampilkan di sini. Riwayat lengkap tetap tersimpan di database dan bisa dilihat di Dashboard.';
+}
+async function getChecksheet(id){
+  // `id in cache` (not a truthy check) — a genuinely-missing checksheet
+  // caches as `null`, and a truthy-only check would re-fetch it every call.
+  if(id in _checksheetCache) return _checksheetCache[id];
+  const doc = await DB.getById(id); // resolves to null for "doesn't exist" — only throws on a real network/permission error, see cleanupDuplicateApprovals()
+  _checksheetCache[id] = doc;
+  return doc;
+}
+
+// ── DUPLICATE SUBMISSION CLEANUP ──
+// A technician resubmitting the same visit (unsure whether it saved, or
+// just hitting "Submit to Database" twice) creates a brand-new checksheet
+// doc AND a brand-new approvals doc each time (see CLAUDE.md's "Review &
+// Approval Workflow" section) — without this, every accidental resubmit
+// shows up as its own separate item in the inbox, so a reviewer sees
+// duplicate work items for what's really one visit.
+//
+// Runs once per loadAll() and only ever deletes an OLDER approvals doc
+// when BOTH:
+//   (a) it's a same-visit duplicate of a NEWER approval — same asset tag +
+//       WO number + execution date, createdAt within DB.CLUSTER_GAP_HOURS
+//       of the next one — the exact same validated clustering
+//       dashboard.html's own "Hapus Duplikat" button uses (see
+//       DEDUP_LATEST_SUBMISSION.md), just applied to approvals instead of
+//       checksheets; and
+//   (b) its status is still 'submitted' — i.e. no reviewer has touched it
+//       yet. An already reviewed/approved/returned entry is REAL workflow
+//       history (a deliberate revisionOf resubmission naturally leaves its
+//       source entry at status 'returned_to_technician', never
+//       'submitted') and is never auto-deleted here, regardless of how
+//       close in time it sits to a newer submission.
+//
+// Only the approvals doc is deleted — never the underlying checksheet doc.
+// dashboard.html reads the checksheets collection directly and needs the
+// full, undeleted history for Load & Merge, per explicit instruction: this
+// cleanup is scoped to the approvals collection only.
+//
+// ORPHANED approvals — a THIRD case, found in production after the above
+// shipped and duplicates kept piling up anyway (real example: 8 approvals
+// for the same UPS monthly visit, 7 of them pointing at a checksheetId that
+// no longer exists in Firestore at all). Root cause: dashboard.html's own
+// admin "Hapus Duplikat" button deletes duplicate CHECKSHEETS (correctly,
+// by design — see its own section above), but has no way to know a
+// matching `approvals` doc exists to clean up alongside it, since that
+// button only ever touches the checksheets collection. The result is an
+// approvals doc whose `checksheetId` resolves to nothing — and since the
+// WO-number/execution-date grouping above depends on reading THAT
+// checksheet, an orphan can never be matched into a cluster and was
+// silently invisible to the logic above forever, no matter how many times
+// loadAll() ran. Fixed by treating "checksheet confirmed deleted" as its
+// own always-safe-to-delete condition (still gated on status==='submitted'
+// — same reasoning as the clustering rule) — an approval pointing at a
+// deleted checksheet is unreviewable on its own merits regardless of
+// timing, there is nothing left to cluster it against.
+//
+// `getChecksheet()` resolving to `null` (a real DB.getById() result — see
+// its own comment) means "confirmed does not exist"; it THROWING means a
+// network/permission hiccup, which must never be treated as an orphan —
+// `orphaned` below is only ever true for the former, so a transient fetch
+// error just skips that entry this round rather than risking a false
+// delete of a perfectly valid submission.
+async function cleanupDuplicateApprovals(approvals){
+  const withKey = await Promise.all(approvals.map(async a => {
+    let cs, fetchFailed = false;
+    try{ cs = await getChecksheet(a.checksheetId); }
+    catch(e){ fetchFailed = true; }
+    return {
+      a,
+      tag: (cs?.assetTag || a.assetTag || '').trim(),
+      wo: (cs?.woNumber || '').trim(),
+      date: (cs?.executionDate || '').trim(),
+      createdAt: a.createdAt || '',
+      orphaned: !fetchFailed && cs === null,
+    };
+  }));
+
+  const orphanDeletes = withKey.filter(x => x.orphaned && x.a.status === 'submitted').map(x => x.a);
+
+  const groups = new Map();
+  withKey.forEach(x => {
+    if(x.orphaned) return; // handled above (or its checksheet fetch failed) — never groupable
+    if(!x.tag || !x.wo) return; // can't group safely — same rule DB.dedupeLatest() uses
+    const key = x.tag+'||'+x.wo+'||'+x.date;
+    if(!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(x);
+  });
+
+  const gapMs = (DB.CLUSTER_GAP_HOURS || 24) * 3600 * 1000;
+  const toDelete = [...orphanDeletes];
+  groups.forEach(list => {
+    if(list.length < 2) return;
+    const sorted = [...list].sort((p,q) => (p.createdAt||'').localeCompare(q.createdAt||''));
+    for(let i=0;i<sorted.length-1;i++){
+      const cur = sorted[i], next = sorted[i+1];
+      const gap = new Date(next.createdAt||0) - new Date(cur.createdAt||0);
+      if(gap <= gapMs && cur.a.status === 'submitted') toDelete.push(cur.a);
+    }
+  });
+  if(!toDelete.length) return [];
+
+  const actuallyDeleted = [];
+  for(const a of toDelete){
+    try{ await Approvals.deleteById(a.id); actuallyDeleted.push(a); }
+    catch(e){ console.error('Gagal hapus approval duplikat', a.id, e); }
+  }
+  return actuallyDeleted;
+}
+
+/* ── TABS / LIST ── */
+let _activeTab = 'inbox';
+function switchTab(tab){
+  _activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab===tab));
+  document.getElementById('history-filters').style.display = tab==='all' ? 'flex' : 'none';
+  document.getElementById('history-count').style.display = tab==='all' ? '' : 'none';
+  if(tab==='all') populateHistoryAreaOptions();
+  const isRecap = tab === 'recap';
+  document.getElementById('list-toolbar').style.display = isRecap ? 'none' : '';
+  document.getElementById('list-area').style.display = isRecap ? 'none' : '';
+  document.getElementById('recap-area').style.display = isRecap ? '' : 'none';
+  if(isRecap){
+    populateRecapPersonOptions();
+    renderRecapChart();
+  }else{
+    renderList();
+  }
+}
+function updateTabCounts(){
+  document.getElementById('count-inbox').textContent = inboxItems().length;
+  document.getElementById('count-returned').textContent = _allApprovals.filter(a=>a.status==='returned_to_technician').length;
+  document.getElementById('count-all').textContent = _allApprovals.length;
+}
+function inboxItems(){
+  // TechOp2 inbox is scoped to the PIC's own team+area (see inMyReviewScope).
+  if(loggedInRole==='techop2') return _allApprovals.filter(a=>a.status==='submitted' && inMyReviewScope(a));
+  if(loggedInRole==='supervisor') return _allApprovals.filter(a=>a.status==='reviewed');
+  if(loggedInRole==='admin') return _allApprovals.filter(a=>a.status==='submitted'||a.status==='reviewed');
+  return [];
+}
+const STATUS_ORDER = ['submitted','reviewed','returned_to_technician','approved'];
+function sortApprovals(items, mode){
+  const newest = (a,b) => (b.createdAt||'').localeCompare(a.createdAt||'');
+  const nm = a => (a.assetName||a.assetTag||'');
+  const cmp = {
+    newest,
+    oldest:  (a,b) => (a.createdAt||'').localeCompare(b.createdAt||''),
+    name_az: (a,b) => nm(a).localeCompare(nm(b),'id',{sensitivity:'base'}),
+    name_za: (a,b) => nm(b).localeCompare(nm(a),'id',{sensitivity:'base'}),
+    status:  (a,b) => (STATUS_ORDER.indexOf(a.status)-STATUS_ORDER.indexOf(b.status)) || newest(a,b),
+  }[mode] || newest;
+  return items.slice().sort(cmp);
+}
+function populateHistoryAreaOptions(){
+  const sel = document.getElementById('hf-area');
+  if(!sel) return;
+  const team = document.getElementById('hf-team').value;
+  const areas = team ? (TEAM_AREAS[team]||[]) : [...new Set(Object.values(TEAM_AREAS).flat())];
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Semua area</option>' +
+    areas.map(a => `<option value="${escHtml(a)}"${a===cur?' selected':''}>${escHtml(a)}</option>`).join('');
+}
+function resetHistoryFilters(){
+  ['hf-search'].forEach(id => document.getElementById(id).value = '');
+  ['status-filter','hf-team','hf-area'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('hf-sort').value = 'newest';
+  populateHistoryAreaOptions();
+  renderList();
+}
+function renderList(){
+  let items;
+  const cnt = document.getElementById('history-count');
+  if(cnt) cnt.style.display = 'none';
+  if(_activeTab==='inbox') items = inboxItems();
+  else if(_activeTab==='returned') items = _allApprovals.filter(a=>a.status==='returned_to_technician');
+  else {
+    // "Semua Riwayat" — filter + sort
+    items = _allApprovals.slice();
+    const f = document.getElementById('status-filter').value;
+    if(f) items = items.filter(a=>a.status===f);
+    const team = document.getElementById('hf-team').value;
+    if(team) items = items.filter(a => (a._team||'') === team);
+    const area = document.getElementById('hf-area').value;
+    if(area) items = items.filter(a => (a._area||'') === area);
+    const q = document.getElementById('hf-search').value.trim().toLowerCase();
+    if(q) items = items.filter(a =>
+      [a.assetName, a.assetTag, a.submittedBy, a._wo, a._area, a._src].some(v => (v||'').toLowerCase().includes(q))
+    );
+    items = sortApprovals(items, document.getElementById('hf-sort').value);
+    if(cnt){
+      cnt.style.display = '';
+      cnt.textContent = 'Menampilkan ' + items.length + ' dari ' + _allApprovals.length + ' submission';
+    }
+  }
+  const wrap = document.getElementById('list-area');
+  if(!items.length){
+    wrap.innerHTML = '<div class="list-empty"><div class="msg">Tidak ada submission</div><div>'+
+      (_activeTab==='inbox' ? (loggedInRole ? 'Tidak ada yang menunggu tindakan Anda saat ini.' : 'Login dengan role TechOp2/Supervisor untuk melihat kotak masuk.')
+        : _activeTab==='all' ? 'Tidak ada yang cocok dengan filter — coba Reset.'
+        : 'Belum ada data pada kategori ini.')+
+      '</div></div>';
+    return;
+  }
+  wrap.innerHTML = items.map(a => `
+    <div class="card">
+      <div class="card-main">
+        <div class="card-title">${escHtml(a.assetName||a.assetTag||'—')}${a._team?`<span class="card-scope-tag">${escHtml(a._team)} · ${escHtml(a._area||'?')}</span>`:''}${a._src?`<span class="card-scope-tag" style="background:var(--ind-soft);color:var(--ind);border-color:rgba(99,102,241,.25)">${escHtml(a._src)}</span>`:''}</div>
+        <div class="card-meta">${escHtml(a.submittedBy||'—')}${a._wo?' · WO '+escHtml(a._wo):''} · disubmit ${fmtDate(a.createdAt)}${a.revisionOf?' · <span title="Ini revisi dari submission sebelumnya">↻ revisi</span>':''}</div>
+      </div>
+      <span class="card-badge ${a.status}">${Approvals.STATUS_LABELS[a.status]||a.status}</span>
+      <button class="btn btn-sm btn-pri" onclick="openDetail('${a.id}')">Buka</button>
+    </div>`).join('');
+}
+function fmtDate(iso){
+  if(!iso) return '—';
+  try{ return new Date(iso).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'}); }catch(e){ return iso; }
+}
+function escHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function maybeOpenFromUrl(){
+  const id = new URLSearchParams(location.search).get('id');
+  if(id) openDetail(id);
+}
+
+/* ── REKAP BULANAN ── */
+// Three independent monthly counts, each keyed off the timestamp that
+// actually belongs to that stage (not all three off createdAt) — Submitted
+// from createdAt, Reviewed from review.reviewedAt, Approved from
+// approval.approvedAt — so each bar reflects real activity in that month,
+// not just when the item was first submitted. An approval only contributes
+// to the Reviewed/Approved counts once it actually has that stage's data;
+// an item still sitting at 'submitted' only ever shows up in the Submitted
+// series.
+function monthKey(iso){
+  if(!iso) return null;
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return null;
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function monthLabel(key){
+  const [y,m] = key.split('-');
+  const names = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  return names[parseInt(m,10)-1]+' '+y;
+}
+// Person filter narrows the SET of approvals first (submitter: theirs only;
+// reviewer: only what they personally reviewed), then the three monthly
+// counts are computed from that filtered set — so a reviewer's chart shows
+// "of what I reviewed, when was it submitted / when did I review it / did
+// it go on to be approved and when", a coherent per-person recap rather
+// than three unrelated org-wide numbers.
+function filteredApprovalsForRecap(){
+  const type = document.getElementById('recap-person-type').value;
+  const name = document.getElementById('recap-person-name').value;
+  if(!type || !name) return _allApprovals;
+  if(type === 'submitter') return _allApprovals.filter(a => (a.submittedBy||'') === name);
+  if(type === 'reviewer') return _allApprovals.filter(a => a.review && a.review.reviewedBy === name);
+  return _allApprovals;
+}
+function computeRecapData(list){
+  const months = new Set();
+  const sub = {}, rev = {}, appr = {};
+  list.forEach(a => {
+    const mSub = monthKey(a.createdAt);
+    if(mSub){ months.add(mSub); sub[mSub] = (sub[mSub]||0)+1; }
+    if(a.review && a.review.reviewedAt){
+      const mRev = monthKey(a.review.reviewedAt);
+      if(mRev){ months.add(mRev); rev[mRev] = (rev[mRev]||0)+1; }
+    }
+    if(a.approval && a.approval.approvedAt){
+      const mAppr = monthKey(a.approval.approvedAt);
+      if(mAppr){ months.add(mAppr); appr[mAppr] = (appr[mAppr]||0)+1; }
+    }
+  });
+  const sortedMonths = [...months].sort();
+  return {
+    months: sortedMonths,
+    submitted: sortedMonths.map(m => sub[m]||0),
+    reviewed: sortedMonths.map(m => rev[m]||0),
+    approved: sortedMonths.map(m => appr[m]||0),
+  };
+}
+function populateRecapPersonOptions(){
+  const type = document.getElementById('recap-person-type').value;
+  const nameSel = document.getElementById('recap-person-name');
+  let names;
+  if(type === 'submitter'){
+    names = [...new Set(_allApprovals.map(a => a.submittedBy).filter(Boolean))];
+  }else if(type === 'reviewer'){
+    names = [...new Set(_allApprovals.filter(a => a.review && a.review.reviewedBy).map(a => a.review.reviewedBy))];
+  }else{
+    names = [];
+  }
+  names.sort((a,b) => a.localeCompare(b));
+  nameSel.innerHTML = names.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
+}
+function onRecapPersonTypeChange(){
+  const type = document.getElementById('recap-person-type').value;
+  document.getElementById('recap-person-name-wrap').style.display = type ? '' : 'none';
+  populateRecapPersonOptions();
+  renderRecapChart();
+}
+let _chartRecap = null;
+function renderRecapChart(){
+  const type = document.getElementById('recap-person-type').value;
+  const name = document.getElementById('recap-person-name').value;
+  const titleEl = document.getElementById('recap-title');
+  if(type && name){
+    titleEl.textContent = 'Rekap Bulanan — '+(type==='submitter'?'Submitter':'Reviewer')+': '+name;
+  }else{
+    titleEl.textContent = 'Rekap Bulanan — Semua Data';
+  }
+
+  const list = filteredApprovalsForRecap();
+  const data = computeRecapData(list);
+  const emptyEl = document.getElementById('recap-empty');
+  const canvas = document.getElementById('chartRecap');
+
+  // Table always reflects the same filtered/aggregated data as the chart.
+  const tbody = document.querySelector('#recap-table tbody');
+  if(!data.months.length){
+    tbody.innerHTML = '';
+  }else{
+    tbody.innerHTML = data.months.map((m,i) => `<tr><td>${monthLabel(m)}</td><td>${data.submitted[i]}</td><td>${data.reviewed[i]}</td><td>${data.approved[i]}</td></tr>`).join('');
+  }
+
+  if(!data.months.length){
+    canvas.style.display = 'none';
+    emptyEl.style.display = 'block';
+    if(_chartRecap){ _chartRecap.destroy(); _chartRecap = null; }
+    return;
+  }
+  canvas.style.display = '';
+  emptyEl.style.display = 'none';
+
+  const cs = getComputedStyle(document.documentElement);
+  const cPri = cs.getPropertyValue('--pri').trim();
+  const cAcc = cs.getPropertyValue('--acc').trim();
+  const cOk = cs.getPropertyValue('--ok').trim();
+
+  const cfg = {
+    type: 'bar',
+    data: {
+      labels: data.months.map(monthLabel),
+      datasets: [
+        {label:'Submitted', data:data.submitted, backgroundColor:cPri, borderRadius:4},
+        {label:'Reviewed', data:data.reviewed, backgroundColor:cAcc, borderRadius:4},
+        {label:'Approved', data:data.approved, backgroundColor:cOk, borderRadius:4},
+      ],
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{mode:'index', intersect:false} },
+      scales:{ y:{beginAtZero:true, ticks:{precision:0}} },
+    },
+  };
+  if(_chartRecap){ _chartRecap.destroy(); }
+  _chartRecap = new Chart(canvas, cfg);
+}
+
+/* ── DETAIL ── */
+let _curApproval = null, _curChecksheet = null;
+async function openDetail(id){
+  const overlay = document.getElementById('detail-overlay');
+  overlay.classList.add('show');
+  document.getElementById('d-title').textContent = 'Memuat...';
+  document.getElementById('d-sub').textContent = '';
+  document.getElementById('d-body').innerHTML = '<div class="list-loading"><div class="msg">Memuat detail...</div></div>';
+  try{
+    const approval = await Approvals.getById(id);
+    if(!approval){ document.getElementById('d-body').innerHTML = '<div class="list-empty"><div class="msg">Data tidak ditemukan</div></div>'; return; }
+    // Reuse the enriched copy from the list if we have it, so _team/_area (and
+    // any dedupe) are consistent; fall back to enriching this fetch directly.
+    const listed = _allApprovals.find(x => x.id === id);
+    if(listed){ approval._team = listed._team; approval._area = listed._area; approval._src = listed._src || null; }
+    else { await loadUserDir(); const s = scopeOfApproval(approval); approval._team = s.team; approval._area = s.area; approval._src = s.src || null; }
+    const checksheet = await getChecksheet(approval.checksheetId);
+    _curApproval = approval; _curChecksheet = checksheet;
+    renderDetail(approval, checksheet);
+  }catch(e){
+    document.getElementById('d-body').innerHTML = '<div class="list-empty"><div class="msg">Gagal memuat</div><div>'+e.message+'</div></div>';
+  }
+}
+function closeDetail(){
+  document.getElementById('detail-overlay').classList.remove('show');
+  _curApproval = null; _curChecksheet = null;
+  // Detail body is rebuilt from scratch on the next open (new canvas elements),
+  // so drop the per-canvas pad state or attachSignaturePad() would skip
+  // re-binding the fresh canvases (and prefill wouldn't re-run).
+  delete _sigState['sig-canvas-review'];
+  delete _sigState['sig-canvas-approval'];
+  // Drop ?id= so a refresh doesn't keep re-opening the same item.
+  if(new URLSearchParams(location.search).has('id')){
+    history.replaceState(null, '', location.pathname);
+  }
+}
+
+async function doDeleteApproval(){
+  if(loggedInRole !== 'admin' || !_curApproval) return;
+  const label = (_curChecksheet && (_curChecksheet.assetName||_curChecksheet.assetTag)) || _curApproval.assetName || _curApproval.assetTag || 'submission ini';
+  if(!confirm('Hapus "'+label+'" dari alur Review & Approval?\n\nData checklist asli TETAP tersimpan di database (tidak terhapus dari Dashboard). Tindakan ini hanya menghapus entri review/approval-nya dan tidak dapat dibatalkan.')) return;
+  const id = _curApproval.id;
+  try{
+    await Approvals.deleteById(id);
+    _allApprovals = _allApprovals.filter(a => a.id !== id);
+    closeDetail();
+    updateTabCounts();
+    if(_activeTab === 'recap') renderRecapChart(); else renderList();
+  }catch(e){
+    alert('Gagal menghapus: '+e.message);
+  }
+}
+
+function renderDetail(a, cs){
+  document.getElementById('d-title').textContent = (cs && (cs.assetName||cs.assetTag)) || a.assetName || a.assetTag || 'Submission';
+  document.getElementById('d-sub').textContent = 'WO '+(cs?.woNumber||'—')+' · '+(cs?.executionDate||'—')+' · '+Approvals.STATUS_LABELS[a.status];
+
+  let html = '';
+
+  html += `<div class="dsec"><div class="dsec-title">Info Submission</div>
+    <div class="info-grid">
+      <div class="info-cell"><div class="k">Checked By (PIC)</div><div class="v">${escHtml(cs?.checkedBy||'—')}</div></div>
+      ${cs?.uploadedBy ? `<div class="info-cell"><div class="k">Diinput oleh</div><div class="v">${escHtml(cs.uploadedBy)}</div></div>` : ''}
+      <div class="info-cell"><div class="k">Tanggal Eksekusi</div><div class="v">${escHtml(cs?.executionDate||'—')}</div></div>
+      <div class="info-cell"><div class="k">Shift</div><div class="v">${escHtml(cs?.shift||'—')}</div></div>
+      <div class="info-cell"><div class="k">Status Checklist</div><div class="v">${escHtml(cs?.overallStatus||'—')} (${cs?.countOk||0} OK / ${cs?.countNg||0} NG)</div></div>
+      <div class="info-cell"><div class="k">Disubmit</div><div class="v">${fmtDate(a.createdAt)}</div></div>
+      <div class="info-cell"><div class="k">Team / Area (PIC)</div><div class="v">${a._team ? escHtml(a._team)+' · '+escHtml(a._area||'?') : '<span style="color:var(--txt-3);font-weight:500">Team submitter tidak tercatat</span>'}${a._src?` <span style="color:var(--ind);font-weight:600">· via ${escHtml(a._src)}</span>`:''}</div></div>
+    </div></div>`;
+
+  html += `<div class="dsec"><div class="dsec-title">Dokumen</div><div class="file-links">
+    ${cs?.pdfUrl ? `<button class="btn btn-sm" onclick="openRemoteFile('${cs.pdfUrl}')">&#128196; Buka PDF Asli</button>` : '<span class="readonly-hint">PDF asli belum tersedia (upload mungkin gagal/belum selesai).</span>'}
+    ${a.finalPdfUrl ? `<button class="btn btn-sm btn-ok" onclick="openRemoteFile('${a.finalPdfUrl}')">&#9989; Unduh PDF Final (Approved)</button>` : ''}
+  </div></div>`;
+
+  const photoUrls = cs?.photoUrls || {};
+  const groups = Object.keys(photoUrls).filter(k => (photoUrls[k]||[]).length);
+  html += `<div class="dsec"><div class="dsec-title">Foto Evidence</div>`;
+  if(!groups.length){
+    html += `<span class="readonly-hint">Tidak ada foto, atau belum berhasil diunggah.</span>`;
+  }else{
+    // Thumbnails start on a blank placeholder — drive-proxy.gs's endpoint
+    // is a JSON API, not a directly displayable image URL (see
+    // storage-helper.js's fetchMeta), so each real src is resolved
+    // asynchronously below via Storage.toObjectUrl() once this HTML is in
+    // the DOM.
+    html += `<div class="photo-groups">` + groups.map(g => `
+      <div><div class="photo-group-lbl">${escHtml(g)}</div>
+        <div class="photo-thumbs">${photoUrls[g].map(p => `<a href="#" onclick="openRemoteFile('${p.url}');return false;"><img class="pk-thumb" data-remote-url="${p.url}" src="${BLANK_PIXEL}" title="${escHtml(p.caption||'')}"></a>`).join('')}</div>
+      </div>`).join('') + `</div>`;
+  }
+  html += `</div>`;
+
+  if(a.returnedNote){
+    html += `<div class="dsec"><div class="dsec-title">&#9888;&#65039; Dikembalikan</div>
+      <div class="note-box returned">Oleh <b>${escHtml(a.returnedNote.by||'—')}</b> pada tahap <b>${a.returnedNote.stage==='approval'?'Approval':'Review'}</b> (${fmtDate(a.returnedNote.returnedAt)}):<br>"${escHtml(a.returnedNote.note||'—')}"</div>
+      ${a.checksheetFile && !a._src ? `<div style="margin-top:8px"><a class="btn btn-sm" target="_blank" rel="noopener" href="${a.checksheetFile}?reviseOf=${a.id}">&#9999;&#65039; Buka Check Sheet untuk Revisi</a></div>` : ''}
+    </div>`;
+  }
+
+  if(a.review){
+    html += `<div class="dsec"><div class="dsec-title">Review — TechOp2</div>
+      <div class="info-grid" style="margin-bottom:10px">
+        <div class="info-cell"><div class="k">Direview oleh</div><div class="v">${escHtml(a.review.reviewedBy||'—')}</div></div>
+        <div class="info-cell"><div class="k">Tanggal</div><div class="v">${fmtDate(a.review.reviewedAt)}</div></div>
+      </div>
+      <div class="field-lbl">Komentar</div><div class="note-box">${escHtml(a.review.comments||'—')}</div>
+      <div class="field-lbl" style="margin-top:10px">Rekomendasi / Future Work</div><div class="note-box">${escHtml(a.review.recommendations||'—')}</div>
+      ${a.review.signature ? `<div class="sig-preview"><img src="${a.review.signature}"></div>` : ''}
+    </div>`;
+  }
+  if(a.approval){
+    html += `<div class="dsec"><div class="dsec-title">Approval — Supervisor</div>
+      <div class="info-grid" style="margin-bottom:10px">
+        <div class="info-cell"><div class="k">Disetujui oleh</div><div class="v">${escHtml(a.approval.approvedBy||'—')}</div></div>
+        <div class="info-cell"><div class="k">Tanggal</div><div class="v">${fmtDate(a.approval.approvedAt)}</div></div>
+      </div>
+      <div class="field-lbl">Catatan Supervisor</div><div class="note-box">${escHtml(a.approval.notes||'—')}</div>
+      ${a.approval.signature ? `<div class="sig-preview"><img src="${a.approval.signature}"></div>` : ''}
+    </div>`;
+  }
+
+  html += renderActionSection(a, cs);
+
+  // Admin-only: remove this entry from the Review & Approval workflow.
+  // Scoped to the `approvals` collection ONLY — same boundary
+  // cleanupDuplicateApprovals() already uses (see CLAUDE.md) — the
+  // underlying checksheet doc is never touched, so dashboard.html's
+  // history/Load & Merge are unaffected.
+  if(loggedInRole === 'admin'){
+    html += `<div class="dsec danger-zone">
+      <div class="dsec-title">&#9888;&#65039; Admin — Hapus dari Approval Sheet</div>
+      <div class="readonly-hint" style="margin-bottom:10px">Menghapus entri ini dari alur Review &amp; Approval saja. Data checklist asli TETAP tersimpan di database dan tetap terlihat di Dashboard.</div>
+      <button class="btn btn-danger" onclick="doDeleteApproval()">&#128465;&#65039; Hapus dari Approval Sheet</button>
+    </div>`;
+  }
+
+  document.getElementById('d-body').innerHTML = html;
+  if(document.getElementById('sig-canvas-review')){ attachSignaturePad('sig-canvas-review'); prefillSignatureCanvas('sig-canvas-review'); }
+  if(document.getElementById('sig-canvas-approval')){ attachSignaturePad('sig-canvas-approval'); prefillSignatureCanvas('sig-canvas-approval'); }
+
+  document.querySelectorAll('.pk-thumb[data-remote-url]').forEach(img => {
+    Storage.toObjectUrl(img.dataset.remoteUrl)
+      .then(objUrl => { img.src = objUrl; })
+      .catch(() => { img.title = 'Gagal memuat foto'; });
+  });
+}
+
+const BLANK_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+
+// ── FILE DOWNLOAD PROGRESS OVERLAY (always a real 0–100%) ──
+function _fpBytes(n){
+  if(!n && n!==0) return '';
+  const u=['B','KB','MB','GB']; let i=0;
+  while(n>=1024 && i<u.length-1){ n/=1024; i++; }
+  return (i>0 && n<10 ? n.toFixed(1) : Math.round(n)) + ' ' + u[i];
+}
+let _fpPct = 0, _fpCreep = null, _fpLoaded = 0;
+function _fpRender(meta){
+  const fill = document.getElementById('fp-fill');
+  fill.classList.remove('indet');
+  fill.style.width = Math.round(_fpPct) + '%';
+  document.getElementById('fp-meta').textContent =
+    Math.round(_fpPct) + '%' + (meta ? '  ·  ' + meta : '');
+}
+// Never goes backwards; caps below 100 until finishFileProgress().
+function _fpSet(target, meta){
+  _fpPct = Math.max(_fpPct, Math.min(99, target));
+  _fpRender(meta);
+}
+function showFileProgress(label){
+  document.getElementById('fp-label').textContent = label || 'Memuat file…';
+  _fpPct = 0; _fpLoaded = 0;
+  _fpRender('Menyambungkan…');
+  document.getElementById('file-progress').classList.add('show');
+  clearInterval(_fpCreep);
+  // Time-based creep so the bar always moves even if the server sends no
+  // byte-progress events — eases toward ~92% and stops there.
+  _fpCreep = setInterval(() => {
+    if(_fpPct < 92){ _fpPct += Math.max(0.4, (92 - _fpPct) * 0.04); _fpRender(_fpMeta()); }
+  }, 350);
+}
+function _fpMeta(){ return _fpLoaded ? _fpBytes(_fpLoaded) + ' diunduh' : 'Menyambungkan…'; }
+// p: {loaded,total} while streaming, or {phase:'decode'} once fetched.
+function updateFileProgress(p){
+  if(p && p.phase === 'decode'){ _fpSet(96, 'Menyiapkan file…'); return; }
+  const loaded = (p && p.loaded) || 0, total = (p && p.total) || 0;
+  _fpLoaded = Math.max(_fpLoaded, loaded);
+  if(total > 0){
+    _fpSet(loaded / total * 100, _fpBytes(loaded) + ' / ' + _fpBytes(total));
+  }else{
+    // No Content-Length: map bytes onto an asymptotic curve that approaches
+    // ~93% — real data driving it, just an estimated scale.
+    _fpSet(93 * (1 - Math.exp(-_fpLoaded / 700000)), _fpBytes(_fpLoaded) + ' diunduh');
+  }
+}
+function setFileProgressPhase(label){
+  document.getElementById('fp-label').textContent = label;
+  _fpSet(_fpPct + 1, 'Mohon tunggu…');
+}
+// Explicit percentage from a caller that knows its own 0–100 (e.g. an upload
+// with Approvals.submitWithFiles' onProgress). Stops the time-based creep.
+function setFileProgressPct(pct, label){
+  clearInterval(_fpCreep); _fpCreep = null;
+  if(label) document.getElementById('fp-label').textContent = label;
+  _fpSet(pct, '');
+}
+function finishFileProgress(){
+  clearInterval(_fpCreep); _fpCreep = null;
+  _fpPct = 100; _fpRender('Selesai');
+  setTimeout(hideFileProgress, 260);
+}
+function hideFileProgress(){
+  clearInterval(_fpCreep); _fpCreep = null;
+  document.getElementById('file-progress').classList.remove('show');
+}
+
+// Opens window immediately (still inside the click's user-gesture context,
+// so popup blockers allow it) with a loading placeholder, then swaps in
+// the real blob: URL once Storage.toObjectUrl() resolves — see
+// storage-helper.js: a drive-proxy URL is a JSON API, not something a
+// browser can navigate to directly. A progress overlay on the dashboard
+// shows the download running (bytes / % if the server reports a size).
+function openRemoteFile(url){
+  const win = window.open('', '_blank');
+  if(win) win.document.write('<p style="font:14px system-ui;padding:24px;color:#334155">Memuat file…</p>');
+  showFileProgress('Memuat file…');
+  Storage.toObjectUrl(url, updateFileProgress).then(objUrl => {
+    finishFileProgress();
+    if(win) win.location.href = objUrl;
+    else window.open(objUrl, '_blank');
+  }).catch(e => {
+    hideFileProgress();
+    if(win) win.document.body.innerHTML = 'Gagal memuat file: '+escHtml(e.message);
+    else alert('Gagal memuat file: '+e.message);
+  });
+}
+
+function renderActionSection(a, cs){
+  // 'admin' can do both — matches inboxItems() above, which already shows
+  // an admin both the submitted and reviewed queues.
+  // TechOp2 may only review submissions routed to their own team+area (the
+  // same rule inboxItems() filters on) — enforced here too so a direct link
+  // to an out-of-scope submission can't be reviewed.
+  const canReview = ((loggedInRole==='techop2' && inMyReviewScope(a)) || loggedInRole==='admin') && a.status==='submitted';
+  const canApprove = (loggedInRole==='supervisor' || loggedInRole==='admin') && a.status==='reviewed';
+  if(loggedInRole==='techop2' && a.status==='submitted' && !inMyReviewScope(a)){
+    return `<div class="dsec"><div class="dsec-title">Tindakan — Review</div>
+      <div class="readonly-hint">Submission ini di luar cakupan team/area Anda (${a._team?escHtml(a._team)+' · '+escHtml(a._area||'?'):'team submitter tidak tercatat'}). PIC dari team tersebut yang akan mereview.</div>
+    </div>`;
+  }
+  if(canReview){
+    // External feeds (PM Unit 7 etc.) can't be edited from here — the form
+    // lives in the other app.
+    const editHref = (a.checksheetFile && !a._src) ? a.checksheetFile.replace(/ /g,'%20')+'?reviseOf='+a.id : '';
+    return `<div class="dsec"><div class="dsec-title">Tindakan — Review</div>
+      ${a._src ? `<div class="edit-cs-box"><div>Submission ini masuk lewat <b>${escHtml(a._src)}</b> (bukan check sheet) — isian tidak bisa diedit dari sini. Review berdasarkan PDF &amp; foto terlampir.</div></div>` : ''}
+      ${editHref ? `<div class="edit-cs-box">
+        <div><b>Perlu memperbaiki isian?</b> Buka check sheet untuk diedit langsung, tekan tombol
+        <i>"Muat Data Submission untuk Direvisi"</i> di banner atas, perbaiki, lalu Submit ulang —
+        submission ini akan diperbarui di tempat.</div>
+        <a class="btn btn-sm btn-pri" target="_blank" rel="noopener" href="${editHref}">&#9999;&#65039; Edit Check Sheet</a>
+      </div>` : ''}
+      <label class="field-lbl">Komentar</label>
+      <textarea class="dinput" id="in-comments" placeholder="Catatan hasil review..."></textarea>
+      <label class="field-lbl" style="margin-top:10px">Rekomendasi / Future Work</label>
+      <textarea class="dinput" id="in-recommendations" placeholder="Rekomendasi tindak lanjut..."></textarea>
+      <div class="sig-pad-wrap">
+        <label class="field-lbl">Tanda Tangan</label>
+        <canvas class="sig-canvas" id="sig-canvas-review" width="330" height="150"></canvas>
+        <div class="sig-actions">
+          <button class="btn btn-sm" onclick="clearSignature('sig-canvas-review')">Hapus Tanda Tangan</button>
+          <button class="btn btn-sm" onclick="document.getElementById('sig-file-review').click()">&#128193; Upload Gambar</button>
+          <input type="file" id="sig-file-review" accept="image/png,image/jpeg" style="display:none" onchange="handleSignatureFile('sig-canvas-review', this)">
+        </div>
+      </div>
+      <div class="action-row">
+        <button class="btn btn-danger" onclick="doReturnToTechnician('review')">&#8617; Kembalikan ke Teknisi</button>
+        <button class="btn btn-pri" onclick="doSubmitReview()">Teruskan ke Supervisor &rarr;</button>
+      </div>
+    </div>`;
+  }
+  if(canApprove){
+    return `<div class="dsec"><div class="dsec-title">Tindakan — Approval</div>
+      <label class="field-lbl">Catatan Supervisor</label>
+      <textarea class="dinput" id="in-notes" placeholder="Catatan approval..."></textarea>
+      <div class="sig-pad-wrap">
+        <label class="field-lbl">Tanda Tangan</label>
+        <canvas class="sig-canvas" id="sig-canvas-approval" width="330" height="150"></canvas>
+        <div class="sig-actions">
+          <button class="btn btn-sm" onclick="clearSignature('sig-canvas-approval')">Hapus Tanda Tangan</button>
+          <button class="btn btn-sm" onclick="document.getElementById('sig-file-approval').click()">&#128193; Upload Gambar</button>
+          <input type="file" id="sig-file-approval" accept="image/png,image/jpeg" style="display:none" onchange="handleSignatureFile('sig-canvas-approval', this)">
+        </div>
+      </div>
+      <div class="action-row">
+        <button class="btn btn-danger" onclick="doReturnToTechnician('approval')">&#8617; Kembalikan ke Teknisi</button>
+        <button class="btn btn-ok" id="btn-approve" onclick="doApprove()">&#9989; Approve &amp; Buat PDF Final</button>
+      </div>
+    </div>`;
+  }
+  return '';
+}
+
+/* ── SIGNATURE PAD ── */
+const _sigState = {};
+function attachSignaturePad(id){
+  const canvas = document.getElementById(id);
+  if(!canvas || _sigState[id]) return; // avoid double-binding on re-render
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#0b1220'; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  _sigState[id] = {drawing:false, hasInk:false};
+  function pos(e){
+    const r = canvas.getBoundingClientRect();
+    const sx = canvas.width / r.width, sy = canvas.height / r.height;
+    return {x:(e.clientX-r.left)*sx, y:(e.clientY-r.top)*sy};
+  }
+  canvas.addEventListener('pointerdown', e => {
+    canvas.setPointerCapture(e.pointerId);
+    _sigState[id].drawing = true;
+    const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y);
+  });
+  canvas.addEventListener('pointermove', e => {
+    if(!_sigState[id].drawing) return;
+    const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke();
+    _sigState[id].hasInk = true;
+  });
+  ['pointerup','pointerleave','pointercancel'].forEach(evt => canvas.addEventListener(evt, () => { _sigState[id].drawing = false; }));
+}
+function clearSignature(id){
+  const canvas = document.getElementById(id);
+  canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+  if(_sigState[id]) _sigState[id].hasInk = false;
+}
+function getSignatureDataUrl(id){
+  if(!_sigState[id] || !_sigState[id].hasInk) return null;
+  return document.getElementById(id).toDataURL('image/png');
+}
+
+// "Upload Gambar" — an alternative to drawing: load a PNG/JPG signature
+// file, draw it onto the SAME canvas the pad uses (fit-to-box, aspect
+// ratio preserved — never stretched, same anti-distortion principle as
+// PhotoKit elsewhere in this project) so getSignatureDataUrl() and the
+// PDF embed in buildFinalPdf() need no separate code path.
+function handleSignatureFile(canvasId, inputEl){
+  const file = inputEl.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => { drawImageFitted(canvasId, img); };
+    img.onerror = () => alert('Gagal membaca gambar. Pastikan file PNG/JPG yang valid.');
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+  inputEl.value = ''; // allow re-selecting the same file later
+}
+function drawImageFitted(canvasId, img){
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+  const w = img.width * scale, h = img.height * scale;
+  ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+  if(!_sigState[canvasId]) _sigState[canvasId] = { drawing: false, hasInk: false };
+  _sigState[canvasId].hasInk = true;
+}
+
+/* ── ACTIONS ── */
+async function doReturnToTechnician(stage){
+  if(!_curApproval) return;
+  const note = prompt('Alasan pengembalian ke teknisi:');
+  if(note==null || !note.trim()){ return; }
+  try{
+    await Approvals.returnToTechnician(_curApproval.id, {note:note.trim(), by:loggedInUser, stage});
+    alert('Submission dikembalikan ke teknisi.');
+    closeDetail();
+    await loadAll();
+  }catch(e){
+    alert('Gagal mengembalikan: '+e.message);
+  }
+}
+
+async function doSubmitReview(){
+  if(!_curApproval) return;
+  const comments = document.getElementById('in-comments').value.trim();
+  const recommendations = document.getElementById('in-recommendations').value.trim();
+  const signature = getSignatureDataUrl('sig-canvas-review');
+  if(!comments){ alert('Isi komentar terlebih dahulu.'); return; }
+  if(!signature){ alert('Tanda tangan diperlukan sebelum diteruskan ke Supervisor.'); return; }
+  try{
+    await Approvals.submitReview(_curApproval.id, {comments, recommendations, signature, reviewedBy: loggedInUser});
+    alert('Review terkirim, diteruskan ke Supervisor.');
+    closeDetail();
+    await loadAll();
+  }catch(e){
+    alert('Gagal mengirim review: '+e.message);
+  }
+}
+
+async function doApprove(){
+  if(!_curApproval || !_curChecksheet) return;
+  const notes = document.getElementById('in-notes').value.trim();
+  const signature = getSignatureDataUrl('sig-canvas-approval');
+  if(!signature){ alert('Tanda tangan diperlukan sebelum approve.'); return; }
+  const btn = document.getElementById('btn-approve');
+  btn.disabled = true; btn.textContent = '⏳ Membuat PDF final...';
+  showFileProgress('Mengambil PDF asli…');
+  try{
+    const approvedBy = loggedInUser;
+    const approvalForPdf = {
+      ..._curApproval,
+      approval: {notes, signature, approvedBy, approvedAt: new Date().toISOString()},
+    };
+    const blob = await buildFinalPdf(approvalForPdf, _curChecksheet, updateFileProgress);
+    setFileProgressPhase('Mengunggah PDF final…');
+    const finalPdfUrl = await Storage.uploadBlob(`approvals/${_curApproval.id}/final.pdf`, blob, 'application/pdf');
+    await Approvals.approve(_curApproval.id, {notes, signature, approvedBy, finalPdfUrl});
+    finishFileProgress();
+    alert('Submission disetujui. PDF final siap diunduh.');
+    closeDetail();
+    await loadAll();
+  }catch(e){
+    hideFileProgress();
+    alert('Gagal approve: '+e.message);
+  }finally{
+    btn.disabled = false; btn.textContent = '✅ Approve & Buat PDF Final';
+  }
+}
+
+/* ── FINAL PDF: original (from Storage) + a jsPDF addendum page, merged
+   with pdf-lib. See CLAUDE.md-style rationale in the project chat — jsPDF
+   alone can't merge an already-built PDF, only draw a fresh one. ── */
+async function buildFinalPdf(approval, cs, onProgress){
+  if(!cs.pdfUrl) throw new Error('PDF asli tidak ditemukan pada submission ini.');
+  // Storage.fetchAsBytes(), not a plain fetch() — the original PDF is
+  // hosted via the Drive proxy (drive-proxy.gs), and a JS-initiated
+  // cross-origin read of its raw binary response isn't reliably
+  // CORS-permitted; the proxy's ?mode=json path is. See storage-helper.js.
+  const origBytes = await Storage.fetchAsBytes(cs.pdfUrl, onProgress);
+  if(typeof setFileProgressPhase === 'function') setFileProgressPhase('Menggabungkan halaman approval…');
+
+  const {jsPDF} = window.jspdf;
+  const pdf = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  const M = 14; let y = 22;
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(16);
+  pdf.text('LEMBAR REVIEW & APPROVAL', 105, y, {align:'center'});
+  y += 6;
+  pdf.setDrawColor(180); pdf.line(M, y, 210-M, y);
+  y += 10;
+
+  pdf.autoTable({
+    startY:y, theme:'plain', styles:{fontSize:10, cellPadding:1.6},
+    columnStyles:{0:{cellWidth:45, fontStyle:'bold'}},
+    body:[
+      ['Asset', cs.assetName || cs.assetTag || '-'],
+      ['WO Number', cs.woNumber || '-'],
+      ['Tanggal Eksekusi', cs.executionDate || '-'],
+      ['Checked By', cs.checkedBy || '-'],
+    ],
+  });
+  y = pdf.lastAutoTable.finalY + 8;
+
+  function section(title, rows, sigDataUrl, signerLabel){
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(12); pdf.setTextColor(30,58,95);
+    pdf.text(title, M, y); y += 6;
+    pdf.setTextColor(0,0,0);
+    pdf.autoTable({
+      startY:y, theme:'grid', styles:{fontSize:9.5, cellPadding:3},
+      columnStyles:{0:{cellWidth:42, fontStyle:'bold', fillColor:[240,247,255]}},
+      body: rows,
+    });
+    y = pdf.lastAutoTable.finalY + 4;
+    if(sigDataUrl){
+      pdf.setFontSize(9);
+      pdf.text(signerLabel, M, y + 4);
+      pdf.addImage(sigDataUrl, 'PNG', M, y + 6, 55, 25); // canvas is drawn at a matching 2.2:1 ratio — no stretch
+      y += 36;
+    }
+    y += 6;
+  }
+
+  if(approval.review){
+    section('REVIEW — TechOp2', [
+      ['Komentar', approval.review.comments || '-'],
+      ['Rekomendasi / Future Work', approval.review.recommendations || '-'],
+      ['Direview oleh', approval.review.reviewedBy || '-'],
+      ['Tanggal', approval.review.reviewedAt ? new Date(approval.review.reviewedAt).toLocaleString('id-ID') : '-'],
+    ], approval.review.signature, 'Tanda tangan: '+(approval.review.reviewedBy||'-'));
+  }
+  if(approval.approval){
+    section('APPROVAL — Supervisor', [
+      ['Catatan', approval.approval.notes || '-'],
+      ['Disetujui oleh', approval.approval.approvedBy || '-'],
+      ['Tanggal', approval.approval.approvedAt ? new Date(approval.approval.approvedAt).toLocaleString('id-ID') : '-'],
+    ], approval.approval.signature, 'Tanda tangan: '+(approval.approval.approvedBy||'-'));
+  }
+
+  pdf.setFontSize(8.5); pdf.setTextColor(140);
+  pdf.text('Dokumen dibuat otomatis oleh sistem Review & Approval — ELECTRIC 7 POMI.', M, 289);
+
+  const addendumBytes = pdf.output('arraybuffer');
+
+  const { PDFDocument } = PDFLib;
+  const origDoc = await PDFDocument.load(origBytes);
+  const addendumDoc = await PDFDocument.load(addendumBytes);
+  const copiedPages = await origDoc.copyPages(addendumDoc, addendumDoc.getPageIndices());
+  copiedPages.forEach(p => origDoc.addPage(p));
+  const mergedBytes = await origDoc.save();
+  return new Blob([mergedBytes], {type:'application/pdf'});
+}
+
+checkSession();
+</script>
+</body>
+</html>

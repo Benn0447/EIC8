@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>7EP-LC-B4 Switchgear & Breaker Maintenance</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="db-helper.js"></script>
+<script src="storage-helper.js"></script>
+<script src="approval-helper.js"></script>
+<script src="submit-guard.js"></script>
+<script src="load-merge-modal.js"></script>
+<script src="auth-session.js"></script>
+<script src="technician-auth.js"></script>
+<script src="img-helper.js"></script>
+<script src="photo-kit.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1e3a5f;--navy2:#0f2744;--blue:#2563eb;--sky:#7dd3fc;--sky2:#bfdbfe;
+  --bg:#f8fbff;--bg2:#f0f7ff;--surf:#fff;--bdr:#bfdbfe;--bdr2:#dbeafe;
+  --ok:#16a34a;--ng:#dc2626;--idle:#e5e7eb;
+  --txt:#0f172a;--txt2:#1e3a5f;--txt3:#3b82f6;--txt4:#64748b;
+  --mono:'Share Tech Mono',monospace;--sans:'Barlow',sans-serif;--raj:'Rajdhani',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:100vh}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;background:var(--navy2);height:52px;
+  display:flex;align-items:center;padding:0 20px;gap:12px;border-bottom:2px solid var(--blue)}
+.tb-logo{font-family:var(--raj);font-size:20px;font-weight:700;letter-spacing:3px;color:#fff}
+.tb-logo em{color:var(--sky);font-style:normal}
+.tb-sep{width:1px;height:26px;background:rgba(255,255,255,0.15);flex-shrink:0}
+.tb-sub{font-size:11px;color:var(--sky);font-family:var(--mono);letter-spacing:1px;white-space:nowrap}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--sky);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.tb-time{font-family:var(--mono);font-size:12px;color:var(--sky);white-space:nowrap}
+.btn{padding:6px 14px;border-radius:5px;border:none;cursor:pointer;font-family:var(--raj);font-size:13px;font-weight:600;letter-spacing:1px;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.btn-pdf{background:var(--blue);color:#fff}.btn-pdf:hover{background:#1d4ed8;transform:translateY(-1px)}
+.btn-ol{background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.2)}.btn-ol:hover{background:rgba(255,255,255,0.2)}
+.btn-sm{padding:4px 10px;font-size:12px}
+
+/* HERO */
+.hero{background:var(--navy);padding:24px 20px 20px}
+.hero-eyebrow{font-family:var(--mono);font-size:10px;color:var(--sky);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.hero-eyebrow::before{content:'';width:20px;height:1px;background:var(--sky)}
+.hero-title{font-family:var(--raj);font-size:clamp(24px,5vw,48px);font-weight:700;line-height:1;color:#fff;letter-spacing:1px}
+.hero-title em{color:var(--sky);font-style:normal}
+.hero-sub{font-size:13px;color:rgba(255,255,255,0.6);margin-top:8px;font-weight:300}
+.hero-stats{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.hstat{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:10px 16px;text-align:center;min-width:72px}
+.hstat-n{font-family:var(--raj);font-size:26px;font-weight:700;color:#fff;line-height:1;display:block}
+.hstat-n.ok{color:#4ade80}.hstat-n.ng{color:#f87171}.hstat-n.ph{color:var(--sky)}
+.hstat-l{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,0.4);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;display:block}
+
+/* WRAP */
+.wrap{max-width:1200px;margin:0 auto;padding:20px 16px 80px}
+.panel{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 6px rgba(30,58,95,0.06)}
+
+/* SECTION HEADER */
+.sec-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--navy);cursor:pointer;user-select:none}
+.sec-icon{width:28px;height:28px;border-radius:6px;background:rgba(37,99,235,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.sec-title{font-family:var(--raj);font-size:15px;font-weight:700;color:#fff;letter-spacing:1.5px;text-transform:uppercase}
+.sec-cnt{margin-left:auto;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,0.4);padding:2px 8px;border:1px solid rgba(255,255,255,0.15);border-radius:10px}
+.sec-arrow{color:rgba(255,255,255,0.4);font-size:14px;transition:transform .2s;margin-left:6px}
+.sec-hdr.open .sec-arrow{transform:rotate(180deg)}
+
+/* WO GRID */
+.wo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:16px}
+.mf{display:flex;flex-direction:column;gap:4px}
+.mf label{font-size:10px;color:var(--txt4);font-weight:500;letter-spacing:1px;text-transform:uppercase}
+.mf input,.mf select,.mf textarea{border:1.5px solid var(--bdr);border-radius:5px;padding:7px 10px;font-family:var(--sans);font-size:13px;background:var(--bg2);color:var(--txt);transition:border-color .18s;width:100%}
+.mf input:focus,.mf select:focus,.mf textarea:focus{outline:none;border-color:var(--blue);background:#fff}
+.mf input[type=date]{font-family:var(--mono)}
+.mf textarea{resize:vertical;min-height:70px}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl-wrap::-webkit-scrollbar{height:4px}
+.tbl-wrap::-webkit-scrollbar-thumb{background:var(--sky2);border-radius:2px}
+.ct{width:100%;border-collapse:collapse;font-size:12px}
+.ct th{background:var(--navy);color:var(--sky2);padding:7px 9px;text-align:center;font-family:var(--mono);font-size:9.5px;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.08)}
+.ct th.tl{text-align:left}.ct th:last-child{border-right:none}
+.ct td{padding:6px 8px;border-bottom:1px solid var(--bdr2);background:var(--surf);vertical-align:middle;text-align:center;border-right:1px solid var(--bdr2)}
+.ct td:last-child{border-right:none}
+.ct tr:last-child td{border-bottom:none}
+.ct tr:hover td{background:var(--bg2)}
+.ct td.no{font-family:var(--mono);font-size:11px;color:var(--txt4);width:32px}
+.ct td.lbl{text-align:left;color:var(--txt);font-size:11.5px;min-width:220px}
+.ct td.lbl small{display:block;font-size:10px;color:var(--txt4);font-style:italic;margin-top:2px}
+.ct td.ref{font-family:var(--mono);font-size:9.5px;color:var(--txt3);min-width:100px}
+.ct td.sub{background:rgba(37,99,235,0.05)!important;font-family:var(--mono);font-size:10px;color:var(--txt4);text-align:left;padding-left:20px!important}
+.grp-hdr td{background:rgba(30,58,95,0.08)!important;font-family:var(--raj);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--navy);padding:6px 10px!important;border-bottom:2px solid var(--bdr)!important;text-align:left!important}
+
+/* TOGGLE */
+.tog{display:inline-flex;gap:3px;justify-content:center}
+.rb{font-size:10px;padding:4px 8px;border-radius:4px;cursor:pointer;font-weight:700;letter-spacing:.5px;border:none;transition:all .15s;font-family:var(--mono)}
+.rb.ok-idle{background:var(--idle);color:#9ca3af}
+.rb.ng-idle{background:var(--idle);color:#9ca3af}
+.rb.ok-act{background:var(--ok);color:#fff;box-shadow:0 0 0 2px rgba(22,163,74,0.3)}
+.rb.ng-act{background:var(--ng);color:#fff;box-shadow:0 0 0 2px rgba(220,38,38,0.3)}
+.rb:hover{opacity:.85;transform:translateY(-1px)}
+
+/* MEAS INPUT */
+.mi{width:60px;font-size:11px;padding:3px 5px;border-radius:3px;font-family:var(--mono);text-align:center;border:1.5px solid var(--bdr);background:var(--bg2);color:var(--txt)}
+.mi:focus{outline:none;border-color:var(--blue);background:#fff}
+.mi.wide{width:90px}
+
+/* PHOTO SECTION */
+.photo-section{padding:16px;background:var(--bg2);border-top:2px dashed var(--bdr)}
+.photo-sec-lbl{font-family:var(--raj);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--navy);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.photo-sec-lbl::before{content:'📷';font-size:14px}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.photo-block{display:flex;flex-direction:column;gap:6px}
+.photo-blk-title{font-family:var(--raj);font-size:12px;font-weight:700;color:var(--navy2);letter-spacing:1px;text-transform:uppercase;padding:5px 10px;background:var(--navy);color:var(--sky2);border-radius:5px;text-align:center}
+.photo-drop{border:2px dashed var(--bdr);border-radius:8px;aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;background:#fff;position:relative;overflow:hidden}
+.photo-drop:hover{border-color:var(--blue);background:var(--bg2)}
+.photo-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.photo-drop img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#f1f5f9;border-radius:6px}
+.photo-drop .del-btn{position:absolute;top:5px;right:5px;background:rgba(220,38,38,.85);border:none;color:#fff;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:13px;display:none;align-items:center;justify-content:center;z-index:5}
+.photo-drop.has-photo .del-btn{display:flex}.photo-drop .pk-crop-btn{position:absolute;top:5px;left:5px;background:rgba(37,99,235,.85);border:none;color:#fff;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:12px;display:none;align-items:center;justify-content:center;z-index:5}.photo-drop.has-photo .pk-crop-btn{display:flex}.pk-sz{font-size:10px;color:#64748b;text-align:center;margin-top:3px;min-height:12px}
+.ph-icon{font-size:22px;margin-bottom:5px;pointer-events:none}
+.ph-hint{font-size:10px;color:var(--txt4);text-align:center;pointer-events:none;font-family:var(--mono)}
+.photo-cap{width:100%;border:1.5px solid var(--bdr);border-radius:5px;padding:5px 8px;font-size:12px;background:#fff;color:var(--txt);font-family:var(--sans)}
+.photo-cap:focus{outline:none;border-color:var(--blue)}
+
+/* FINDINGS */
+.findings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px}
+
+/* NOTICE */
+.notice{padding:10px 16px;border-radius:6px;font-size:13px;display:none;margin:12px 0 0}
+.notice.ok{background:#dcfce7;border:1px solid #86efac;color:#15803d;display:block}
+.notice.err{background:#fee2e2;border:1px solid #fca5a5;color:#b91c1c;display:block}
+.notice.info{background:#dbeafe;border:1px solid #93c5fd;color:#1e40af;display:block}
+
+/* FOOTER */
+.footer{background:var(--navy2);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:20px}
+.footer-l,.footer-r{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:1px}
+
+@media(max-width:768px){
+  .tb-sub,.tb-sep{display:none}
+  .photo-grid{grid-template-columns:repeat(2,1fr)}
+  .findings-grid{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .photo-grid{grid-template-columns:1fr}
+  .wo-grid{grid-template-columns:1fr 1fr}
+}
+@media print{
+  @page{size:A4 portrait;margin:12mm 15mm}
+  *,*::before,*::after{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .topbar,.action-row,.footer,.del-btn,.tb-right,
+  .sec-hdr-arrow,.live-dot,.hero-stats,.notice{display:none!important}
+  .print-header{display:flex!important}
+  body{background:#fff!important;font-size:11px}
+  .hero{padding:14px 20px 12px}
+  .wrap{padding:10px 0 0;max-width:100%}
+  .sec-body{display:block!important}
+  .panel{box-shadow:none!important;border:1px solid #bfdbfe;margin-bottom:10px;break-inside:avoid;page-break-inside:avoid}
+  .sec-hdr{cursor:default;padding:8px 14px}
+  input[type=text],input[type=date],input[type=number],select,textarea{
+    background:transparent!important;border:none!important;
+    border-bottom:1px solid #dbeafe!important;border-radius:0!important;
+    padding:2px 0!important;color:#0f172a!important;font-size:11px!important}
+  .rb{border:none!important;border-radius:3px!important;padding:2px 6px!important;font-size:10px!important;-webkit-appearance:none;appearance:none}
+  .rb.ok-act{background:#dcfce7!important;color:#16a34a!important}
+  .rb.ng-act{background:#fee2e2!important;color:#dc2626!important}
+  .mi,.rmk-inp{background:transparent!important;border:none!important;
+    border-bottom:1px solid #dbeafe!important;border-radius:0!important;padding:2px 0!important;font-size:10px!important}
+  .tbl-wrap{overflow:visible}
+  .ct{min-width:unset!important;width:100%}
+  .ct th,.ct td{font-size:10px!important;padding:5px 7px!important}
+  .photo-drop{border:1px solid #dbeafe!important;background:#fff!important;
+    aspect-ratio:unset!important;min-height:unset!important;padding:4px!important}
+  .photo-drop img{position:static!important;width:auto!important;height:auto!important;
+    max-width:100%!important;max-height:150px!important;object-fit:contain!important}
+  .photo-grid{grid-template-columns:repeat(3,1fr)!important}
+  .findings-grid{grid-template-columns:1fr 1fr!important}
+  .wo-grid{gap:8px;padding:10px}
+}
+.print-header{display:none;font-family:var(--mono);font-size:10px;color:var(--txt4);
+  padding:4px 0 8px;border-bottom:2px solid var(--navy);margin-bottom:8px;
+  justify-content:space-between;align-items:center}
+.print-header strong{font-size:13px;color:var(--navy);font-family:var(--raj);letter-spacing:1px}
+.btn-back{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:5px;font-size:11px;font-weight:700;letter-spacing:1px;text-decoration:none;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.18);transition:background .15s;white-space:nowrap;cursor:pointer;flex-shrink:0}
+.btn-back:hover{background:rgba(255,255,255,0.2);color:#fff}
+</style>
+</head>
+<body>
+<div class="print-header" id="print-header">
+  <div><strong>POMI — 7EP-LC-B4 SWITCHGEAR &amp; BREAKER MAINTENANCE</strong><br>
+    <span id="ph-tag">—</span> · <span id="ph-desc">—</span></div>
+  <div style="text-align:right">Date: <span id="ph-date">—</span><br>
+    WO: <span id="ph-wo">—</span></div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="live-dot"></div>
+  <span class="tb-logo">LC-<em>B4</em></span>
+  <div class="tb-sep"></div>
+  <span class="tb-sub">7EP-LC-B4 · SWITCHGEAR & BREAKER MAINTENANCE</span>
+  <div class="tb-right">
+    <a class="btn-back" href="index.html" title="Back to Portal">&#8592; Portal</a>
+
+    <span class="tb-time" id="clock">--:--:--</span>
+    <button class="btn btn-ol btn-sm" onclick="saveDraft()">💾 Draft</button>
+    <button class="btn btn-pdf btn-sm" onclick="printPage()">🖨️ Print / PDF</button>
+    <button class="btn btn-sm" style="background:#16a34a;color:#fff;border:none" onclick="submitToDb()">🗄️ Submit DB</button>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Switchgear & Breaker Maintenance</div>
+  <div class="hero-title">7EP-LC-<em>B4</em></div>
+  <div class="hero-sub">Load Center Substation Unit B4 · Compartments: 102B · 102C · 103B · 103C · 104B · 104C</div>
+  <div class="hero-stats">
+    <div class="hstat"><span class="hstat-n" id="h-total">0</span><span class="hstat-l">Total</span></div>
+    <div class="hstat"><span class="hstat-n ok" id="h-ok">0</span><span class="hstat-l">OK</span></div>
+    <div class="hstat"><span class="hstat-n ng" id="h-ng">0</span><span class="hstat-l">NG</span></div>
+    <div class="hstat"><span class="hstat-n ph" id="h-photos">0</span><span class="hstat-l">Photos</span></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- WORK ORDER -->
+<div class="panel">
+  <div class="sec-hdr open" onclick="toggleSec(this)">
+    <div class="sec-icon">📋</div>
+    <div><div class="sec-title">Work Order Information</div></div>
+    <span class="sec-arrow">▼</span>
+  </div>
+  <div class="sec-body">
+    <div class="wo-grid">
+      <div class="mf"><label>WO Number</label><input type="text" id="wo-no" placeholder="WO-2026-XXXX"></div>
+      <div class="mf"><label>Date</label><input type="date" id="wo-date"></div>
+      <div class="mf"><label>Equipment</label><input type="text" id="equip" value="7EP-LC-B4"></div>
+      <div class="mf"><label>Location</label><input type="text" id="location" placeholder="Substation location"></div>
+      <div class="mf"><label>Done By</label><input type="text" id="done-by" placeholder="Technician name"></div>
+      <div class="mf"><label>Reviewed By</label><input type="text" id="reviewed-by" placeholder="Supervisor name"></div>
+      <div class="mf"><label>Shift</label>
+        <select id="shift">
+          <option>Shift 1 (07:00–15:00)</option>
+          <option>Shift 2 (15:00–23:00)</option>
+          <option>Shift 3 (23:00–07:00)</option>
+          <option>Normal Hours (08:00–17:00)</option>
+        </select>
+      </div>
+      <div class="mf"><label>Date Acknowledge</label><input type="date" id="ack-date"></div>
+    </div>
+    <div style="padding:0 16px 14px">
+      <button class="btn btn-sm" style="background:#fff;color:var(--navy);border:1.5px solid var(--bdr)" onclick="LoadMergeModal.open()">&#128229; Pilih &amp; Gabung Data dari Database</button>
+      <span style="font-size:11px;color:var(--txt4);margin-left:8px">Pilih satu atau lebih submission sebelumnya untuk digabung (union, tidak menghapus) ke form ini &mdash; berguna saat beberapa teknisi mengisi kompartemen berbeda secara terpisah.</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CHECK TABLE -->
+<div class="panel">
+  <div class="sec-hdr open" onclick="toggleSec(this)">
+    <div class="sec-icon">🔌</div>
+    <div><div class="sec-title">Maintenance Check Items</div></div>
+    <span class="sec-cnt" id="cnt-items">— items</span>
+    <span class="sec-arrow">▼</span>
+  </div>
+  <div class="sec-body">
+    <div class="tbl-wrap">
+    <table class="ct" id="main-table">
+      <thead>
+        <tr>
+          <th class="tl" style="width:32px">No.</th>
+          <th class="tl" style="min-width:240px">Check Items / Point</th>
+          <th style="min-width:120px">Criteria</th>
+          <th style="min-width:80px">102B</th>
+          <th style="min-width:80px">102C</th>
+          <th style="min-width:80px">103B</th>
+          <th style="min-width:80px">103C</th>
+          <th style="min-width:80px">104B</th>
+          <th style="min-width:80px">104C</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-main"></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- TRIP SETTINGS TABLE -->
+<div class="panel">
+  <div class="sec-hdr open" onclick="toggleSec(this)">
+    <div class="sec-icon">⚙️</div>
+    <div><div class="sec-title">Item 14 — Trip Settings Record</div></div>
+    <span class="sec-arrow">▼</span>
+  </div>
+  <div class="sec-body">
+    <div class="tbl-wrap">
+    <table class="ct">
+      <thead>
+        <tr>
+          <th class="tl" style="min-width:160px">Setting Parameter</th>
+          <th>102B</th><th>102C</th><th>103B</th><th>103C</th><th>104B</th><th>104C</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="lbl">Motor Overload Setting (A)</td>
+          <td><input class="mi" type="number" step="0.1" id="s14-overload-102B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-overload-102C" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-overload-103B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-overload-103C" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-overload-104B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-overload-104C" placeholder="—"></td>
+        </tr>
+        <tr>
+          <td class="lbl">Breaker Capacity (A)</td>
+          <td><input class="mi" type="number" step="1" id="s14-bkrcap-102B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="1" id="s14-bkrcap-102C" placeholder="—"></td>
+          <td><input class="mi" type="number" step="1" id="s14-bkrcap-103B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="1" id="s14-bkrcap-103C" placeholder="—"></td>
+          <td><input class="mi" type="number" step="1" id="s14-bkrcap-104B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="1" id="s14-bkrcap-104C" placeholder="—"></td>
+        </tr>
+        <tr>
+          <td class="lbl">Instant Setting (×In)</td>
+          <td><input class="mi" type="number" step="0.1" id="s14-instant-102B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-instant-102C" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-instant-103B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-instant-103C" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-instant-104B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-instant-104C" placeholder="—"></td>
+        </tr>
+        <tr>
+          <td class="lbl">LT Setting (×In)</td>
+          <td><input class="mi" type="number" step="0.1" id="s14-lt-102B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-lt-102C" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-lt-103B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-lt-103C" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-lt-104B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.1" id="s14-lt-104C" placeholder="—"></td>
+        </tr>
+        <tr>
+          <td class="lbl">Time Delay (s)</td>
+          <td><input class="mi" type="number" step="0.01" id="s14-delay-102B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.01" id="s14-delay-102C" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.01" id="s14-delay-103B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.01" id="s14-delay-103C" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.01" id="s14-delay-104B" placeholder="—"></td>
+          <td><input class="mi" type="number" step="0.01" id="s14-delay-104C" placeholder="—"></td>
+        </tr>
+        <tr>
+          <td class="lbl">Rating Plug</td>
+          <td><input class="mi wide" type="text" id="s14-plug-102B" placeholder="—"></td>
+          <td><input class="mi wide" type="text" id="s14-plug-102C" placeholder="—"></td>
+          <td><input class="mi wide" type="text" id="s14-plug-103B" placeholder="—"></td>
+          <td><input class="mi wide" type="text" id="s14-plug-103C" placeholder="—"></td>
+          <td><input class="mi wide" type="text" id="s14-plug-104B" placeholder="—"></td>
+          <td><input class="mi wide" type="text" id="s14-plug-104C" placeholder="—"></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- DEFECT RECORD -->
+<div class="panel">
+  <div class="sec-hdr open" onclick="toggleSec(this)">
+    <div class="sec-icon">📝</div>
+    <div><div class="sec-title">Item 15 — Defect Record & Work History</div></div>
+    <span class="sec-arrow">▼</span>
+  </div>
+  <div class="sec-body">
+    <div class="tbl-wrap">
+    <table class="ct">
+      <thead><tr>
+        <th style="min-width:80px">Compartment</th>
+        <th class="tl" style="min-width:220px">Defect / Abnormality Found</th>
+        <th class="tl" style="min-width:180px">Action Taken</th>
+        <th style="min-width:80px">Status</th>
+      </tr></thead>
+      <tbody>
+        <tr id="def-102B"><td class="ref" style="font-weight:700;color:var(--navy)">102B</td><td><input style="width:100%;border:1.5px solid var(--bdr);border-radius:3px;padding:4px 7px;font-size:12px;background:var(--bg2);color:var(--txt)" placeholder="Defect found…"></td><td><input style="width:100%;border:1.5px solid var(--bdr);border-radius:3px;padding:4px 7px;font-size:12px;background:var(--bg2);color:var(--txt)" placeholder="Action taken…"></td><td><div class="tog" id="def-tog-102B"></div></td></tr>
+        <tr id="def-102C"><td class="ref" style="font-weight:700;color:var(--navy)">102C</td><td><input style="width:100%;border:1.5px solid var(--bdr);border-radius:3px;padding:4px 7px;font-size:12px;background:var(--bg2);color:var(--txt)" placeholder="Defect found…"></td><td><input style="width:100%;border:1.5px solid var(--bdr);border-radius:3px;padding:4px 7px;font-size:12px;background:var(--bg2);color:var(--txt)" placeholder="Action taken…"></td><td><div class="tog" id="def-tog-102C"></div></td></tr>
+        <tr id="def-103B"><td class="ref" style="font-weight:700;color:var(--navy)">103B</td><td><input style="width:100%;border:1.5px solid var(--bdr);border-radius:3px;padding:4px 7px;font-size:12px;background:var(--bg2);color:var(--txt)" placeholder="Defect found…"></td><td><input style="width:100%;border:1.5px solid var(--bdr);border-radius:3px;padding:4px 7px;font-size:12px;background:var(--bg2);color:var(--txt)" placeholder="Action taken…"></td><td><div class="tog" id="def-tog-103B"></div></td></tr>
+        <tr id="def-103C"><td class="ref" style="font-weight:700;color:var(--navy)">103C</td><td><input style="width:100%;border:1.5px solid var(--bdr);border-radius:3px;padding:4px 7px;font-size:12px;background:var(--bg2);color:var(--txt)" placeholder="Defect found…"></td><td><input style="width:100%;border:1.5px solid var(--bdr);border-radius:3px;padding:4px 7px;font-size:12px;background:var(--bg2);color:var(--txt)" placeholder="Action taken…"></td><td><div class="tog" id="def-tog-103C"></div></td></tr>
+        <tr id="def-104B"><td class="ref" style="font-weight:700;color:var(--navy)">104B</td><td><input style="width:100%;border:1.5px solid var(--bdr);border-radius:3px;padding:4px 7px;font-size:12px;background:var(--bg2);color:var(--txt)" placeholder="Defect found…"></td><td><input style="width:100%;border:1.5px solid var(--bdr);border-radius:3px;padding:4px 7px;font-size:12px;background:var(--bg2);color:var(--txt)" placeholder="Action taken…"></td><td><div class="tog" id="def-tog-104B"></div></td></tr>
+        <tr id="def-104C"><td class="ref" style="font-weight:700;color:var(--navy)">104C</td><td><input style="width:100%;border:1.5px solid var(--bdr);border-radius:3px;padding:4px 7px;font-size:12px;background:var(--bg2);color:var(--txt)" placeholder="Defect found…"></td><td><input style="width:100%;border:1.5px solid var(--bdr);border-radius:3px;padding:4px 7px;font-size:12px;background:var(--bg2);color:var(--txt)" placeholder="Action taken…"></td><td><div class="tog" id="def-tog-104C"></div></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTO SECTION -->
+<div class="panel">
+  <div class="sec-hdr open" onclick="toggleSec(this)">
+    <div class="sec-icon">📷</div>
+    <div><div class="sec-title">Evidence Photos — After Cleaning</div></div>
+    <span class="sec-cnt" id="cnt-photos">0 / 6 uploaded</span>
+    <span class="sec-arrow">▼</span>
+  </div>
+  <div class="sec-body">
+    <div class="photo-section" style="border-top:none">
+      <div class="photo-sec-lbl">After Cleaning — Per Compartment</div>
+      <div class="photo-grid" id="photo-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FINDINGS -->
+<div class="panel">
+  <div class="sec-hdr open" onclick="toggleSec(this)">
+    <div class="sec-icon">✅</div>
+    <div><div class="sec-title">Overall Conclusion</div></div>
+    <span class="sec-arrow">▼</span>
+  </div>
+  <div class="sec-body">
+    <div class="findings-grid">
+      <div class="mf"><label>Findings / Observations</label>
+        <textarea id="findings" placeholder="Record all findings and observations…"></textarea>
+      </div>
+      <div class="mf"><label>Corrective Actions / Recommendations</label>
+        <textarea id="actions" placeholder="Actions taken and follow-up recommendations…"></textarea>
+      </div>
+    </div>
+    <div class="wo-grid" style="padding-top:0">
+      <div class="mf"><label>Overall Condition</label>
+        <select id="overall">
+          <option>✅ GOOD — Normal Operation</option>
+          <option>⚠️ FAIR — Requires Monitoring</option>
+          <option>🔧 POOR — Maintenance Required</option>
+          <option>🛑 CRITICAL — Must Shutdown</option>
+        </select>
+      </div>
+      <div class="mf"><label>Next PM Due</label><input type="date" id="next-pm"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ACTION ROW -->
+<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;padding:4px 0 8px">
+  <button class="btn" style="background:#f1f5f9;color:var(--navy);border:1px solid var(--bdr)" onclick="resetForm()">🔄 Reset</button>
+  <button class="btn" style="background:var(--navy);color:#fff" onclick="saveDraft()">💾 Save Draft</button>
+  <button class="btn btn-pdf" onclick="printPage()">🖨️ Print / Save PDF</button>
+  <button class="btn" style="background:#16a34a;color:#fff;font-size:15px;padding:10px 24px" onclick="submitToDb()">&#128202; Submit to Database</button>
+</div>
+<div id="notice" class="notice"></div>
+
+</div><!-- /wrap -->
+
+<footer class="footer">
+  <div class="footer-l">7EP-LC-B4 · LOAD CENTER SUBSTATION · SWITCHGEAR & BREAKER MAINTENANCE</div>
+  <div class="footer-r" id="fdate">—</div>
+</footer>
+
+<script>
+// ── CONSTANTS ──────────────────────────────────────
+const COMPS=['102B','102C','103B','103C','104B','104C'];
+
+// ── CLOCK ──────────────────────────────────────────
+function tick(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.toLocaleTimeString('id-ID');
+  document.getElementById('fdate').textContent=n.toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+setInterval(tick,1000);tick();
+
+// ── TOGGLE SECTION ─────────────────────────────────
+function toggleSec(hdr){
+  hdr.classList.toggle('open');
+  hdr.nextElementSibling.style.display=hdr.classList.contains('open')?'':'none';
+}
+
+// ── STATE ──────────────────────────────────────────
+const ST={};
+function setBtn(id,val,btn){
+  btn.closest('.tog').querySelectorAll('.rb').forEach(b=>b.className='rb '+(b.dataset.v==='OK'?'ok-idle':'ng-idle'));
+  if(ST[id]===val){delete ST[id];}
+  else{btn.className='rb '+(val==='OK'?'ok-act':'ng-act');ST[id]=val;}
+  updateStats();
+}
+function mkTog(id){
+  return `<div class="tog"><button class="rb ok-idle" data-v="OK" onclick="setBtn('${id}','OK',this)">✓ OK</button><button class="rb ng-idle" data-v="NG" onclick="setBtn('${id}','NG',this)">✗ NG</button></div>`;
+}
+
+// ── CHECK ITEMS DEFINITION ─────────────────────────
+const ITEMS=[
+  // CUBICLE group
+  {grp:'CUBICLE / COMPARTMENT'},
+  {no:'1', desc:'Visually inspect all cubicles (front and rear) for obvious damage; check for rodent activity and thoroughly clean dust from inside the panel', crit:'No sign of damage'},
+  {no:'2', desc:'Examine the bottom of the cubicle for parts that may have fallen from the breaker', crit:'No fallen parts / Cleanliness'},
+  {no:'3', desc:'Check cubicle heaters (where applicable) are functioning properly', crit:'Functioning properly'},
+  {no:'4', desc:'Verify the rack-in mechanism is aligned correctly', crit:'Aligned correctly'},
+  {no:'5', desc:'Lubricate racking mechanism (jacking screws and bearings)', crit:'Lubricated'},
+  {no:'6', desc:'Perform overall inspection for loose wiring or components and anomalies. Complete repairs as required.', crit:'No looseness'},
+  {no:'7', desc:'Verify the shutter mechanism functions properly', crit:'Functioning properly'},
+  // BREAKER group
+  {grp:'BREAKER'},
+  {no:'8', desc:'Primary disconnects: inspect for signs of overheating, cracked insulation, cleanliness, and misalignment', crit:'No overheating / No cracked insulation / No looseness'},
+  {no:'9', desc:'Visually check looseness or breakage of wire especially grounding cable', crit:'No looseness or breakage'},
+  {no:'10', desc:'Close the circuit breaker manually to ensure correctness of operation', crit:'Operates correctly'},
+  {no:'11', desc:'Lubricate moving parts with approved lubricant', crit:'Lubricated'},
+  {no:'12', desc:'Vacuum clean the circuit breaker compartment', crit:'Clean'},
+  {no:'13', desc:'Check battery of MicroVersa Trip Plus and perform self test by TVRMS2 digital kit', crit:'Battery OK / No failure message'},
+  {no:'14', desc:'Check motor overload setting and circuit breaker instantaneous trip setting', crit:'Refer to settings table →'},
+  {no:'15', desc:'Record all defect found and result of work carried out as work history', crit:'Refer to defect record →'},
+  {no:'16', desc:'Perform overall inspection: loose wiring/connector, cracked insulator, overheated insulation; effect repairs as required', crit:'No looseness / No cracked insulator / No overheated insulation'},
+  {no:'17', desc:'Check condition of auxiliary contacts and relays', crit:'No sign of damage'},
+  {no:'18', desc:'Verify that mechanical safety interlocks and stops are intact', crit:'Interlocks intact'},
+];
+
+// ── BUILD MAIN TABLE ───────────────────────────────
+function buildTable(){
+  const tb=document.getElementById('tbody-main');
+  let total=0;
+  ITEMS.forEach(item=>{
+    const tr=document.createElement('tr');
+    if(item.grp){
+      tr.className='grp-hdr';
+      tr.innerHTML=`<td colspan="9">— ${item.grp} —</td>`;
+    } else {
+      let cells='';
+      COMPS.forEach(c=>{
+        const id=`item_${item.no}_${c}`;
+        cells+=`<td>${mkTog(id)}</td>`;
+        total++;
+      });
+      tr.innerHTML=`<td class="no">${item.no}</td><td class="lbl">${item.desc}</td><td class="ref">${item.crit}</td>${cells}`;
+    }
+    tb.appendChild(tr);
+  });
+  document.getElementById('cnt-items').textContent=`${ITEMS.filter(i=>i.no).length} items × 6`;
+
+  // Also build defect toggles
+  ['def-tog-102B','def-tog-102C','def-tog-103B','def-tog-103C','def-tog-104B','def-tog-104C'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.outerHTML=mkTog(id);
+  });
+}
+
+// ── BUILD PHOTO GRID ───────────────────────────────
+const photoStore={};
+const photoDims={};  // slotId -> {w,h} natural pixels, so the PDF can keep each photo's aspect ratio
+function buildPhotos(){
+  const grid=document.getElementById('photo-grid');
+  COMPS.forEach(comp=>{
+    const id='photo_'+comp;
+    const div=document.createElement('div');
+    div.className='photo-block';
+    div.innerHTML=`
+      <div class="photo-blk-title">Compartment ${comp}</div>
+      <div class="photo-drop" id="${id}">
+        <input type="file" accept="image/*" onchange="loadPhoto(this,'${id}')">
+        <button class="del-btn" onclick="delPhoto('${id}',event)">×</button>
+        <div class="ph-icon">📷</div>
+        <div class="ph-hint">After Cleaning</div>
+      </div>
+      <input class="photo-cap" type="text" id="cap_${comp}" placeholder="Caption for ${comp}…">
+    `;
+    grid.appendChild(div);
+  });
+}
+
+// ── PHOTO UPLOAD ───────────────────────────────────
+
+// ── PhotoKit layer ─────────────────────────────────
+// Every photo now goes through PhotoKit: source picker -> EXIF-upright downscale
+// (img-helper) -> crop modal (Default / ratio preset / 1:1 / manual cm) -> an entry
+// that carries both its pixel size and its print size in cm. The PDF then draws it
+// at that exact size with its own aspect ratio, so nothing is ever stretched.
+const PE={};   // slotId -> PhotoKit entry
+function pkEntry(id){
+  const e=PE[id];if(e)return e;
+  const s=photoStore[id];if(!s)return null;
+  const d=(typeof photoDims!=='undefined'&&photoDims[id])||{};
+  return {src:s.src||s,w:d.w||s.w,h:d.h||s.h};
+}
+function pkChrome(slot,show){
+  slot.querySelectorAll('.photo-icon,.photo-hint,.photo-drop-icon,.photo-drop-hint').forEach(el=>el.style.display=show?'':'none');
+}
+function setPhoto(id,entry){
+  PE[id]=entry;photoStore[id]=entry.src;photoDims[id]={w:entry.w,h:entry.h};
+  const slot=document.getElementById(id);if(!slot)return;
+  let img=slot.querySelector('img');
+  if(!img){img=document.createElement('img');slot.appendChild(img);}
+  img.src=entry.src;slot.classList.add('has-photo');pkChrome(slot,false);
+  const sz=document.getElementById(id+'-sz');
+  if(sz)sz.textContent='Print '+entry.widthCm.toFixed(1)+' \u00d7 '+entry.heightCm.toFixed(1)+' cm';
+  if(typeof updateStats==='function')updateStats();
+}
+function pickPhoto(slot,id){PhotoKit.upload(slot,{},e=>{if(e)setPhoto(id,e);});}
+function recropPhoto(id,ev){ev.stopPropagation();const cur=pkEntry(id);if(!cur)return;PhotoKit.recrop(cur,e=>{if(e)setPhoto(id,e);});}
+function delPhoto(id,ev){
+  if(ev&&ev.stopPropagation)ev.stopPropagation();
+  const slot=document.getElementById(id);
+  if(slot){const img=slot.querySelector('img');if(img)img.remove();slot.classList.remove('has-photo');pkChrome(slot,true);}
+  const sz=document.getElementById(id+'-sz');if(sz)sz.textContent='';
+  delete photoStore[id];delete photoDims[id]; delete PE[id];
+  if(typeof updateStats==='function')updateStats();
+}
+// Replaces each drop zone's hidden <input type=file> with the PhotoKit picker and
+// adds a re-crop button, so the markup itself needs no per-slot edits.
+function pkWireDrops(){
+  document.querySelectorAll('.photo-drop').forEach(slot=>{
+    if(slot.dataset.pkWired)return;
+    const inp=slot.querySelector('input[type=file]');
+    let id=slot.id;
+    if(inp){const m=(inp.getAttribute('onchange')||'').match(/'([^']+)'/);if(m)id=m[1];inp.remove();}
+    if(!id)return;
+    slot.dataset.pkWired='1';
+    if(!slot.querySelector('.pk-crop-btn')){
+      const b=document.createElement('button');b.type='button';b.className='pk-crop-btn';
+      b.title='Crop & print size';b.innerHTML='&#9986;';
+      b.onclick=ev=>recropPhoto(id,ev);slot.appendChild(b);
+    }
+    slot.addEventListener('click',ev=>{if(ev.target.closest('button'))return;pickPhoto(slot,id);});
+    if(!document.getElementById(id+'-sz')){
+      const s=document.createElement('div');s.className='pk-sz';s.id=id+'-sz';
+      slot.parentNode.insertBefore(s,slot.nextSibling);
+    }
+  });
+}
+
+// ── Review & Approval: restore photos from Drive ────
+// Called by load-merge-modal.js's restorePhotosIfSupported() after a Load &
+// Merge confirm or a revision-banner "load for revision" (see that file's
+// header comment for the exact {groupKey:[{url,caption,w,h,widthCm,heightCm}]}
+// contract). This sheet's own photo state is one FIXED slot per compartment
+// — PE[id]/photoStore[id]/photoDims[id] with id='photo_'+comp, comp one of
+// COMPS — not a free-count gallery, so `groupKey` here is a compartment code
+// (e.g. '102B') and each group can only ever hold ONE restored photo even if
+// the merged bundle's array has more than one entry. buildMergedBundle()
+// folds oldest-first, so when a group's array has >1 entry (multiple selected
+// submissions each had a photo for the same compartment) the LAST entry is
+// the newest one — that's the one used here, matching "newer wins" for every
+// other field this same merge does.
+async function restorePhotosFromUrls(photoUrls,overwrite){
+  if(!photoUrls) return 0;
+  let restored=0;
+  for(const key of Object.keys(photoUrls)){
+    const list=photoUrls[key];
+    if(!Array.isArray(list)||!list.length) continue;
+    if(!COMPS.includes(key)) continue; // not a compartment this sheet has a slot for
+    const id='photo_'+key;
+    if(!overwrite && photoStore[id]) continue; // fill-blank-only: slot already has a photo
+    const chosen=list[list.length-1];
+    if(!chosen||!chosen.url) continue;
+    let dataUrl;
+    try{
+      dataUrl=await Storage.toDataUrl(chosen.url);
+    }catch(e){
+      console.error('restorePhotosFromUrls: gagal memuat foto '+key+':',e);
+      continue; // one bad fetch must not abort the rest of the restore
+    }
+    if(!dataUrl) continue;
+    // widthCm/heightCm may be absent on older entries — setPhoto() below
+    // reads them directly for its on-screen "Print W x H cm" label, so they
+    // must be numeric. Fall back to an aspect-correct fit inside this
+    // sheet's own configured default box (8.8 x 5.6cm, see PhotoKit.configure
+    // below) via the shared IMG.fit letterbox helper rather than guessing.
+    let wcm=chosen.widthCm,hcm=chosen.heightCm;
+    if(wcm==null||hcm==null){
+      const box=(typeof IMG!=='undefined'&&IMG.fit)?IMG.fit(8.8,5.6,{w:chosen.w,h:chosen.h}):{w:8.8,h:5.6};
+      wcm=box.w;hcm=box.h;
+    }
+    setPhoto(id,{src:dataUrl,dataUrl:dataUrl,w:chosen.w,h:chosen.h,widthCm:wcm,heightCm:hcm});
+    const capEl=document.getElementById('cap_'+key);
+    if(capEl && chosen.caption && (overwrite||!capEl.value)) capEl.value=chosen.caption;
+    restored++;
+  }
+  if(typeof updateStats==='function') updateStats();
+  return restored;
+}
+window.restorePhotosFromUrls=restorePhotosFromUrls;
+
+// ── STATS ──────────────────────────────────────────
+function updateStats(){
+  const vals=Object.values(ST);
+  const ok=vals.filter(v=>v==='OK').length;
+  const ng=vals.filter(v=>v==='NG').length;
+  const total=document.querySelectorAll('.tog').length;
+  const photos=COMPS.filter(c=>photoStore['photo_'+c]).length;
+  document.getElementById('h-total').textContent=total;
+  document.getElementById('h-ok').textContent=ok;
+  document.getElementById('h-ng').textContent=ng;
+  document.getElementById('h-photos').textContent=photos;
+  document.getElementById('cnt-photos').textContent=`${photos} / 6 uploaded`;
+}
+
+// ── DRAFT ──────────────────────────────────────────
+function saveDraft(){
+  const d={};
+  document.querySelectorAll('input[type=text],input[type=date],input[type=number],select,textarea').forEach((el,i)=>d['f'+i]=el.value);
+  d._st=ST;
+  try{localStorage.setItem('lcb4_draft',JSON.stringify(d));showNote('💾 Draft tersimpan.','ok');}
+  catch(e){showNote('❌ '+e.message,'err');}
+}
+function loadDraft(){
+  try{
+    const raw=localStorage.getItem('lcb4_draft');if(!raw)return;
+    const d=JSON.parse(raw);
+    document.querySelectorAll('input[type=text],input[type=date],input[type=number],select,textarea').forEach((el,i)=>{if(d['f'+i]!==undefined)el.value=d['f'+i];});
+    if(d._st){
+      Object.entries(d._st).forEach(([id,val])=>{
+        ST[id]=val;
+        const el=document.querySelector(`#${CSS.escape(id)} .rb[data-v="${val}"], .tog .rb[data-v="${val}"][onclick*="'${id}'"]`);
+        if(el)el.className='rb '+(val==='OK'?'ok-act':'ng-act');
+      });
+    }
+    updateStats();
+  }catch(e){}
+}
+function resetForm(){
+  if(!confirm('Reset semua data form?'))return;
+  document.querySelectorAll('input,select,textarea').forEach(el=>{if(el.type!=='file')el.value='';});
+  Object.keys(ST).forEach(k=>delete ST[k]);
+  document.querySelectorAll('.rb').forEach(b=>b.className='rb '+(b.dataset.v==='OK'?'ok-idle':'ng-idle'));
+  COMPS.forEach(c=>delPhoto('photo_'+c,{stopPropagation:()=>{}}));
+  updateStats();
+}
+function showNote(msg,t){
+  const n=document.getElementById('notice');n.textContent=msg;n.className='notice '+t;
+  setTimeout(()=>n.className='notice',4000);
+}
+const v=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
+const gT=id=>ST[id]||'—';
+
+// ── PDF ────────────────────────────────────────────
+// opts.silent: used by submitToDb() to build the archival PDF that gets
+// uploaded to Storage for the review/approval workflow (via
+// Approvals.submitWithFiles's pdfBuilder) — no download dialog, just hand
+// the built pdf object back. Mirrors PLTS_AshDisposal_PM.html's pattern.
+async function generatePDF(opts){
+  opts=opts||{};
+  try{
+    if(!opts.silent) showNote('⏳ Membuat PDF…','info');
+    await new Promise(r=>setTimeout(r,200));
+
+    const { jsPDF } = window.jspdf || {};
+    if(!jsPDF){
+      if(!opts.silent) showNote('❌ jsPDF gagal dimuat. Pastikan koneksi internet aktif saat membuka file ini.','err');
+      return opts.silent ? null : undefined;
+    }
+
+    const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const W=297,H=210,M=10;let y=M;
+  const NAVY=[30,58,95],BLUE=[37,99,235],SKY=[125,211,252],LT=[240,247,255],OK=[22,163,74],NG=[220,38,38];
+  const tr2=(s,n)=>s&&s.length>n?s.slice(0,n)+'…':(s||'—');
+
+  function ckY(n){if(y+n>H-M)nPage();}
+  function nPage(){pdf.addPage();y=M;miniHdr();}
+  function miniHdr(){
+    pdf.setFillColor(...NAVY);pdf.rect(0,0,W,8,'F');
+    pdf.setTextColor(...SKY);pdf.setFont('helvetica','bold');pdf.setFontSize(7);
+    pdf.text('7EP-LC-B4 SWITCHGEAR & BREAKER MAINTENANCE',M,5.5);
+    pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);
+    pdf.text(`WO: ${v('wo-no')||'—'}  Date: ${v('wo-date')||'—'}  By: ${v('done-by')||'—'}`,W-M,5.5,{align:'right'});
+    y=12;
+  }
+  function secHdr(title){
+    ckY(12);
+    pdf.setFillColor(...NAVY);pdf.rect(M,y,W-M*2,7,'F');
+    pdf.setTextColor(255,255,255);pdf.setFont('helvetica','bold');pdf.setFontSize(8.5);
+    pdf.text('▶  '+title,M+3,y+5);y+=10;
+  }
+  function autoTbl(head,body,cws){
+    pdf.autoTable({startY:y,head:[head],body,theme:'grid',
+      styles:{font:'helvetica',fontSize:6.5,cellPadding:2,textColor:[15,23,42],lineColor:[191,219,254],lineWidth:0.18},
+      headStyles:{fillColor:NAVY,textColor:[125,211,252],fontStyle:'bold',fontSize:6,halign:'center'},
+      columnStyles:{0:{halign:'center',cellWidth:cws?cws[0]:8},1:{cellWidth:cws?cws[1]:70},...(cws?cws.slice(2).reduce((o,w,i)=>({...o,[i+2]:{cellWidth:w,halign:'center'}}),{}):{})},
+      didParseCell:d=>{const val=d.cell.text[0];if(val==='OK'){d.cell.styles.textColor=[...OK];d.cell.styles.fontStyle='bold';}if(val==='NG'){d.cell.styles.textColor=[...NG];d.cell.styles.fontStyle='bold';}},
+      margin:{left:M,right:M}});
+    y=pdf.lastAutoTable.finalY+5;
+  }
+
+  // Cover
+  pdf.setFillColor(...NAVY);pdf.rect(0,0,W,38,'F');
+  pdf.setFillColor(...BLUE);pdf.rect(0,36,W,2,'F');
+  pdf.setTextColor(255,255,255);pdf.setFont('helvetica','bold');pdf.setFontSize(20);
+  pdf.text('7EP-LC-B4',M,16);
+  pdf.setFontSize(11);pdf.setTextColor(...SKY);
+  pdf.text('Switchgear & Breaker Maintenance — Load Center Substation Unit B4',M,26);
+  pdf.setFontSize(7.5);pdf.setTextColor(...SKY);pdf.setFont('helvetica','normal');
+  pdf.text('Compartments: 102B · 102C · 103B · 103C · 104B · 104C',M,33);
+  pdf.text(new Date().toLocaleString('en-GB'),W-M,33,{align:'right'});
+  y=44;
+
+  // Info box
+  pdf.setFillColor(...LT);pdf.setDrawColor(125,211,252);pdf.setLineWidth(0.25);
+  pdf.roundedRect(M,y,W-M*2,22,2,2,'FD');
+  function ib(l,val,x,yy){
+    pdf.setFont('helvetica','bold');pdf.setFontSize(5.5);pdf.setTextColor(100,116,139);pdf.text(l.toUpperCase(),x,yy);
+    pdf.setFont('helvetica','normal');pdf.setFontSize(8.5);pdf.setTextColor(...NAVY);pdf.text(tr2(val||'—',28),x,yy+4.5);
+  }
+  ib('WO No.',v('wo-no'),M+3,y+5);ib('Date',v('wo-date'),60,y+5);ib('Equipment',v('equip'),110,y+5);ib('Location',v('location'),165,y+5);
+  ib('Done By',v('done-by'),M+3,y+17);ib('Reviewed By',v('reviewed-by'),60,y+17);ib('Shift',v('shift').split(' ')[0],110,y+17);ib('Condition',v('overall').replace(/[✅⚠️🔧🛑]/g,'').trim(),165,y+17);
+  y+=28;
+
+  // Stats
+  const okN=Object.values(ST).filter(x=>x==='OK').length;
+  const ngN=Object.values(ST).filter(x=>x==='NG').length;
+  const totN=document.querySelectorAll('.tog').length;
+  [[M,'TOTAL',String(totN),NAVY],[M+36,'OK',String(okN),OK],[M+72,'NG',String(ngN),NG]].forEach(([x,l,val,cl])=>{
+    pdf.setFillColor(...cl,.08);pdf.setDrawColor(...cl);pdf.setLineWidth(0.3);
+    pdf.roundedRect(x,y,28,10,1.5,1.5,'FD');
+    pdf.setFont('helvetica','bold');pdf.setFontSize(5.5);pdf.setTextColor(...cl);pdf.text(l,x+2,y+3.5);
+    pdf.setFontSize(11);pdf.text(val,x+2,y+9);
+  });
+  y+=16;
+
+  // Check items table
+  secHdr('Maintenance Check Items — All Compartments');
+  const checkRows=[];
+  ITEMS.forEach(item=>{
+    if(item.grp){
+      checkRows.push([{content:`— ${item.grp} —`,colSpan:9,styles:{fillColor:LT,fontStyle:'bold',fontSize:7,textColor:NAVY}}]);
+    } else {
+      checkRows.push([item.no,tr2(item.desc,60),tr2(item.crit,22),...COMPS.map(c=>gT(`item_${item.no}_${c}`))]);
+    }
+  });
+  autoTbl(['No.','Check Item / Point','Criteria',...COMPS],checkRows,[8,68,26,20,20,20,20,20,20]);
+
+  // Trip Settings
+  nPage();secHdr('Item 14 — Trip Settings Record');
+  autoTbl(['Parameter',...COMPS],[
+    ['Motor Overload (A)',...COMPS.map(c=>v(`s14-overload-${c}`)||'—')],
+    ['Breaker Capacity (A)',...COMPS.map(c=>v(`s14-bkrcap-${c}`)||'—')],
+    ['Instant Setting (×In)',...COMPS.map(c=>v(`s14-instant-${c}`)||'—')],
+    ['LT Setting (×In)',...COMPS.map(c=>v(`s14-lt-${c}`)||'—')],
+    ['Time Delay (s)',...COMPS.map(c=>v(`s14-delay-${c}`)||'—')],
+    ['Rating Plug',...COMPS.map(c=>v(`s14-plug-${c}`)||'—')],
+  ],[50,28,28,28,28,28,28]);
+
+  // Photos
+  const hasPhotos=COMPS.filter(c=>photoStore['photo_'+c]);
+  if(hasPhotos.length){
+    ckY(14);secHdr('Evidence Photos — After Cleaning Per Compartment');
+    const cols=Math.min(3,hasPhotos.length);
+    const imgW=(W-M*2)/cols-4;
+    const maxImgH=48;
+    for(let i=0;i<hasPhotos.length;i+=cols){
+      const batch=hasPhotos.slice(i,i+cols);
+      // Fit every photo to the column at its OWN aspect ratio, then make the row as
+      // tall as the tallest result. Passing imgW/imgH straight to addImage() is what
+      // used to squash portrait shots until the readings in them were illegible.
+      const fits=batch.map(comp=>PhotoKit.fit(pkEntry('photo_'+comp),imgW,maxImgH));
+      const imgH=Math.max(...fits.map(f=>f.h));
+      ckY(imgH+16);
+      batch.forEach((comp,pi)=>{
+        const xo=M+pi*(imgW+4);const slotId='photo_'+comp;const f=fits[pi];
+        pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);pdf.setTextColor(...NAVY);
+        pdf.text(`Compartment ${comp} — After Cleaning`,xo,y+5);
+        PhotoKit.draw(pdf,pkEntry(slotId),xo+f.dx,y+7,f.w,f.h,{align:'center'});
+        const cap=v('cap_'+comp);
+        if(cap){pdf.setFont('helvetica','italic');pdf.setFontSize(6.5);pdf.setTextColor(100,130,160);pdf.text(tr2(cap,38),xo,y+7+imgH+4);}
+      });
+      y+=imgH+18;
+    }
+  }
+
+  // Findings
+  ckY(14);secHdr('Overall Conclusion');
+  pdf.autoTable({startY:y,body:[
+    ['Findings',v('findings')||'—'],
+    ['Corrective Actions',v('actions')||'—'],
+    ['Next PM Due',v('next-pm')||'—'],
+  ],theme:'grid',styles:{font:'helvetica',fontSize:8,cellPadding:3,textColor:[15,23,42],lineColor:[191,219,254],lineWidth:0.18},
+  columnStyles:{0:{cellWidth:46,fontStyle:'bold',fillColor:LT,textColor:NAVY}},margin:{left:M,right:M}});
+
+  // Page numbers
+  const pages=pdf.internal.getNumberOfPages();
+  for(let pg=1;pg<=pages;pg++){
+    pdf.setPage(pg);pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);pdf.setTextColor(150);
+    pdf.text(`Page ${pg}/${pages}`,W-M,H-5,{align:'right'});
+    pdf.text('7EP-LC-B4 — Switchgear & Breaker Maintenance',M,H-5);
+  }
+
+  const fn=`LCB4_Maintenance_${(v('wo-date')||new Date().toISOString().slice(0,10)).replace(/-/g,'')}.pdf`;
+    if(opts.silent){
+      // no-op: caller (Approvals.submitWithFiles's pdfBuilder) reads the
+      // returned pdf object directly, no download dialog here.
+    } else {
+      pdf.save(fn);
+      showNote('✅ PDF tersimpan: '+fn,'ok');
+    }
+    return pdf;
+  }catch(err){
+    console.error(err);
+    if(!opts.silent) showNote('❌ Gagal membuat PDF: '+(err && err.message ? err.message : err),'err');
+    if(opts.silent) throw err;
+  }
+}
+
+// ── INIT ───────────────────────────────────────────
+buildTable();
+buildPhotos();
+// Build defect toggles after DOM
+['def-tog-102B','def-tog-102C','def-tog-103B','def-tog-103C','def-tog-104B','def-tog-104C'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el){el.innerHTML=`<button class="rb ok-idle" data-v="OK" onclick="setBtn('${id}','OK',this)">✓ OK</button><button class="rb ng-idle" data-v="NG" onclick="setBtn('${id}','NG',this)">✗ NG</button>`;}
+});
+PhotoKit.configure({maxWcm:8.8,maxHcm:15,defaultWcm:8.8,defaultHcm:5.6});
+pkWireDrops();
+loadDraft();
+updateStats();
+
+// Review & Approval workflow: multi-submission "load & merge" picker +
+// revision banner (see approval-helper.js / load-merge-modal.js). This
+// file's Checked By field is `done-by`, not the generic `checked-by` id
+// db-helper.js's collectCheckSheetData()/LoadMergeModal's default headerMap
+// expect — remap it so a merged submission's checkedBy value lands in the
+// right input.
+LoadMergeModal.init({
+  assetTag:'7EP-LC-B4',
+  headerMap:{woNumber:'wo-no', executionDate:'wo-date', checkedBy:'done-by', reviewedBy:'reviewed-by', shift:'shift'}
+});
+LoadMergeModal.initRevisionBanner();
+TechnicianAuth.init({ checkedByFieldId: "done-by" });
+SubmitGuard.init({ assetTag:'7EP-LC-B4' });
+
+// Auto-load last submission from database
+setTimeout(async()=>{
+  const d=await DB.loadLastSubmission('7EP-LC-B4');
+  if(d)showNote('📂 Data terakhir dimuat dari database.','ok');
+},800);
+
+function printPage(){
+  const date = document.getElementById('wo-date')?.value || '—';
+  const wo   = document.getElementById('wo-no')?.value   || '—';
+  const equip = document.getElementById('equip')?.value  || '—';
+  document.getElementById('ph-tag').textContent  = equip;
+  document.getElementById('ph-date').textContent = date;
+  document.getElementById('ph-wo').textContent   = wo;
+  document.querySelectorAll('.sec-hdr').forEach(h => h.classList.add('open'));
+  document.querySelectorAll('.sec-body').forEach(b => b.style.display = 'block');
+  const MAX_PX = 560, QUALITY = 0.45;
+  const imgs = Array.from(document.querySelectorAll('.photo-drop img'));
+  const origSrcs = imgs.map(el => el.src);
+  function compressDataUrl(src){
+    return new Promise(resolve => {
+      const im = new Image();
+      im.onload = () => {
+        const W = im.naturalWidth, H = im.naturalHeight;
+        const scale = Math.min(1, MAX_PX / Math.max(W, H));
+        const cv = document.createElement('canvas');
+        cv.width = Math.round(W * scale); cv.height = Math.round(H * scale);
+        cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+        resolve(cv.toDataURL('image/jpeg', QUALITY));
+      };
+      im.onerror = () => resolve(src);
+      im.src = src;
+    });
+  }
+  if(!imgs.length){ window.print(); return; }
+  Promise.all(origSrcs.map(compressDataUrl)).then(compressed => {
+    imgs.forEach((el, i) => { el.src = compressed[i]; });
+    const restore = () => {
+      imgs.forEach((el, i) => { el.src = origSrcs[i]; });
+      window.removeEventListener('afterprint', restore);
+    };
+    window.addEventListener('afterprint', restore);
+    window.print();
+  });
+}
+
+async function submitToDb(){
+  const data=DB.collectCheckSheetData('lcb4','7EP-LC-B4','Load Center B4 Switchgear','PERIODIC');
+  data.checkedBy=data.checkedBy||document.getElementById('done-by')?.value.trim()||'';
+
+  let curSection='';
+  const sMainRows=[];
+  ITEMS.forEach(item=>{
+    if(item.grp){curSection=item.grp;return;}
+    sMainRows.push({no:item.no,desc:item.desc,crit:item.crit,section:curSection,
+      values:Object.fromEntries(COMPS.map(c=>[c,gT('item_'+item.no+'_'+c)]))});
+  });
+
+  const tripParams=[['Motor Overload Setting (A)','overload'],['Breaker Capacity (A)','bkrcap'],
+    ['Instant Setting (×In)','instant'],['LT Setting (×In)','lt'],['Time Delay (s)','delay'],['Rating Plug','plug']];
+  const sTripRows=tripParams.map(([label,key])=>({no:'',desc:label,
+    values:Object.fromEntries(COMPS.map(c=>[c,v(`s14-${key}-${c}`)||'—']))}));
+
+  const sDefectRows=COMPS.map(comp=>{
+    const tr=document.getElementById('def-'+comp);
+    const inps=tr?tr.querySelectorAll('input'):[];
+    return {no:'',desc:comp,values:{
+      'Defect / Abnormality':(inps[0]&&inps[0].value.trim())||'—',
+      'Action Taken':(inps[1]&&inps[1].value.trim())||'—',
+      'Status':gT('def-tog-'+comp)
+    }};
+  });
+
+  data.sheets={
+    sMain:{title:'Maintenance Check Items',columns:COMPS,rows:sMainRows},
+    sTrip:{title:'Item 14 — Trip Settings Record',columns:COMPS,rows:sTripRows},
+    sDefect:{title:'Item 15 — Defect Record & Work History',columns:['Defect / Abnormality','Action Taken','Status'],rows:sDefectRows},
+  };
+
+  if(!data.executionDate){DB.showSubmitResult(false,'Isi tanggal eksekusi terlebih dahulu.');return;}
+  if(!data.checkedBy){DB.showSubmitResult(false,'Isi nama teknisi terlebih dahulu.');return;}
+
+  const target=await SubmitGuard.resolveSubmitTarget(data.woNumber);
+  if(target.mode==='cancel') return;
+
+  let id;
+  try{
+    SubmitGuard.setProgress(5,'Menyimpan data checklist...');
+    id = target.mode==='overwrite' ? await DB.update(target.targetId,data) : await DB.save(data);
+  }catch(e){
+    SubmitGuard.hideProgress();
+    DB.showSubmitResult(false,'Gagal menyimpan: '+e.message);
+    return;
+  }
+
+  // Photos + archival PDF + the review/approval workflow record are all
+  // best-effort ON TOP of the checksheet doc saved above. A Storage hiccup
+  // (e.g. Storage not yet enabled in the Firebase console, or a slow
+  // connection dropping mid-upload) must never make this look like the
+  // whole submission failed — the checklist data the technician actually
+  // filled in is already safely saved by this point.
+  const photos={};
+  COMPS.forEach(c=>{
+    const entry=PE['photo_'+c];
+    if(entry) photos[c]=[{...entry, caption:v('cap_'+c)}];
+  });
+
+  let filesOk=true;
+  try{
+    filesOk=await Approvals.submitWithFiles(id,{
+      photos,
+      pdfBuilder:()=>generatePDF({silent:true}),
+      assetTag:'7EP-LC-B4',
+      assetName:'Load Center B4 Switchgear',
+      checksheetFile:'7EPLCB4_Maintenance.html',
+      submittedBy:data.checkedBy,
+      revisionOf:LoadMergeModal.getReviseOfApprovalId(),
+      existingApprovalId: target.mode==='overwrite' ? target.approvalId : null,
+      onProgress:(pct,label)=>SubmitGuard.setProgress(10+Math.round(pct*0.85),label),
+    });
+  }catch(e){
+    filesOk=false;
+    console.error('Upload foto/PDF/approval record gagal:', e);
+  }
+
+  SubmitGuard.markSubmitted(id,{woNumber:data.woNumber,executionDate:data.executionDate,checkedBy:data.checkedBy});
+  SubmitGuard.setProgress(100,'Selesai!');
+  setTimeout(()=>SubmitGuard.hideProgress(),500);
+
+  if(filesOk){
+    DB.showSubmitResult(true,'Data, foto & PDF berhasil disimpan ke database! ID: '+id);
+  }else{
+    DB.showSubmitResult(false,'Data checklist tersimpan (ID: '+id+'), tapi foto/PDF gagal diunggah untuk alur review — pastikan Firebase Storage sudah aktif, lalu coba submit ulang.');
+  }
+}
+</script>
+</body>
+</html>

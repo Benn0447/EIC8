@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generator Brush Gear PM — 7TG-GEN-100</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="db-helper.js"></script>
+<script src="storage-helper.js"></script>
+<script src="approval-helper.js"></script>
+<script src="submit-guard.js"></script>
+<script src="load-merge-modal.js"></script>
+<script src="auth-session.js"></script>
+<script src="technician-auth.js"></script>
+<script src="img-helper.js"></script>
+<script src="photo-kit.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0a0f1e;--ink2:#1a2540;--ink3:#2e3f6e;
+  --amber:#f59e0b;--amber2:#d97706;--amber-glow:rgba(245,158,11,0.15);
+  --red:#ef4444;--red2:#dc2626;--red-bg:rgba(239,68,68,0.1);
+  --green:#22c55e;--green2:#16a34a;--green-bg:rgba(34,197,94,0.1);
+  --blue:#3b82f6;--blue2:#2563eb;
+  --surf:#ffffff;--bg:#f5f7ff;--bg2:#eef2ff;
+  --bdr:#c7d2fe;--bdr2:#e0e7ff;
+  --txt:#0a0f1e;--txt2:#374151;--txt3:#6b7280;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--disp:'Syne',sans-serif;
+  --r4:4px;--r6:6px;--r8:8px;--r12:12px;
+  /* Classic paper-form palette */
+  --pborder:#1f3fae;--ptitle:#0033cc;--pcyan:#cdeef7;--pcyan2:#e5f8fc;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{font-family:var(--sans);background:#eef2f8;color:var(--txt);min-height:100vh;overflow-x:hidden}
+
+/* ── STRIPE BG ─────────────────────────────────── */
+body::before{content:none}
+
+/* ── TOPBAR ────────────────────────────────────── */
+.topbar{position:sticky;top:0;z-index:200;
+  background:#fff;
+  border-bottom:2px solid var(--pborder);
+  height:50px;display:flex;align-items:center;padding:0 20px;gap:14px}
+.tb-brand{font-family:var(--disp);font-size:15px;font-weight:800;color:var(--ptitle);letter-spacing:1.5px}
+.tb-brand span{color:var(--pborder)}
+.tb-pipe{width:1px;height:22px;background:var(--bdr2)}
+.tb-tag{font-family:var(--mono);font-size:10px;color:var(--txt3);letter-spacing:1.5px}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.live-ring{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--pborder);position:relative;flex-shrink:0}
+.live-ring::after{content:'';position:absolute;inset:1px;border-radius:50%;background:var(--pborder);animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+.tb-clock{font-family:var(--mono);font-size:11px;color:var(--ptitle);letter-spacing:1px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r6);
+  border:none;cursor:pointer;font-family:var(--disp);font-size:12px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;transition:all .18s;white-space:nowrap}
+.btn-ghost{background:#eef3ff;color:var(--ptitle);border:1px solid var(--bdr)}
+.btn-ghost:hover{background:#dde9ff;color:var(--ptitle)}
+.btn-amber{background:var(--pborder);color:#fff}
+.btn-amber:hover{background:var(--ptitle);transform:translateY(-1px);box-shadow:0 4px 12px rgba(31,63,174,0.3)}
+.btn-db{background:var(--blue);color:#fff}
+.btn-db:hover{background:var(--blue2);transform:translateY(-1px)}
+.btn-sm{padding:5px 10px;font-size:11px}
+
+/* ── PAPER HEADER (logo + title) ───────────────── */
+.paper-header{background:#fff;padding:16px 24px;display:flex;align-items:center;gap:18px;
+  border-bottom:3px solid var(--pborder);flex-wrap:wrap}
+.ph-logo{height:52px;flex-shrink:0}
+.brand-title{font-family:var(--disp);font-size:clamp(15px,3vw,21px);font-weight:800;
+  color:var(--ptitle);text-decoration:underline;letter-spacing:.3px}
+
+/* ── TAG / PLANT STATUS BAR ─────────────────────── */
+.tagbar{display:flex;flex-wrap:wrap;border:2px solid var(--pborder);border-top:none;background:#fff}
+.tagbar-cell{flex:1;min-width:220px;padding:9px 20px;display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:700;color:var(--ink);border-right:2px solid var(--pborder)}
+.tagbar-cell:last-child{border-right:none}
+.tagbar-cell select{border:1.5px solid var(--bdr);border-radius:var(--r4);padding:5px 8px;
+  font-weight:400;font-family:var(--sans);font-size:13px;background:var(--bg2);color:var(--txt)}
+
+/* ── STAT STRIP ─────────────────────────────────── */
+.stat-strip{display:flex;gap:10px;padding:14px 24px;background:var(--pcyan2);
+  border-bottom:1.5px solid var(--bdr2);flex-wrap:wrap}
+.kpi{background:#fff;border:1.5px solid var(--pborder);
+  border-radius:var(--r8);padding:9px 18px;text-align:center;min-width:76px}
+.kpi-val{font-family:var(--disp);font-size:24px;font-weight:800;color:var(--ink);line-height:1}
+.kpi-val.ok{color:var(--green2)}
+.kpi-val.ng{color:var(--red2)}
+.kpi-val.pend{color:var(--amber2)}
+.kpi-lbl{font-family:var(--mono);font-size:8.5px;color:var(--txt3);
+  letter-spacing:2px;text-transform:uppercase;margin-top:4px}
+
+/* ── WRAP ──────────────────────────────────────── */
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 80px;position:relative;z-index:1}
+
+/* ── PANEL ─────────────────────────────────────── */
+.panel{background:var(--surf);border:1.5px solid var(--pborder);border-radius:var(--r12);
+  margin-bottom:16px;overflow:hidden;box-shadow:0 2px 8px rgba(30,58,95,0.07)}
+.panel-hdr{display:flex;align-items:center;gap:10px;padding:12px 16px;
+  background:var(--pcyan);cursor:pointer;user-select:none;border-bottom:2px solid var(--pborder)}
+.ph-icon{width:30px;height:30px;border-radius:var(--r6);background:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;
+  border:1px solid rgba(31,63,174,0.3)}
+.ph-title{font-family:var(--disp);font-size:13px;font-weight:700;color:var(--ptitle);letter-spacing:1.5px;text-transform:uppercase}
+.ph-sub{font-family:var(--mono);font-size:9px;color:rgba(0,0,0,0.4);letter-spacing:1px;margin-top:1px}
+.ph-arrow{margin-left:auto;color:var(--pborder);font-size:13px;transition:transform .2s}
+.panel-hdr.open .ph-arrow{transform:rotate(180deg)}
+.panel-body{display:block}
+
+/* ── FORM GRID ─────────────────────────────────── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;padding:18px}
+.fg2{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:9.5px;color:var(--txt3);font-weight:600;letter-spacing:1.2px;text-transform:uppercase}
+.field input,.field select,.field textarea{
+  border:1.5px solid var(--bdr);border-radius:var(--r6);padding:8px 10px;
+  font-family:var(--sans);font-size:13px;background:var(--bg2);color:var(--txt);
+  transition:border-color .18s,background .18s;width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--amber);background:#fff}
+.field input[type=date],.field input[type=time]{font-family:var(--mono)}
+.field textarea{resize:vertical;min-height:90px}
+
+/* ── INSPECTION TABLE ──────────────────────────── */
+.ins-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.ins-table th{background:var(--pcyan);color:var(--ptitle);padding:8px 12px;
+  text-align:left;font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;white-space:nowrap;border:1.5px solid var(--pborder)}
+.ins-table th.c{text-align:center}
+.ins-table td{padding:8px 12px;border:1px solid var(--bdr);background:var(--surf);
+  vertical-align:middle}
+.ins-table tr:hover td{background:var(--bg2)}
+.ins-table td.c{text-align:center}
+.ins-table td.item-no{font-family:var(--mono);font-size:10px;color:var(--txt3);width:32px;text-align:center}
+.ins-table td.item-desc{color:var(--txt);font-size:12px;font-weight:500;min-width:200px}
+.ins-table td.item-desc small{display:block;font-size:10px;color:var(--txt3);font-weight:400;margin-top:2px;font-style:italic}
+.ins-table td.crit{font-family:var(--mono);font-size:10px;color:var(--blue2);text-align:center;min-width:90px}
+
+/* ── BRUSH / MAGAZINE TABLE ────────────────────── */
+.brush-table{width:100%;border-collapse:collapse;font-size:11.5px}
+.brush-table th{background:var(--pcyan);color:var(--ptitle);padding:6px 8px;
+  text-align:center;font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.3px;
+  border:1.5px solid var(--pborder);white-space:nowrap}
+.brush-table td{padding:6px 8px;border:1px solid var(--bdr);background:var(--surf);text-align:center;vertical-align:middle}
+.brush-table td.brush-no{font-family:var(--disp);font-weight:700;color:var(--ink2);background:var(--pcyan2);min-width:90px}
+.brush-cell-type{min-width:110px}
+.brush-cell-type select{width:100%;border:1.5px solid var(--bdr);border-radius:var(--r4);
+  padding:3px 4px;font-family:var(--mono);font-size:10px;background:var(--bg2);color:var(--txt);margin-bottom:3px}
+.brush-replace-mini{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;color:var(--txt2);cursor:pointer}
+.brush-replace-mini input{accent-color:var(--green);width:12px;height:12px;cursor:pointer}
+.brush-status{display:inline-block;margin-left:5px;font-size:8.5px;padding:1px 5px;border-radius:8px;
+  background:var(--bg2);color:var(--txt3);font-family:var(--mono)}
+
+/* ── WEEK SELECTOR BAR ──────────────────────────── */
+.week-bar{padding:12px 16px;background:var(--pcyan2);border:1.5px solid var(--pborder);border-radius:var(--r8)}
+.week-bar-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.week-bar-lbl{font-family:var(--mono);font-size:9px;color:var(--ptitle);letter-spacing:2px;text-transform:uppercase;white-space:nowrap}
+
+/* ── REMARK / DIAGRAM BOX ──────────────────────── */
+.remark-box{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-top:16px;
+  padding:14px 16px;border:1.5px solid var(--pborder);border-radius:var(--r8);background:#fbfdff}
+.remark-text{flex:1;min-width:220px;font-size:12px;color:var(--txt2);line-height:1.8}
+.remark-text strong{color:var(--ptitle);letter-spacing:1px;display:block;margin-bottom:4px}
+.remark-diagram{max-width:420px;width:100%;border:1px solid var(--bdr2);border-radius:var(--r6);background:#fff;flex-shrink:0}
+
+/* ── OK / NG TOGGLE ────────────────────────────── */
+.tog{display:inline-flex;gap:4px;justify-content:center}
+.tb{padding:5px 10px;border:none;border-radius:var(--r4);cursor:pointer;
+  font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.5px;transition:all .15s}
+.tb.ok-idle{background:#f1f5f9;color:#94a3b8}
+.tb.ng-idle{background:#f1f5f9;color:#94a3b8}
+.tb.ok-act{background:var(--green);color:#fff;box-shadow:0 0 0 2px rgba(34,197,94,0.25)}
+.tb.ng-act{background:var(--red);color:#fff;box-shadow:0 0 0 2px rgba(239,68,68,0.25)}
+.tb:hover{opacity:0.85;transform:translateY(-1px)}
+
+/* ── MEASURE INPUT ─────────────────────────────── */
+.mi{width:60px;padding:4px 6px;border:1.5px solid var(--bdr);border-radius:var(--r4);
+  font-family:var(--mono);font-size:11px;text-align:center;background:var(--bg2);color:var(--txt);transition:border-color .15s}
+.mi:focus{outline:none;border-color:var(--amber);background:#fff}
+.mi-unit{font-size:9px;color:var(--txt3);display:block;margin-top:2px;text-align:center}
+
+/* ── BRUSH MEASUREMENT SECTION ─────────────────── */
+.brush-outer{padding:16px 20px}
+
+/* ── PHOTO UPLOADER ────────────────────────────── */
+.photo-section{padding:16px 20px}
+.photo-drop{border:2px dashed var(--bdr);border-radius:var(--r8);padding:24px;
+  text-align:center;cursor:pointer;transition:all .2s;background:var(--bg2)}
+.photo-drop:hover,.photo-drop.drag-over{border-color:var(--amber);background:var(--amber-glow)}
+.photo-drop-ico{font-size:32px;margin-bottom:8px}
+.photo-drop-txt{font-size:13px;color:var(--txt2);font-weight:500}
+.photo-drop-sub{font-size:11px;color:var(--txt3);margin-top:4px}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:14px}
+.photo-thumb{position:relative;border-radius:var(--r6);overflow:hidden;aspect-ratio:4/3;
+  border:2px solid var(--bdr2);transition:border-color .2s}
+.photo-thumb:hover{border-color:var(--amber)}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-del{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;
+  background:rgba(0,0,0,0.6);color:#fff;border:none;cursor:pointer;font-size:11px;
+  display:flex;align-items:center;justify-content:center}
+.photo-caption{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.55);
+  padding:3px 6px;font-size:9px;color:#fff;font-family:var(--mono)}
+.btn-add-file{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:var(--r6);
+  border:1.5px dashed var(--amber);background:transparent;color:var(--amber2);
+  font-family:var(--disp);font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;
+  transition:all .2s;text-transform:uppercase}
+.btn-add-file:hover{background:var(--amber-glow);border-style:solid}
+
+/* ── DB STATUS ─────────────────────────────────── */
+.db-status{display:flex;align-items:center;gap:8px;padding:10px 16px;
+  border-radius:var(--r6);font-size:12px;margin:0 0 12px}
+.db-status.info{background:#dbeafe;border:1px solid #93c5fd;color:#1e40af}
+.db-status.ok{background:var(--green-bg);border:1px solid rgba(34,197,94,0.3);color:var(--green2)}
+.db-status.err{background:var(--red-bg);border:1px solid rgba(239,68,68,0.3);color:var(--red2)}
+.db-status.hide{display:none}
+.db-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.db-dot.green{background:var(--green)}
+.db-dot.red{background:var(--red)}
+.db-dot.blue{background:var(--blue)}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(37,99,235,0.3);
+  border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── NOTICE ────────────────────────────────────── */
+.notice{padding:10px 16px;border-radius:var(--r6);font-size:12.5px;display:none;margin:8px 0}
+.notice.ok{background:var(--green-bg);border:1px solid rgba(34,197,94,0.3);color:var(--green2);display:flex;gap:8px;align-items:center}
+.notice.err{background:var(--red-bg);border:1px solid rgba(239,68,68,0.3);color:var(--red2);display:flex;gap:8px;align-items:center}
+.notice.info{background:#dbeafe;border:1px solid #93c5fd;color:#1e40af;display:flex;gap:8px;align-items:center}
+
+/* ── ACTION ROW ────────────────────────────────── */
+.action-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;padding:6px 0 10px}
+
+/* ── FOOTER ────────────────────────────────────── */
+.footer{background:#fff;border-top:2px solid var(--pborder);
+  padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.footer-txt{font-family:var(--mono);font-size:9px;color:var(--txt3);letter-spacing:1px}
+
+/* ── HISTORY TABLE ─────────────────────────────── */
+.hist-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:16px}
+.hist-tbl{width:100%;border-collapse:collapse;font-size:11.5px;min-width:700px}
+.hist-tbl th{background:var(--pcyan);color:var(--ptitle);padding:7px 10px;font-family:var(--mono);
+  font-size:9px;letter-spacing:1px;text-transform:uppercase;text-align:left;border:1px solid var(--pborder)}
+.hist-tbl td{padding:7px 10px;border-bottom:1px solid var(--bdr2)}
+.hist-tbl tr:hover td{background:var(--bg2)}
+.badge{padding:2px 8px;border-radius:10px;font-size:9.5px;font-family:var(--mono);font-weight:600}
+.badge.good{background:var(--green-bg);color:var(--green2)}
+.badge.fair{background:#fef3c7;color:#d97706}
+.badge.poor{background:var(--red-bg);color:var(--red2)}
+.hist-empty{padding:24px;text-align:center;color:var(--txt3);font-size:13px}
+.btn-load-hist{margin-top:12px}
+
+/* ── RESPONSIVE ────────────────────────────────── */
+@media(max-width:640px){
+  .tb-tag{display:none}.tb-pipe{display:none}
+  .brand-title{font-size:15px}
+  .photo-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+}
+@media(max-width:400px){
+  .topbar{padding:0 12px}.wrap{padding:12px 10px 60px}
+}
+@media print{
+  @page{size:A4 portrait;margin:12mm 15mm}
+  *,*::before,*::after{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .topbar,.actions,.action-row,.tb-right,.live-ring,
+  .photo-del,.photo-drop,.file-dz,.notice{display:none!important}
+  .print-header{display:flex!important}
+  body{background:#fff!important;font-size:11px}
+  .paper-header,.tagbar,.stat-strip{padding:10px 16px}
+  .wrap{padding:10px 0 0;max-width:100%}
+  .sec-body,.panel-body{display:block!important}
+  .panel,.ph-panel,.section-card{box-shadow:none!important;margin-bottom:10px;break-inside:avoid;page-break-inside:avoid}
+  .sec-hdr,.ph-hdr,.panel-hdr{cursor:default}
+  .field input,.field select,.field textarea,
+  input[type=text],input[type=date],input[type=number],select,textarea{
+    background:transparent!important;border:none!important;
+    border-bottom:1px solid #dbeafe!important;border-radius:0!important;
+    padding:2px 0!important;color:#0f172a!important;font-size:11px!important}
+  .meas-input,.mi{background:transparent!important;border:none!important;
+    border-bottom:1px solid #dbeafe!important;border-radius:0!important;padding:2px 0!important;font-size:10px!important}
+  .photo-thumb{aspect-ratio:unset!important}
+  .photo-thumb img{width:auto!important;height:auto!important;max-width:100%!important;max-height:150px!important;object-fit:contain!important}
+  .photo-grid{grid-template-columns:repeat(3,1fr)!important}
+}
+.print-header{display:none;font-family:monospace;font-size:10px;color:#666;
+  padding:4px 0 8px;border-bottom:2px solid #1e3a5f;margin-bottom:8px;
+  justify-content:space-between;align-items:center}
+.print-header strong{font-size:13px;color:#1e3a5f;letter-spacing:1px}
+.btn-back{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:5px;font-size:11px;font-weight:700;letter-spacing:1px;text-decoration:none;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.18);transition:background .15s;white-space:nowrap;cursor:pointer;flex-shrink:0}
+.btn-back:hover{background:rgba(255,255,255,0.2);color:#fff}
+</style>
+</head>
+<body>
+<div class="print-header" id="print-header">
+  <div><strong>POMI — GEN BRUSHGEAR PM CHECK SHEET</strong><br>
+    <span id="ph-tag">7TG-GEN-100</span></div>
+  <div style="text-align:right">Date: <span id="ph-date">—</span><br>
+    WO: <span id="ph-wo">—</span></div>
+</div>
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="live-ring"></div>
+  <div class="tb-brand">GEN <span>BRUSH</span></div>
+  <div class="tb-pipe"></div>
+  <div class="tb-tag">7TG-GEN-100 · BRUSHGEAR PM</div>
+  <div class="tb-right">
+    <a class="btn-back" href="index.html" title="Back to Portal">&#8592; Portal</a>
+
+    <span class="tb-clock" id="clock">--:--:--</span>
+    <button class="btn btn-ghost btn-sm" onclick="saveDraft()">💾 Draft</button>
+    <button class="btn btn-db btn-sm" onclick="saveToDatabase()">☁️ Save DB</button>
+    <button class="btn btn-amber btn-sm" onclick="generatePDF()">📥 Download PDF</button>
+  </div>
+</div>
+
+<!-- PAPER HEADER -->
+<div class="paper-header">
+  <img src="LOGO POMI.png" class="ph-logo" alt="POMI">
+  <div class="brand-title">BRUSH GEAR ON-LINE MAINTENANCE CHECK SHEET</div>
+</div>
+
+<!-- TAG / PLANT STATUS BAR -->
+<div class="tagbar">
+  <div class="tagbar-cell">Tag Number :
+    <select id="wo-tag">
+      <option>7TG-GEN-100</option>
+      <option>8TG-GEN-100</option>
+    </select>
+  </div>
+  <div class="tagbar-cell">Plant Status :
+    <select id="plant-status"><option>I/S (In Service)</option><option>O/S (Out of Service)</option><option>Standby</option></select>
+  </div>
+</div>
+
+<!-- STAT STRIP -->
+<div class="stat-strip">
+  <div class="kpi"><div class="kpi-val" id="h-total">0</div><div class="kpi-lbl">Total</div></div>
+  <div class="kpi"><div class="kpi-val ok" id="h-ok">0</div><div class="kpi-lbl">OK</div></div>
+  <div class="kpi"><div class="kpi-val ng" id="h-ng">0</div><div class="kpi-lbl">NG</div></div>
+  <div class="kpi"><div class="kpi-val pend" id="h-pend">0</div><div class="kpi-lbl">Pending</div></div>
+  <div class="kpi"><div class="kpi-val" id="h-replaced" style="color:var(--blue)">0</div><div class="kpi-lbl">Replaced</div></div>
+</div>
+
+<div class="wrap">
+
+<!-- DB STATUS -->
+<div class="db-status ok" id="db-status">
+  <div class="db-dot green"></div>
+  <span>Database: Terhubung ke Firebase (pomi-checksheet-e7)</span>
+</div>
+
+<!-- ══ WORK ORDER ══════════════════════════════════ -->
+<div class="panel">
+  <div class="panel-hdr open" onclick="togglePanel(this)">
+    <div class="ph-icon">📋</div>
+    <div>
+      <div class="ph-title">Work Order Information</div>
+      <div class="ph-sub">Header Data & Personil</div>
+    </div>
+    <span class="ph-arrow">▼</span>
+  </div>
+  <div class="panel-body">
+    <div class="form-grid fg2">
+      <div class="field"><label>Date</label><input type="date" id="wo-date"></div>
+      <div class="field"><label>Time</label><input type="time" id="wo-time"></div>
+      <div class="field"><label>Unit</label>
+        <select id="wo-unit"><option>7</option><option>8</option><option>7/8</option></select>
+      </div>
+      <div class="field"><label>WO Number</label><input type="text" id="wo-no" placeholder="WO-2026-XXXX"></div>
+      <div class="field"><label>Checked By</label><input type="text" id="checked-by" placeholder="Nama teknisi"></div>
+      <div class="field"><label>Reviewed By</label><input type="text" id="reviewed-by" placeholder="Nama supervisor"></div>
+      <div class="field"><label>Shift</label>
+        <select id="wo-shift">
+          <option>Shift 1 (07:00–15:00)</option>
+          <option>Shift 2 (15:00–23:00)</option>
+          <option>Shift 3 (23:00–07:00)</option>
+          <option>Normal Hours</option>
+        </select>
+      </div>
+      <div class="field"><label>Generator Load (MW)</label><input type="number" id="gen-load" placeholder="e.g. 315" min="0"></div>
+      <div class="field">
+        <label>Skip Minggu (0 = minggu ini)</label>
+        <input type="number" id="pm-skip" value="0" min="0" max="4" placeholder="0"
+          onchange="rebuildBrushMags()" style="font-family:var(--mono)">
+      </div>
+    </div>
+    <div style="padding:0 16px 14px">
+      <button class="btn btn-ghost btn-sm" id="btn-load-last" onclick="LoadMergeModal.open()">📥 Pilih &amp; Gabung Data dari Database</button>
+      <span style="font-size:11px;color:var(--txt3);margin-left:8px">Pilih satu atau lebih submission sebelumnya untuk digabung (union, tidak menghapus) ke form ini.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ INSPECTION TASKS ════════════════════════════ -->
+<div class="panel">
+  <div class="panel-hdr open" onclick="togglePanel(this)">
+    <div class="ph-icon">🔍</div>
+    <div>
+      <div class="ph-title">A — Inspection Tasks</div>
+      <div class="ph-sub">Pemeriksaan Visual & Kondisi Operasi</div>
+    </div>
+    <span class="ph-arrow">▼</span>
+  </div>
+  <div class="panel-body">
+    <div style="overflow-x:auto">
+    <table class="ins-table">
+      <thead>
+        <tr>
+          <th rowspan="2" style="width:32px" class="c">No</th>
+          <th rowspan="2">Inspection Item</th>
+          <th rowspan="2" class="c">Criteria</th>
+          <th colspan="2" class="c">Pole + (Positive)</th>
+          <th colspan="2" class="c">Pole − (Negative)</th>
+        </tr>
+        <tr>
+          <th class="c" style="min-width:110px">Result</th>
+          <th style="min-width:140px">Catatan</th>
+          <th class="c" style="min-width:110px">Result</th>
+          <th style="min-width:140px">Catatan</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-ins"></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BRUSH MEASUREMENTS ══════════════════════════ -->
+<div class="panel">
+  <div class="panel-hdr open" onclick="togglePanel(this)">
+    <div class="ph-icon">📏</div>
+    <div>
+      <div class="ph-title">B — Brush Length & Spring Pressure</div>
+      <div class="ph-sub">4 Magazine per minggu · Siklus 5 minggu (Mag 1–20) · Pilih minggu untuk menampilkan magazine</div>
+    </div>
+    <span class="ph-arrow">▼</span>
+  </div>
+  <div class="panel-body">
+    <!-- Week Selector Bar -->
+    <div style="padding:14px 20px 0">
+      <div class="week-bar">
+        <div class="week-bar-row" style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--bdr2)">
+          <span class="week-bar-lbl">MINGGU INI :</span>
+          <span id="cur-week-display" style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--ink2)">—</span>
+        </div>
+        <div class="week-bar-row">
+          <span class="week-bar-lbl" style="flex-shrink:0">SKIP :</span>
+          <div id="week-btns" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--txt3);padding:0 4px">→</div>
+          <div style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ptitle);white-space:nowrap" id="week-mag-label"></div>
+        </div>
+      </div>
+    </div>
+    <div class="brush-outer">
+      <!-- Legend -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+        <div style="font-size:11px;color:var(--txt3)">Legend:</div>
+        <span style="font-size:11px;padding:2px 8px;background:var(--green-bg);color:var(--green2);border-radius:10px;font-family:var(--mono)">≥ 30mm = OK</span>
+        <span style="font-size:11px;padding:2px 8px;background:var(--red-bg);color:var(--red2);border-radius:10px;font-family:var(--mono)">< 30mm = Low (Replace)</span>
+        <span style="font-size:11px;padding:2px 8px;background:#fef3c7;color:#d97706;border-radius:10px;font-family:var(--mono)">100/a* = Rusak/Damaged</span>
+        <span style="font-size:11px;padding:2px 8px;background:#ede9fe;color:#7c3aed;border-radius:10px;font-family:var(--mono)">Spring: 2.0–3.5 lb</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="brush-table" id="brush-table">
+          <thead id="brush-thead"></thead>
+          <tbody id="brush-tbody"></tbody>
+        </table>
+      </div>
+      <div class="remark-box">
+        <div class="remark-text">
+          <strong>REMARK</strong>
+          100/a &nbsp;= The length of brush degreasing<br>
+          100/a* = Brush damage
+        </div>
+        <img src="brush_magazine_diagram.png" class="remark-diagram" alt="Magazine & Brush Numbering Diagram">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PHOTO / FILE EVIDENCE ════════════════════════ -->
+<div class="panel">
+  <div class="panel-hdr open" onclick="togglePanel(this)">
+    <div class="ph-icon">📸</div>
+    <div>
+      <div class="ph-title">C — Photo Evidence & File Attachment</div>
+      <div class="ph-sub">Dokumentasi foto dan file pekerjaan PM</div>
+    </div>
+    <span class="ph-arrow">▼</span>
+  </div>
+  <div class="panel-body">
+    <div class="photo-section">
+      <input type="file" id="file-input" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="handleFiles(this.files)">
+
+      <!-- Add File Button -->
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="btn-add-file" onclick="document.getElementById('file-input').click()">
+          <span style="font-size:18px;line-height:1">+</span> Add File / Photo
+        </button>
+        <span style="font-size:11px;color:var(--txt3);font-family:var(--mono)" id="file-count-label">Belum ada file ditambahkan</span>
+      </div>
+      <div style="font-size:10.5px;color:var(--txt3);padding:0 0 12px">
+        Mendukung: JPG, PNG, PDF, DOC, XLS · Maks. 10MB per file · Jumlah foto tidak terbatas
+      </div>
+
+      <!-- Photo Grid -->
+      <div class="photo-grid" id="photo-grid"></div>
+      <div id="file-list" style="margin-top:10px;display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FINDINGS ════════════════════════════════════ -->
+<div class="panel">
+  <div class="panel-hdr open" onclick="togglePanel(this)">
+    <div class="ph-icon">📝</div>
+    <div>
+      <div class="ph-title">D — Findings & Conclusion</div>
+      <div class="ph-sub">Kesimpulan, temuan & tindak lanjut</div>
+    </div>
+    <span class="ph-arrow">▼</span>
+  </div>
+  <div class="panel-body">
+    <div class="form-grid fg2" style="padding-bottom:0">
+      <div class="field">
+        <label>Overall Condition</label>
+        <select id="overall">
+          <option>✅ GOOD — Normal Operation</option>
+          <option>⚠️ FAIR — Requires Monitoring</option>
+          <option>🔧 POOR — Maintenance Required</option>
+          <option>🛑 CRITICAL — Must Stop</option>
+        </select>
+      </div>
+      <div class="field"><label>Next PM Due</label><input type="date" id="next-pm"></div>
+    </div>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr;padding-top:0">
+      <div class="field"><label>Findings / Observations</label>
+        <textarea id="findings" placeholder="Catat semua temuan, abnormalitas atau kondisi tidak normal pada brush gear…"></textarea>
+      </div>
+      <div class="field"><label>Corrective Actions / Recommendations</label>
+        <textarea id="recommendations" placeholder="Tindakan yang sudah diambil dan rekomendasi tindak lanjut…"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PM HISTORY ══════════════════════════════════ -->
+<div class="panel">
+  <div class="panel-hdr" onclick="togglePanel(this)">
+    <div class="ph-icon">🗂️</div>
+    <div>
+      <div class="ph-title">E — PM History (from Database)</div>
+      <div class="ph-sub">Riwayat data yang tersimpan di Firebase</div>
+    </div>
+    <span class="ph-arrow">▼</span>
+  </div>
+  <div class="panel-body" style="display:none">
+    <div class="hist-wrap">
+      <button class="btn btn-db btn-load-hist" onclick="loadHistory()">🔄 Load History</button>
+      <div id="hist-container" class="hist-empty">Tekan "Load History" untuk memuat data dari database.</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ACTION ROW -->
+<div class="action-row">
+  <button class="btn" style="background:#f1f5f9;color:var(--ink2);border:1px solid var(--bdr)" onclick="resetForm()">🔄 Reset</button>
+  <button class="btn btn-ghost" style="background:var(--ink2);color:#fff" onclick="saveDraft()">💾 Save Draft</button>
+  <button class="btn btn-db" onclick="saveToDatabase()">☁️ Save to Database</button>
+  <button class="btn btn-amber" onclick="generatePDF()">📥 Download PDF</button>
+</div>
+<div id="notice" class="notice"></div>
+
+</div><!-- /wrap -->
+
+<footer class="footer">
+  <div class="footer-txt">POMI · UNIT 7/8 · GENERATOR BRUSH GEAR PM · 7TG-GEN-100</div>
+  <div class="footer-txt" id="fdate">—</div>
+</footer>
+
+<script>
+// ══════════════════════════════════════════════════
+//  CLOCK
+// ══════════════════════════════════════════════════
+function tick(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.toLocaleTimeString('id-ID');
+  document.getElementById('fdate').textContent=n.toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+setInterval(tick,1000);tick();
+
+// ══════════════════════════════════════════════════
+//  PANEL TOGGLE
+// ══════════════════════════════════════════════════
+function togglePanel(hdr){
+  hdr.classList.toggle('open');
+  const body=hdr.nextElementSibling;
+  body.style.display=hdr.classList.contains('open')?'block':'none';
+}
+
+// ══════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════
+const ST={};   // toggle states
+const FILES=[]; // attached files
+
+// ══════════════════════════════════════════════════
+//  OK / NG BUTTONS
+// ══════════════════════════════════════════════════
+function setTog(id,val,btn){
+  const par=btn.closest('.tog');
+  par.querySelectorAll('.tb').forEach(b=>{
+    b.className='tb '+(b.dataset.v==='OK'?'ok-idle':'ng-idle');
+  });
+  if(ST[id]===val){delete ST[id];}
+  else{btn.className='tb '+(val==='OK'?'ok-act':'ng-act');ST[id]=val;}
+  updateKPI();
+}
+function mkTog(id){
+  return `<div class="tog">
+    <button class="tb ok-idle" data-v="OK" onclick="setTog('${id}','OK',this)">✓ OK</button>
+    <button class="tb ng-idle" data-v="NG" onclick="setTog('${id}','NG',this)">✗ NG</button>
+  </div>`;
+}
+function mkInp(id,w){
+  return `<input class="mi" type="number" step="any" id="${id}" placeholder="—" style="width:${w||60}px">`;
+}
+
+// ══════════════════════════════════════════════════
+//  KPI STATS
+// ══════════════════════════════════════════════════
+function updateKPI(){
+  const vals=Object.values(ST);
+  const ok=vals.filter(v=>v==='OK').length;
+  const ng=vals.filter(v=>v==='NG').length;
+  const tot=document.querySelectorAll('.tog').length;
+  const pend=tot-ok-ng;
+  // replaced brushes
+  const replaced=document.querySelectorAll('.bc-replace-chk:checked').length;
+  document.getElementById('h-total').textContent=tot;
+  document.getElementById('h-ok').textContent=ok;
+  document.getElementById('h-ng').textContent=ng;
+  document.getElementById('h-pend').textContent=pend;
+  document.getElementById('h-replaced').textContent=replaced;
+}
+
+// ══════════════════════════════════════════════════
+//  BUILD INSPECTION TABLES
+// ══════════════════════════════════════════════════
+const INS_ITEMS=[
+  {no:'1',desc:'Sparking between brushes and slip rings',crit:'No Spark',type:'tog'},
+  {no:'2',desc:'Chattering of brushes or brush springs',crit:'No Chatter',type:'tog'},
+  {no:'3',desc:'Loose, frayed, blued or burned off pigtails',crit:'No Damage',type:'tog'},
+  {no:'4',desc:'Dust or oil contamination',crit:'Clean',type:'tog'},
+  {no:'5',desc:'Noise level (brush gear)',crit:'< 85 dB',type:'num',unit:'dB'},
+  {no:'6',desc:'Operating temperature',crit:'< 80°C',type:'num',unit:'°C'},
+  {no:'7',desc:'Air flow (cooling air)',crit:'Normal',type:'num',unit:'m/s'},
+];
+function insCell(item,pfx){
+  const id=pfx+'_'+item.no;
+  const resultCell=item.type==='tog'?mkTog(id):
+    `<div style="text-align:center">${mkInp(id,60)}<span class="mi-unit">${item.unit||''}</span></div>`;
+  return `<td class="c">${resultCell}</td>
+    <td><input type="text" class="mi" style="width:100%;min-width:130px;font-family:var(--sans)" id="note_${id}" placeholder="Catatan…"></td>`;
+}
+function buildInsTableMerged(tbodyId){
+  const tb=document.getElementById(tbodyId);
+  INS_ITEMS.forEach(item=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td class="item-no c">${item.no}</td>
+      <td class="item-desc">${item.desc}</td>
+      <td class="crit">${item.crit}</td>
+      ${insCell(item,'pos')}
+      ${insCell(item,'neg')}
+    `;
+    tb.appendChild(tr);
+  });
+}
+
+// ══════════════════════════════════════════════════
+//  BUILD BRUSH MAGAZINE CARDS
+// ══════════════════════════════════════════════════
+const BRUSH_TYPES=['Old (GE)','New (CE)'];
+
+function getMagsForWeek(week){
+  const w=((parseInt(week)-1)%5)+1;
+  const a=2*w-1;
+  return[a,a+1,a+10,a+11];
+}
+
+// Reference anchor: Monday 2026-04-27 = PM Cycle Week 1
+// Verified: week of 2026-05-18 = Week 4 (Mag 7,8,17,18)
+const PM_REF=new Date('2026-04-27T00:00:00');
+
+function getCurrentPMWeek(){
+  const diffWeeks=Math.floor((Date.now()-PM_REF.getTime())/(7*24*3600*1000));
+  return((diffWeeks%5)+5)%5+1;
+}
+
+function getActiveMags(){
+  const skip=((parseInt(document.getElementById('pm-skip')?.value)||0)+500)%5;
+  const eff=((getCurrentPMWeek()-1+skip)%5)+1;
+  return getMagsForWeek(eff);
+}
+
+function buildWeekBtns(){
+  const cont=document.getElementById('week-btns');
+  if(!cont)return;
+  cont.innerHTML='';
+  const curWeek=getCurrentPMWeek();
+  const skip=((parseInt(document.getElementById('pm-skip')?.value)||0)+500)%5;
+  // Current week info row
+  const curMags=getMagsForWeek(curWeek);
+  const curDisp=document.getElementById('cur-week-display');
+  if(curDisp)curDisp.textContent='WEEK '+curWeek+' — MAG '+curMags.map(m=>m.toString().padStart(2,'0')).join(' · ');
+  // Skip buttons +0 to +4
+  for(let s=0;s<=4;s++){
+    const effWeek=((curWeek-1+s)%5)+1;
+    const mags=getMagsForWeek(effWeek);
+    const btn=document.createElement('button');
+    const isActive=s===skip;
+    btn.style.cssText=isActive
+      ?'background:var(--pborder);color:#fff;padding:5px 14px;font-size:11px;border-radius:6px;border:none;cursor:pointer;font-family:var(--mono);font-weight:700;letter-spacing:1px'
+      :'background:#fff;color:var(--txt2);padding:5px 14px;font-size:11px;border-radius:6px;border:1px solid var(--bdr);cursor:pointer;font-family:var(--mono);letter-spacing:1px';
+    btn.textContent=s===0?'+0 (ini)':'+'+s;
+    btn.title='Mag '+mags.join(', ');
+    btn.onclick=()=>{
+      const inp=document.getElementById('pm-skip');
+      if(inp){inp.value=s;inp.dispatchEvent(new Event('change'));}
+    };
+    cont.appendChild(btn);
+  }
+  // Result label
+  const effWeek=((curWeek-1+skip)%5)+1;
+  const activeMags=getMagsForWeek(effWeek);
+  const lbl=document.getElementById('week-mag-label');
+  if(lbl)lbl.textContent='MAG '+activeMags.map(m=>m.toString().padStart(2,'0')).join(' · ');
+}
+
+function rebuildBrushMags(){
+  buildWeekBtns();
+  const mags=getActiveMags();
+  buildBrushTable(mags);
+}
+
+function buildBrushMags(){
+  rebuildBrushMags();
+}
+
+function buildBrushTable(mags){
+  const thead=document.getElementById('brush-thead');
+  const tbody=document.getElementById('brush-tbody');
+
+  thead.innerHTML=`
+    <tr>
+      <th rowspan="2">Brush No.</th>
+      ${mags.map(mag=>`<th colspan="3">Magazine #${mag.toString().padStart(2,'0')}</th>`).join('')}
+    </tr>
+    <tr>
+      ${mags.map(()=>'<th>Length (mm)</th><th>Spring (lb)</th><th>Type / Replace</th>').join('')}
+    </tr>
+  `;
+
+  const rows=[];
+  for(let b=1;b<=6;b++){
+    let cells=`<td class="brush-no">Brush #${b}</td>`;
+    mags.forEach(mag=>{
+      const lid=`m${mag}_b${b}_len`,sid=`m${mag}_b${b}_spring`,tid=`m${mag}_b${b}_type`,rid=`m${mag}_b${b}_replace`;
+      const statusId=`status_m${mag}_b${b}`;
+      cells+=`
+        <td id="brow_${lid}">
+          <input class="mi" type="number" step="1" id="${lid}" placeholder="mm" style="width:56px"
+            oninput="onLenChange('${lid}','${statusId}','brow_${lid}')">
+          <span id="${statusId}" class="brush-status">—</span>
+        </td>
+        <td><input class="mi" type="number" step="0.1" id="${sid}" placeholder="lb" style="width:56px"></td>
+        <td class="brush-cell-type">
+          <select id="${tid}">
+            <option value="">— Select —</option>
+            ${BRUSH_TYPES.map(t=>`<option>${t}</option>`).join('')}
+          </select>
+          <label class="brush-replace-mini">
+            <input type="checkbox" class="bc-replace-chk" id="${rid}" onchange="onReplaceChange('${rid}','brow_${lid}');updateKPI()">
+            Replace
+          </label>
+        </td>`;
+    });
+    rows.push(`<tr>${cells}</tr>`);
+  }
+  tbody.innerHTML=rows.join('');
+}
+
+function onLenChange(lid,statusId,browId){
+  const el=document.getElementById(lid);
+  const statusEl=document.getElementById(statusId);
+  const brow=document.getElementById(browId);
+  const val=parseFloat(el.value);
+  if(isNaN(val)||!el.value){
+    statusEl.textContent='—';
+    statusEl.style.cssText='display:inline-block;margin-left:5px;font-size:8.5px;padding:1px 5px;border-radius:8px;background:#eef2ff;color:#9ca3af;font-family:var(--mono)';
+    brow.style.background='';return;
+  }
+  if(val<30){
+    statusEl.textContent='LOW';
+    statusEl.style.cssText='display:inline-block;margin-left:5px;font-size:8.5px;padding:1px 5px;border-radius:8px;background:rgba(239,68,68,0.12);color:#dc2626;font-family:var(--mono);font-weight:700';
+    brow.style.background='rgba(239,68,68,0.06)';
+  } else {
+    statusEl.textContent='OK';
+    statusEl.style.cssText='display:inline-block;margin-left:5px;font-size:8.5px;padding:1px 5px;border-radius:8px;background:rgba(34,197,94,0.12);color:#16a34a;font-family:var(--mono);font-weight:700';
+    brow.style.background='rgba(34,197,94,0.06)';
+  }
+}
+function onReplaceChange(rid,browId){
+  const chk=document.getElementById(rid);
+  const brow=document.getElementById(browId);
+  if(chk.checked){
+    brow.style.background='rgba(59,130,246,0.08)';
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  FILE / PHOTO HANDLER
+// ══════════════════════════════════════════════════
+function updateFileCountLabel(){
+  const active=FILES.filter(f=>f!==null);
+  const imgs=active.filter(f=>f&&f.type.startsWith('image/')).length;
+  const docs=active.length-imgs;
+  const lbl=document.getElementById('file-count-label');
+  if(!lbl)return;
+  if(active.length===0){lbl.textContent='Belum ada file ditambahkan';return;}
+  const parts=[];
+  if(imgs>0)parts.push(imgs+' foto');
+  if(docs>0)parts.push(docs+' dokumen');
+  lbl.textContent=parts.join(' · ')+' ditambahkan';
+}
+
+function handleFiles(fileList){
+  Array.from(fileList).forEach(file=>{
+    if(file.size>10*1024*1024){showNotice('File '+file.name+' terlalu besar (maks 10MB)','err');return;}
+    const isImg=file.type.startsWith('image/');
+    const entry={name:file.name,type:file.type,size:file.size,dataUrl:null};
+    if(isImg){
+      // PhotoKit intake: img-helper downscales + bakes in the EXIF rotation, then
+      // the crop modal sets the print size in cm. Both travel with the entry, so
+      // the PDF draws the photo at that size at its own aspect ratio.
+      PhotoKit.fromFile(file,res=>{
+        if(!res)return;
+        entry.dataUrl=res.src;entry.type='image/jpeg';entry.w=res.w;entry.h=res.h;
+        entry.widthCm=res.widthCm;entry.heightCm=res.heightCm;
+        FILES.push(entry);
+        renderPhoto(entry,FILES.length-1);
+        updateFileCountLabel();
+      });
+      return;
+    }
+    const reader=new FileReader();
+    reader.onload=e=>{
+      entry.dataUrl=e.target.result;
+      FILES.push(entry);
+      renderFile(entry,FILES.length-1);
+      updateFileCountLabel();
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('file-input').value='';
+}
+function renderPhoto(entry,idx){
+  const grid=document.getElementById('photo-grid');
+  const div=document.createElement('div');
+  div.className='photo-thumb';div.id='thumb-'+idx;
+  div.innerHTML=`
+    <img src="${entry.dataUrl}" alt="${entry.name}" loading="lazy">
+    <button class="photo-del" onclick="removeFile(${idx})" title="Remove">✕</button>
+    <button class="photo-del" style="left:6px;right:auto;background:rgba(37,99,235,.85)" onclick="recropFile(${idx})" title="Crop &amp; ukuran cetak">✂</button>
+    <div class="photo-caption">${entry.name.slice(0,20)}${entry.widthCm?` · ${entry.widthCm.toFixed(1)}×${entry.heightCm.toFixed(1)}cm`:''}</div>
+  `;
+  grid.appendChild(div);
+}
+function recropFile(idx){
+  const e=FILES[idx];
+  if(!e||!e.dataUrl||!/^image\//.test(e.type||''))return;
+  PhotoKit.recrop({src:e.dataUrl,w:e.w,h:e.h,widthCm:e.widthCm,heightCm:e.heightCm},r=>{
+    if(!r)return;
+    e.dataUrl=r.src;e.w=r.w;e.h=r.h;e.widthCm=r.widthCm;e.heightCm=r.heightCm;
+    const thumb=document.getElementById('thumb-'+idx);
+    if(thumb){
+      const img=thumb.querySelector('img');if(img)img.src=r.src;
+      const cap=thumb.querySelector('.photo-caption');
+      if(cap)cap.textContent=e.name.slice(0,20)+' \u00b7 '+r.widthCm.toFixed(1)+'\u00d7'+r.heightCm.toFixed(1)+'cm';
+    }
+  });
+}
+function renderFile(entry,idx){
+  const list=document.getElementById('file-list');
+  const ext=entry.name.split('.').pop().toUpperCase();
+  const div=document.createElement('div');
+  div.id='file-item-'+idx;
+  div.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:var(--bg2);border:1px solid var(--bdr2);border-radius:6px';
+  div.innerHTML=`
+    <span style="font-size:18px">${ext==='PDF'?'📄':ext.includes('XL')?'📊':ext.includes('DOC')?'📝':'📎'}</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${entry.name}</div>
+      <div style="font-size:10px;color:var(--txt3);font-family:var(--mono)">${(entry.size/1024).toFixed(0)} KB · ${ext}</div>
+    </div>
+    <button onclick="removeFile(${idx})" style="border:none;background:none;cursor:pointer;font-size:16px;color:var(--txt3);flex-shrink:0">✕</button>
+  `;
+  list.appendChild(div);
+}
+function removeFile(idx){
+  FILES[idx]=null;
+  const t=document.getElementById('thumb-'+idx);
+  const f=document.getElementById('file-item-'+idx);
+  if(t)t.remove();if(f)f.remove();
+  updateFileCountLabel();
+}
+
+// Review & Approval workflow hook — called by load-merge-modal.js after a
+// Load & Merge or a revision-banner "load for revision" restore, if
+// Storage.toDataUrl() successfully resolved a Drive-proxy photoUrls map for
+// the loaded submission(s). See load-merge-modal.js's header comment for the
+// exact {groupKey:[{url,caption,w,h,widthCm,heightCm}, ...]} shape.
+//
+// This file has ONE flat, ungrouped photo gallery (FILES[], filtered by
+// type.startsWith('image/')) rather than named slots per group — unlike a
+// per-slot check sheet, there's no separate destination per groupKey to map
+// into, so every group key present in photoUrls is pooled into that same
+// single gallery. "Currently empty" (for the fill-blank-only merge case) is
+// judged by whether FILES already holds any image entry, not by group key.
+async function restorePhotosFromUrls(photoUrls,overwrite){
+  if(!photoUrls||typeof photoUrls!=='object')return 0;
+  const hasExistingPhotos=FILES.some(f=>f&&f.type&&f.type.startsWith('image/'));
+  if(hasExistingPhotos&&overwrite!==true){
+    // Fill-blank-only: a technician's own in-progress photos in this session
+    // must never be silently overwritten by a merge.
+    return 0;
+  }
+  const allEntries=[];
+  Object.keys(photoUrls).forEach(key=>{
+    const arr=photoUrls[key];
+    if(Array.isArray(arr))arr.forEach(e=>allEntries.push(e));
+  });
+  if(allEntries.length===0)return 0;
+
+  if(overwrite===true&&hasExistingPhotos){
+    FILES.forEach((f,idx)=>{
+      if(f&&f.type&&f.type.startsWith('image/')){
+        FILES[idx]=null;
+        const t=document.getElementById('thumb-'+idx);
+        if(t)t.remove();
+      }
+    });
+  }
+
+  let restored=0;
+  for(const item of allEntries){
+    if(!item||!item.url)continue;
+    let dataUrl;
+    try{
+      dataUrl=await Storage.toDataUrl(item.url);
+    }catch(e){
+      console.error('restorePhotosFromUrls: gagal mengambil foto dari Drive',item.url,e);
+      continue;
+    }
+    if(!dataUrl)continue;
+    const entry={
+      name:item.caption||'photo.jpg',
+      type:'image/jpeg',
+      size:Math.round(dataUrl.length*0.75),
+      dataUrl,
+      w:item.w,h:item.h,
+      widthCm:item.widthCm,heightCm:item.heightCm,
+    };
+    FILES.push(entry);
+    renderPhoto(entry,FILES.length-1);
+    restored++;
+  }
+  if(restored>0)updateFileCountLabel();
+  return restored;
+}
+window.restorePhotosFromUrls=restorePhotosFromUrls;
+
+// ══════════════════════════════════════════════════
+//  DRAFT (localStorage)
+// ══════════════════════════════════════════════════
+function saveDraft(){
+  const d={_st:ST,_skip:document.getElementById('pm-skip')?.value||'0'};
+  document.querySelectorAll('[id]').forEach(el=>{
+    if(!el.id)return;
+    if(el.tagName==='INPUT'&&el.type==='file')return;
+    if(el.tagName==='INPUT'&&el.type==='checkbox'){d['c_'+el.id]=el.checked;}
+    else if(el.tagName==='INPUT'||el.tagName==='SELECT'||el.tagName==='TEXTAREA'){d['v_'+el.id]=el.value;}
+  });
+  try{
+    localStorage.setItem('gen_brush_draft',JSON.stringify(d));
+    showNotice('💾 Draft tersimpan di browser.','ok');
+  }catch(e){showNotice('❌ Gagal simpan draft: '+e.message,'err');}
+}
+function loadDraft(){
+  try{
+    const raw=localStorage.getItem('gen_brush_draft');if(!raw)return;
+    const d=JSON.parse(raw);
+    // First restore skip setting and rebuild mags so brush inputs exist
+    if(d._skip!==undefined){
+      const inp=document.getElementById('pm-skip');
+      if(inp)inp.value=d._skip;
+    }
+    buildWeekBtns();
+    rebuildBrushMags();
+    // Fill all form fields by ID
+    Object.keys(d).forEach(k=>{
+      if(k==='_st'||k==='_week')return;
+      const id=k.startsWith('v_')?k.slice(2):k.startsWith('c_')?k.slice(2):null;
+      if(!id)return;
+      const el=document.getElementById(id);if(!el)return;
+      if(k.startsWith('c_'))el.checked=!!d[k];
+      else el.value=d[k]||'';
+    });
+    if(d._st){
+      Object.entries(d._st).forEach(([id,val])=>{
+        ST[id]=val;
+        const btn=document.querySelector(`.tog .tb[data-v="${val}"][onclick*="'${id}'"]`);
+        if(btn)btn.className='tb '+(val==='OK'?'ok-act':'ng-act');
+      });
+    }
+    updateKPI();
+  }catch(e){}
+}
+function resetForm(){
+  if(!confirm('Reset semua data? Tindakan ini tidak dapat dibatalkan.'))return;
+  document.querySelectorAll('input:not([type=file]),select,textarea').forEach(el=>{
+    if(el.id==='pm-skip')return;
+    if(el.type==='checkbox')el.checked=false;else el.value='';
+  });
+  Object.keys(ST).forEach(k=>delete ST[k]);
+  document.querySelectorAll('.tb').forEach(b=>b.className='tb '+(b.dataset.v==='OK'?'ok-idle':'ng-idle'));
+  // clear photo grid
+  document.getElementById('photo-grid').innerHTML='';
+  document.getElementById('file-list').innerHTML='';
+  FILES.length=0;
+  updateKPI();
+  updateFileCountLabel();
+}
+
+// ══════════════════════════════════════════════════
+//  DATABASE (uses shared firebase-config.js + db-helper.js)
+// ══════════════════════════════════════════════════
+async function saveToDatabase(){
+  const gv2=id=>{const e=document.getElementById(id);return e?e.value.trim():''};
+  if(!gv2('wo-date')){showNotice('⚠️ Isi tanggal terlebih dahulu.','err');return;}
+  if(!gv2('checked-by')){showNotice('⚠️ Isi nama teknisi terlebih dahulu.','err');return;}
+  let docId, target;
+  try{
+    const raw=collectFormData();
+    target=await SubmitGuard.resolveSubmitTarget(raw.woNo);
+    if(target.mode==='cancel') return;
+    showNotice('⏳ Menyimpan ke database…','info');
+    SubmitGuard.setProgress(5,'Menyimpan data checklist...');
+
+    // Build items array from inspection results (for dashboard detail view)
+    const items=[];
+    INS_ITEMS.forEach(item=>{
+      const pv=raw.inspectionPos[item.no]?.val;
+      const nv=raw.inspectionNeg[item.no]?.val;
+      if(pv) items.push({label:item.desc,result:pv,id:'pos_'+item.no,column:'Pole +'});
+      if(nv) items.push({label:item.desc,result:nv,id:'neg_'+item.no,column:'Pole −'});
+    });
+
+    // Build measurements array from brush data (for dashboard detail view)
+    const measurements=[];
+    raw.brushData.forEach(mag=>{
+      for(let b=1;b<=6;b++){
+        const br=mag['b'+b];
+        const lbl=`Mag #${String(mag.mag).padStart(2,'0')} / Brush #${b}`;
+        if(br?.len) measurements.push({id:`m${mag.mag}_b${b}_len`,label:lbl,value:br.len,unit:'mm',column:'Length'});
+        if(br?.spring) measurements.push({id:`m${mag.mag}_b${b}_spring`,label:lbl,value:br.spring,unit:'lb',column:'Spring'});
+      }
+    });
+
+    const sInsRows=INS_ITEMS.map(item=>({no:item.no,desc:item.desc,crit:item.crit,values:{
+      'Pole + Result':raw.inspectionPos[item.no]?.val||'—','Pole + Note':raw.inspectionPos[item.no]?.note||'—',
+      'Pole − Result':raw.inspectionNeg[item.no]?.val||'—','Pole − Note':raw.inspectionNeg[item.no]?.note||'—',
+    }}));
+    const sBrushRows=[];
+    raw.brushData.forEach(mag=>{
+      for(let b=1;b<=6;b++){
+        const br=mag['b'+b];
+        sBrushRows.push({no:'',desc:`Mag #${String(mag.mag).padStart(2,'0')} / Brush #${b}`,section:'Week '+mag.week,values:{
+          'Length (mm)':br?.len||'—','Spring (lb)':br?.spring||'—','Brush Type':br?.type||'—','Replace':br?.replace?'YES':'No',
+        }});
+      }
+    });
+
+    const payload={
+      ...raw,
+      assetTag:'7TG-GEN-100',
+      assetName:'Generator Brush Gear PM',
+      frequency:'WEEKLY',
+      woNumber:raw.woNo,
+      executionDate:raw.date,
+      countOk:raw.statsOK,
+      countNg:raw.statsNG,
+      countNa:0,
+      overallStatus:raw.statsNG>0?'NG':'OK',
+      items,
+      measurements,
+      sheets:{
+        sA:{title:'A — Inspection Tasks',columns:['Pole + Result','Pole + Note','Pole − Result','Pole − Note'],rows:sInsRows},
+        sB:{title:'B — Brush Length & Spring Pressure',columns:['Length (mm)','Spring (lb)','Brush Type','Replace'],rows:sBrushRows},
+      },
+      toggleStates:Object.assign({},ST),
+      createdAt:new Date().toISOString(),
+    };
+    docId = target.mode==='overwrite' ? await DB.update(target.targetId,payload) : await DB.save(payload);
+  }catch(e){SubmitGuard.hideProgress();showNotice('❌ Gagal menyimpan: '+e.message,'err');return;}
+
+  // Photos + archival PDF + the review/approval workflow record are all
+  // best-effort ON TOP of the checksheet doc saved above. A Storage hiccup
+  // (e.g. Storage not yet enabled in the Firebase console, or a slow
+  // connection dropping mid-upload) must never make this look like the
+  // whole submission failed — the checklist data the technician actually
+  // filled in is already safely saved by this point.
+  let filesOk=true;
+  try{
+    showNotice('⏳ Mengunggah foto & PDF untuk alur review/approval…','info');
+    const photoEntries=FILES.filter(f=>f&&f.type&&f.type.startsWith('image/'))
+      .map(f=>({src:f.dataUrl,caption:f.name||''}));
+    filesOk=await Approvals.submitWithFiles(docId,{
+      photos:{evidence:photoEntries},
+      pdfBuilder:()=>generatePDF({silent:true}),
+      assetTag:'7TG-GEN-100',
+      assetName:'Generator Brush Gear PM',
+      checksheetFile:'GEN_BrushGear_PM_Checksheet.html',
+      submittedBy:gv2('checked-by'),
+      revisionOf:LoadMergeModal.getReviseOfApprovalId(),
+      existingApprovalId: target.mode==='overwrite' ? target.approvalId : null,
+      onProgress:(pct,label)=>SubmitGuard.setProgress(10+Math.round(pct*0.85),label),
+    });
+  }catch(e){
+    filesOk=false;
+    console.error('Upload foto/PDF/approval record gagal:',e);
+  }
+  SubmitGuard.markSubmitted(docId,{woNumber:gv2('wo-no'),executionDate:gv2('wo-date'),checkedBy:gv2('checked-by')});
+  SubmitGuard.setProgress(100,'Selesai!');
+  setTimeout(()=>SubmitGuard.hideProgress(),500);
+
+  if(filesOk){
+    showNotice('✅ Data, foto & PDF berhasil disimpan. ID: '+docId,'ok');
+  }else{
+    showNotice('⚠️ Data checklist tersimpan (ID: '+docId+'), tapi foto/PDF gagal diunggah untuk alur review — pastikan Firebase Storage sudah aktif, lalu coba submit ulang.','err');
+  }
+}
+
+async function loadHistory(){
+  const cont=document.getElementById('hist-container');
+  cont.innerHTML='<div class="hist-empty"><div class="spinner" style="display:inline-block"></div> Memuat data…</div>';
+  try{
+    const snap=await db.collection('checksheets').where('assetTag','==','7TG-GEN-100').orderBy('createdAt','desc').limit(20).get();
+    if(snap.empty){cont.innerHTML='<div class="hist-empty">Belum ada data tersimpan.</div>';return;}
+    let rows='';
+    snap.forEach(doc=>{
+      const d=doc.data();
+      const cond=d.overall||d.overallStatus||'—';
+      const cls=cond.includes('GOOD')||cond==='OK'?'good':cond.includes('FAIR')?'fair':'poor';
+      rows+=`<tr>
+        <td>${d.date||d.executionDate||'—'}</td>
+        <td style="font-family:var(--mono);font-size:10px">${d.woNo||d.woNumber||'—'}</td>
+        <td>${d.checkedBy||'—'}</td>
+        <td>${d.unit||'—'}</td>
+        <td>${d.brushReplaced||0}</td>
+        <td><span class="badge ${cls}">${cond.replace(/[✅⚠️🔧🛑]/g,'').trim()}</span></td>
+        <td><button class="btn btn-ghost btn-sm" style="background:var(--ink2);color:#fff;font-size:10px" onclick="loadRecord('${doc.id}')">📂 Load</button></td>
+      </tr>`;
+    });
+    cont.innerHTML=`<table class="hist-tbl"><thead><tr>
+      <th>Date</th><th>WO No.</th><th>Checked By</th><th>Unit</th><th>Replaced</th><th>Condition</th><th>Action</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+  }catch(e){cont.innerHTML=`<div class="hist-empty" style="color:var(--red2)">Error: ${e.message}</div>`;}
+}
+
+async function loadRecord(docId){
+  try{
+    const doc=await db.collection('checksheets').doc(docId).get();
+    if(!doc.exists)return;
+    const d=doc.data();
+    const map={'wo-date':'date','wo-time':'time','wo-tag':'tag','wo-unit':'unit',
+      'plant-status':'plantStatus','wo-no':'woNo','checked-by':'checkedBy',
+      'reviewed-by':'reviewedBy','wo-shift':'shift','gen-load':'genLoad',
+      'overall':'overall','next-pm':'nextPm','findings':'findings','recommendations':'recommendations'};
+    Object.entries(map).forEach(([elId,key])=>{
+      const el=document.getElementById(elId);if(el&&d[key]!==undefined)el.value=d[key];
+    });
+    showNotice('📂 Record dimuat dari database.','ok');
+  }catch(e){showNotice('Error load record: '+e.message,'err');}
+}
+
+function collectFormData(){
+  const gv=id=>{const e=document.getElementById(id);return e?e.value.trim():''};
+  // Brush measurements (active magazines for current skip setting)
+  const activeMags=getActiveMags();
+  const curPMWeek=getCurrentPMWeek();
+  const curSkip=((parseInt(document.getElementById('pm-skip')?.value)||0)+500)%5;
+  const effPMWeek=((curPMWeek-1+curSkip)%5)+1;
+  const brushData=[];
+  activeMags.forEach(mag=>{
+    const magEntry={mag,week:effPMWeek,skip:curSkip};
+    for(let b=1;b<=6;b++){
+      const lid=`m${mag}_b${b}_len`,sid=`m${mag}_b${b}_spring`,tid=`m${mag}_b${b}_type`,rid=`m${mag}_b${b}_replace`;
+      const lEl=document.getElementById(lid),sEl=document.getElementById(sid),tEl=document.getElementById(tid),rEl=document.getElementById(rid);
+      magEntry['b'+b]={len:lEl?.value||'',spring:sEl?.value||'',type:tEl?.value||'',replace:rEl?.checked||false};
+    }
+    brushData.push(magEntry);
+  });
+  // inspection
+  const insPos={},insNeg={};
+  INS_ITEMS.forEach(item=>{
+    const posVal=item.type==='tog'?(ST['pos_'+item.no]||''):(gv('pos_'+item.no)||'');
+    const negVal=item.type==='tog'?(ST['neg_'+item.no]||''):(gv('neg_'+item.no)||'');
+    insPos[item.no]={val:posVal,note:gv('note_pos_'+item.no)};
+    insNeg[item.no]={val:negVal,note:gv('note_neg_'+item.no)};
+  });
+  const replaced=document.querySelectorAll('.bc-replace-chk:checked').length;
+  return{
+    timestamp:window.firebase?firebase.firestore.FieldValue.serverTimestamp():new Date().toISOString(),
+    date:gv('wo-date'),time:gv('wo-time'),tag:gv('wo-tag'),unit:gv('wo-unit'),
+    plantStatus:gv('plant-status'),woNo:gv('wo-no'),checkedBy:gv('checked-by'),
+    reviewedBy:gv('reviewed-by'),shift:gv('wo-shift'),genLoad:gv('gen-load'),
+    inspectionPos:insPos,inspectionNeg:insNeg,brushData,brushReplaced:replaced,
+    overall:gv('overall'),nextPm:gv('next-pm'),findings:gv('findings'),recommendations:gv('recommendations'),
+    statsOK:parseInt(document.getElementById('h-ok').textContent)||0,
+    statsNG:parseInt(document.getElementById('h-ng').textContent)||0,
+  };
+}
+
+// ══════════════════════════════════════════════════
+//  NOTICES
+// ══════════════════════════════════════════════════
+function showNotice(msg,type){
+  const n=document.getElementById('notice');
+  n.innerHTML=`<span>${msg}</span>`;n.className='notice '+type;
+  setTimeout(()=>n.className='notice',5000);
+}
+
+// ══════════════════════════════════════════════════
+//  PDF GENERATOR — classic paper check-sheet layout
+// ══════════════════════════════════════════════════
+async function imgToDataUrl(src){
+  return new Promise(res=>{
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>{
+      try{const cv=document.createElement('canvas');cv.width=img.naturalWidth;cv.height=img.naturalHeight;
+        cv.getContext('2d').drawImage(img,0,0);res({url:cv.toDataURL('image/png'),w:img.naturalWidth,h:img.naturalHeight});}
+      catch{res(null);}
+    };
+    img.onerror=()=>res(null);
+    img.src=src+'?'+Date.now();
+  });
+}
+
+async function generatePDF(opts){
+  opts=opts||{};
+  if(!opts.silent)showNotice('⏳ Membuat PDF…','info');
+  const[logoImg,diagImg]=await Promise.all([imgToDataUrl('LOGO POMI.png'),imgToDataUrl('brush_magazine_diagram.png')]);
+  const{jsPDF}=window.jspdf;
+  const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,H=297,M=10;let y=M;
+  const BLUE=[31,63,174],CYAN=[205,238,247],CYAN2=[229,248,252],
+        OK=[22,163,74],NG=[220,38,38],GR=[100,116,139],BLACK=[10,15,30];
+  const gv=id=>{const e=document.getElementById(id);return e?e.value.trim():''};
+  const pad2=n=>n.toString().padStart(2,'0');
+
+  function miniHdr(){
+    pdf.setDrawColor(...BLUE);pdf.setLineWidth(0.6);pdf.line(0,9,W,9);
+    pdf.setTextColor(...BLUE);pdf.setFont('helvetica','bold');pdf.setFontSize(8);
+    pdf.text('BRUSH GEAR ON-LINE MAINTENANCE CHECK SHEET — 7TG-GEN-100',M,6);
+    pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);pdf.setTextColor(...GR);
+    pdf.text(`Date: ${gv('wo-date')||'—'}  Tag: ${gv('wo-tag')||'—'}  By: ${gv('checked-by')||'—'}`,W-M,6,{align:'right'});
+    y=13;
+  }
+  function nPage(){pdf.addPage();y=M;miniHdr();}
+  function ckY(n){if(y+n>H-M)nPage();}
+  function sectionBar(title){
+    ckY(10);
+    pdf.setFillColor(...CYAN);pdf.setDrawColor(...BLUE);pdf.setLineWidth(0.4);
+    pdf.rect(M,y,W-M*2,7,'FD');
+    pdf.setTextColor(...BLUE);pdf.setFont('helvetica','bold');pdf.setFontSize(9);
+    pdf.text(title,M+3,y+5);
+    y+=10;
+  }
+  const tableTheme={
+    styles:{font:'helvetica',fontSize:7.5,cellPadding:2,textColor:BLACK,lineColor:BLUE,lineWidth:0.25},
+    headStyles:{fillColor:CYAN,textColor:BLUE,fontStyle:'bold',fontSize:7.5,halign:'center',lineColor:BLUE,lineWidth:0.3},
+    didParseCell:d=>{
+      const v=d.cell.text[0];
+      if(v==='OK'){d.cell.styles.textColor=OK;d.cell.styles.fontStyle='bold';}
+      if(v==='NG'){d.cell.styles.textColor=NG;d.cell.styles.fontStyle='bold';}
+    },
+    margin:{left:M,right:M}
+  };
+
+  // ── HEADER: logo + title ──
+  const logoH=15,logoW=logoImg?logoH*(logoImg.w/logoImg.h):32;
+  if(logoImg)pdf.addImage(logoImg.url,'PNG',M,y,logoW,logoH);
+  const titleX=M+logoW+6,titleY=y+logoH/2+2;
+  pdf.setFont('helvetica','bold');pdf.setFontSize(14);pdf.setTextColor(...BLUE);
+  pdf.text('BRUSH GEAR ON-LINE MAINTENANCE CHECK SHEET',titleX,titleY);
+  const tw=pdf.getTextWidth('BRUSH GEAR ON-LINE MAINTENANCE CHECK SHEET');
+  pdf.setDrawColor(...BLUE);pdf.setLineWidth(0.35);pdf.line(titleX,titleY+1,titleX+tw,titleY+1);
+  y+=logoH+4;
+  pdf.setDrawColor(...BLUE);pdf.setLineWidth(0.8);pdf.line(M,y,W-M,y);
+  y+=5;
+
+  // ── TAG NUMBER / PLANT STATUS BAR ──
+  const barH=8;
+  pdf.setDrawColor(...BLUE);pdf.setLineWidth(0.4);
+  pdf.rect(M,y,W-M*2,barH);pdf.line(M+(W-M*2)/2,y,M+(W-M*2)/2,y+barH);
+  pdf.setFont('helvetica','bold');pdf.setFontSize(9.5);pdf.setTextColor(...BLACK);
+  pdf.text('Tag Number :  '+(gv('wo-tag')||'—'),M+4,y+barH/2+1.5);
+  pdf.text('Plant Status :  '+(gv('plant-status')||'—'),M+(W-M*2)/2+4,y+barH/2+1.5);
+  y+=barH+3;
+
+  // ── WORK ORDER INFO LINE ──
+  pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor(...GR);
+  pdf.text(`Date: ${gv('wo-date')||'—'}   Time: ${gv('wo-time')||'—'}   WO No: ${gv('wo-no')||'—'}   Shift: ${gv('wo-shift').split(' ')[0]||'—'}   Gen. Load: ${gv('gen-load')||'—'} MW`,M,y+4);
+  y+=9;
+
+  // ── A: INSPECTION TASKS TABLE ──
+  const insRows=INS_ITEMS.map(item=>{
+    const posVal=item.type==='tog'?(ST['pos_'+item.no]||'—'):(gv('pos_'+item.no)?(gv('pos_'+item.no)+' '+(item.unit||'')):'—');
+    const negVal=item.type==='tog'?(ST['neg_'+item.no]||'—'):(gv('neg_'+item.no)?(gv('neg_'+item.no)+' '+(item.unit||'')):'—');
+    return[item.no,item.desc,posVal,gv('note_pos_'+item.no)||'—',negVal,gv('note_neg_'+item.no)||'—'];
+  });
+  pdf.autoTable({startY:y,
+    head:[
+      [{content:'INSPECTION TASKS',colSpan:2},{content:'DATE :  '+(gv('wo-date')||'—'),colSpan:4}],
+      [{content:'No.',rowSpan:2},{content:'Inspection Item',rowSpan:2},{content:'Pole +',colSpan:2},{content:'Pole −',colSpan:2}],
+      ['Result','Note','Result','Note'],
+    ],
+    body:insRows,theme:'grid',...tableTheme,
+    columnStyles:{0:{cellWidth:9,halign:'center'},1:{cellWidth:66},2:{cellWidth:20,halign:'center'},3:{cellWidth:35},4:{cellWidth:20,halign:'center'},5:{cellWidth:35}}
+  });
+  y=pdf.lastAutoTable.finalY+6;
+
+  // ── B: MAGAZINE / BRUSH LENGTH, SPRING, TYPE & REPLACE TABLE ──
+  ckY(50);
+  const pdfSkip=((parseInt(document.getElementById('pm-skip')?.value)||0)+500)%5;
+  const pdfCurWeek=getCurrentPMWeek();
+  const pdfEffWeek=((pdfCurWeek-1+pdfSkip)%5)+1;
+  const pdfMags=getMagsForWeek(pdfEffWeek);
+  const shortType=v=>v?v.replace('Old (GE)','GE').replace('New (CE)','CE'):'—';
+  const brushHead=[
+    [{content:'Brush No.',rowSpan:2},...pdfMags.map(m=>({content:'Magazine #'+pad2(m),colSpan:4}))],
+    pdfMags.flatMap(()=>['Len(mm)','Spr(lb)','Type','Rep']),
+  ];
+  const brushRows=[];
+  for(let b=1;b<=6;b++){
+    const row=['Brush #'+b];
+    pdfMags.forEach(mag=>{
+      const lenEl=document.getElementById(`m${mag}_b${b}_len`),sprEl=document.getElementById(`m${mag}_b${b}_spring`),
+            typEl=document.getElementById(`m${mag}_b${b}_type`),repEl=document.getElementById(`m${mag}_b${b}_replace`);
+      row.push(lenEl?.value||'—',sprEl?.value||'—',shortType(typEl?.value),repEl?.checked?'YES':'No');
+    });
+    brushRows.push(row);
+  }
+  const brushColStyles={0:{cellWidth:20,fontStyle:'bold',halign:'center',fillColor:CYAN2}};
+  pdf.autoTable({startY:y,head:brushHead,body:brushRows,theme:'grid',
+    ...tableTheme,styles:{...tableTheme.styles,fontSize:6.5,cellPadding:1.3},
+    headStyles:{...tableTheme.headStyles,fontSize:6.5},
+    columnStyles:brushColStyles});
+  y=pdf.lastAutoTable.finalY+4;
+
+  // ── REMARK + DIAGRAM ──
+  const remH=diagImg?Math.min(46,(W-M*2-92)>0?92/(diagImg.w/diagImg.h):40):30;
+  ckY(remH+4);
+  pdf.setDrawColor(...BLUE);pdf.setLineWidth(0.4);
+  pdf.rect(M,y,W-M*2,remH);
+  pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor(...BLUE);
+  pdf.text('REMARK :',M+4,y+7);
+  pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor(...BLACK);
+  pdf.text('100/a   = The length of brush degreasing',M+22,y+7);
+  pdf.text('100/a* = Brush damage',M+22,y+13);
+  if(diagImg){
+    const dw=92,dh=dw/(diagImg.w/diagImg.h);
+    pdf.addImage(diagImg.url,'PNG',W-M-dw-2,y+(remH-dh)/2,dw,dh);
+  }
+  y+=remH+6;
+
+  // ── CHECKED BY LINE ──
+  ckY(10);
+  pdf.setFont('helvetica','bold');pdf.setFontSize(9);pdf.setTextColor(...BLACK);
+  pdf.text('CHECKED BY :',M,y+5);
+  pdf.setFont('helvetica','normal');pdf.setDrawColor(...BLUE);pdf.setLineWidth(0.3);
+  pdf.line(M+32,y+5,M+90,y+5);
+  pdf.text(gv('checked-by')||'',M+34,y+4);
+  y+=14;
+
+  // ── FINDINGS & CONCLUSION ──
+  sectionBar('D — Findings & Conclusion');
+  pdf.autoTable({startY:y,body:[
+    ['Overall Condition',gv('overall')||'—'],
+    ['Next PM Due',gv('next-pm')||'—'],
+    ['Findings',gv('findings')||'—'],
+    ['Corrective Actions',gv('recommendations')||'—'],
+  ],theme:'grid',styles:{font:'helvetica',fontSize:8.5,cellPadding:3,textColor:BLACK,lineColor:BLUE,lineWidth:0.25},
+  columnStyles:{0:{cellWidth:40,fontStyle:'bold',fillColor:CYAN,textColor:BLUE}},margin:{left:M,right:M}});
+  y=pdf.lastAutoTable.finalY+6;
+
+  // ── SIGNATURES ──
+  ckY(28);
+  sectionBar('Signatures');
+  y-=4;
+  const sw=(W-M*2)/3;
+  ['Checked By','Reviewed By','Approved By'].forEach((lbl,i)=>{
+    const x=M+i*sw;
+    pdf.setDrawColor(...BLUE);pdf.setLineWidth(0.3);pdf.rect(x,y,sw,22);
+    pdf.setFont('helvetica','bold');pdf.setFontSize(7);pdf.setTextColor(...GR);
+    pdf.text(lbl,x+3,y+5);
+    pdf.setFont('helvetica','normal');pdf.setFontSize(7);pdf.setTextColor(...BLACK);
+    if(i===0)pdf.text(gv('checked-by')||'___________________',x+3,y+15);
+    if(i===1)pdf.text(gv('reviewed-by')||'___________________',x+3,y+15);
+    if(i===2)pdf.text('___________________',x+3,y+15);
+  });
+  y+=26;
+
+  // ── PHOTO EVIDENCE ──
+  const photoFiles=FILES.filter(f=>f&&f.type&&f.type.startsWith('image/'));
+  if(photoFiles.length>0){
+    nPage();
+    sectionBar('C — Photo Evidence ('+photoFiles.length+' foto)');
+    const PW=58,PH=44,GAP=4,COLS=3;
+    // Each photo is FITTED inside its PW x PH cell at its own aspect ratio and
+    // centred there. Passing PW/PH straight to addImage() stretched every shot
+    // that was not exactly 58:44.
+    let col=0,rowY=y;
+    for(let i=0;i<photoFiles.length;i++){
+      if(col>=COLS){col=0;rowY+=PH+10;}
+      if(rowY+PH>H-M){nPage();col=0;rowY=y;}
+      const px=M+col*(PW+GAP);
+      const pf=photoFiles[i];
+      const pe={src:pf.dataUrl,w:pf.w,h:pf.h,widthCm:pf.widthCm,heightCm:pf.heightCm};
+      const f=PhotoKit.fit(pe,PW,PH);
+      PhotoKit.draw(pdf,pe,px,rowY+(PH-f.h)/2,PW,f.h,{align:'center'});
+      pdf.setFont('helvetica','normal');pdf.setFontSize(5.5);pdf.setTextColor(...GR);
+      pdf.text((i+1)+'. '+photoFiles[i].name.slice(0,26),px,rowY+PH+3.5);
+      col++;
+    }
+    y=rowY+PH+14;
+  }
+
+  // Page numbers
+  const pages=pdf.internal.getNumberOfPages();
+  for(let pg=1;pg<=pages;pg++){
+    pdf.setPage(pg);pdf.setFont('helvetica','normal');pdf.setFontSize(6);pdf.setTextColor(150);
+    pdf.text(`Page ${pg} / ${pages}`,W-M,H-4,{align:'right'});
+    pdf.text('POMI — Generator Brush Gear PM — 7TG-GEN-100',M,H-4);
+  }
+
+  const fn=`BrushGear_PM_${gv('wo-unit')||'7'}_${(gv('wo-date')||new Date().toISOString().slice(0,10)).replace(/-/g,'')}.pdf`;
+  // opts.silent: used by saveToDatabase() to build the archival PDF that gets
+  // uploaded to Storage for the review/approval workflow — no download
+  // dialog, just hand the built pdf object back.
+  if(opts.silent){
+    // no-op: caller reads the returned pdf object directly
+  }else{
+    pdf.save(fn);showNotice('✅ PDF berhasil: '+fn,'ok');
+  }
+  return pdf;
+}
+
+// ══════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════
+buildInsTableMerged('tbody-ins');
+
+// pm-skip default = 0 (minggu ini), auto-detect dari PM_REF date
+buildWeekBtns();
+rebuildBrushMags();
+PhotoKit.configure({maxWcm:5.8,maxHcm:18,defaultWcm:5.8,defaultHcm:4.4});  // 3-up 58x44mm grid
+loadDraft();
+updateKPI();
+updateFileCountLabel();
+
+// Review & Approval workflow — load/merge picker + revision banner
+// (?reviseOf=<approvalId>). See load-merge-modal.js's header comment.
+LoadMergeModal.init({assetTag:'7TG-GEN-100'});
+LoadMergeModal.initRevisionBanner();
+TechnicianAuth.init({ checkedByFieldId: "checked-by" });
+SubmitGuard.init({ assetTag:'7TG-GEN-100', submitFnName:'saveToDatabase' });
+
+// Set default date/time
+const now=new Date();
+document.getElementById('wo-date').value=now.toISOString().split('T')[0];
+document.getElementById('wo-time').value=now.toTimeString().slice(0,5);
+
+// Auto-load last submission from database
+setTimeout(async()=>{
+  try{
+    const snap=await db.collection('checksheets').where('assetTag','==','7TG-GEN-100').orderBy('createdAt','desc').limit(1).get();
+    if(!snap.empty){
+      const d=snap.docs[0].data();
+      const map={'wo-date':'date','wo-time':'time','wo-tag':'tag','wo-unit':'unit',
+        'plant-status':'plantStatus','wo-no':'woNo','checked-by':'checkedBy',
+        'reviewed-by':'reviewedBy','wo-shift':'shift','gen-load':'genLoad',
+        'overall':'overall','next-pm':'nextPm','findings':'findings','recommendations':'recommendations'};
+      Object.entries(map).forEach(([elId,key])=>{
+        const el=document.getElementById(elId);if(el&&d[key]!==undefined)el.value=d[key];
+      });
+      showNotice('📂 Data terakhir dimuat dari database.','ok');
+    }
+  }catch(e){console.log('Auto-load skip:',e.message);}
+},800);
+</script>
+</body>
+</html>
