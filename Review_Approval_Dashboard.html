@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Review &amp; Approval — ELECTRIC 7 POMI</title>
+<title>Review &amp; Approval — ELECTRIC 8 POMI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -678,7 +678,7 @@ const SELF_REG_ROLES = ['technician','techop2','supervisor'];
 function roleNeedsAccessCode(role){ return role==='techop2' || role==='supervisor'; }
 // Fallback code — CHANGE THIS, or (better) override it without a deploy by
 // creating Firestore doc `dashboard_config/registration` with field `code`.
-const ELEVATED_REG_CODE = 'POMI-EIC7-2026';
+const ELEVATED_REG_CODE = 'POMI-EIC8-2026';
 async function getElevatedRegCode(){
   try{
     const doc = await db.collection('dashboard_config').doc('registration').get();
@@ -1383,10 +1383,10 @@ async function loadUserDir(force){
 // the card so a reviewer knows it's an external feed (and the "edit check
 // sheet" actions are hidden — that form lives in the other app).
 const EXTERNAL_SUBMITTER_SCOPE = {
-  'pm unit 7 - boiler':       { team: 'C7', area: 'Boiler',                     src: 'PM Unit 7' },
-  'pm unit 7 - turbine':      { team: 'C7', area: 'Turbine',                    src: 'PM Unit 7' },
-  'pm unit 7 - common chcb':  { team: 'C7', area: 'Common (CHCB)',              src: 'PM Unit 7' },
-  'pm unit 7 - common wwtp':  { team: 'C7', area: 'Common (WWTP-Ashdisposal)',  src: 'PM Unit 7' },
+  'pm unit 8 - boiler':       { team: 'C8', area: 'Boiler',                     src: 'PM Unit 8' },
+  'pm unit 8 - turbine':      { team: 'C8', area: 'Turbine',                    src: 'PM Unit 8' },
+  'pm unit 8 - common chcb':  { team: 'C8', area: 'Common (CHCB)',              src: 'PM Unit 8' },
+  'pm unit 8 - common wwtp':  { team: 'C8', area: 'Common (WWTP-Ashdisposal)',  src: 'PM Unit 8' },
 };
 function scopeOfApproval(a){
   const by = (a.submittedBy || '').trim().toLowerCase();
@@ -2308,7 +2308,7 @@ async function buildFinalPdf(approval, cs, onProgress){
   }
 
   pdf.setFontSize(8.5); pdf.setTextColor(140);
-  pdf.text('Dokumen dibuat otomatis oleh sistem Review & Approval — ELECTRIC 7 POMI.', M, 289);
+  pdf.text('Dokumen dibuat otomatis oleh sistem Review & Approval — ELECTRIC 8 POMI.', M, 289);
 
   const addendumBytes = pdf.output('arraybuffer');
 

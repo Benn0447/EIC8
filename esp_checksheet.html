@@ -274,7 +274,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
 <div class="hero">
   <div class="hero-eyebrow">Weekly Preventive Maintenance</div>
   <div class="hero-title">ELECTROSTATIC <em>PRECIPITATOR</em></div>
-  <div class="hero-sub">Unit 7/8 · 8BG-PCP-800A/B · Weekly Maintenance Check Sheet</div>
+  <div class="hero-sub">Unit 8 · 8BG-ESP-V1 · Weekly Maintenance Check Sheet</div>
   <div class="hero-stats">
     <div class="hstat"><span class="hstat-n" id="h-total">0</span><span class="hstat-l">Total</span></div>
     <div class="hstat"><span class="hstat-n ok" id="h-ok">0</span><span class="hstat-l">OK</span></div>
@@ -633,7 +633,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
 </div><!-- /wrap -->
 
 <footer class="footer">
-  <div class="footer-l">UNIT 7/8 · ELECTROSTATIC PRECIPITATOR · 8BG-PCP-800A/B · WEEKLY PM</div>
+  <div class="footer-l">UNIT 8 · ELECTROSTATIC PRECIPITATOR · 8BG-ESP-V1 · WEEKLY PM</div>
   <div class="footer-r" id="fdate">—</div>
 </footer>
 
@@ -833,7 +833,7 @@ async function generatePDF(){
   pdf.text('Weekly Maintenance Check Sheet — 8BG-PCP-800A/B',M,22);
   pdf.setFontSize(8);pdf.setTextColor(...SKY);pdf.setFont('helvetica','normal');
   pdf.text('Generated: '+new Date().toLocaleString('en-GB'),M,31);
-  pdf.text('POMI — Unit 7/8 Electrical Maintenance',W-M,31,{align:'right'});
+  pdf.text('POMI — Unit 8 Electrical Maintenance',W-M,31,{align:'right'});
   y=44;
 
   // Info box
@@ -977,7 +977,7 @@ async function generatePDF(){
     pdf.setPage(pg);
     pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);pdf.setTextColor(150);
     pdf.text(`Page ${pg}/${pages}`,W-M,H-5,{align:'right'});
-    pdf.text('POMI — Unit 7/8 ESP Weekly PM — 8BG-PCP-800A/B',M,H-5);
+    pdf.text('POMI — Unit 8 ESP Weekly PM — 8BG-ESP-V1',M,H-5);
   }
 
   const fn=`ESP_PM_${v('wo-unit')||'7'}_${(v('wo-date')||new Date().toISOString().slice(0,10)).replace(/-/g,'')}.pdf`;

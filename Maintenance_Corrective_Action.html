@@ -209,7 +209,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
   <div class="live-dot"></div>
   <span class="tb-logo">MCA <em>Report</em></span>
   <div class="tb-sep"></div>
-  <span class="tb-sub">MAINTENANCE CORRECTIVE ACTION · UNIT 7/8</span>
+  <span class="tb-sub">MAINTENANCE CORRECTIVE ACTION · UNIT 8</span>
   <div class="tb-right">
     <a class="btn-back" href="index.html" title="Back to Portal">&#8592; Portal</a>
     <span class="autosave-ind" id="autosave-indicator"></span>
@@ -224,7 +224,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
 <div class="hero">
   <div class="hero-eyebrow">Corrective Maintenance Report</div>
   <div class="hero-title">MAINTENANCE <em>CORRECTIVE ACTION</em></div>
-  <div class="hero-sub">Unit 7/8 · Failure Investigation, Root Cause Analysis &amp; Corrective Action Report</div>
+  <div class="hero-sub">Unit 8 · Failure Investigation, Root Cause Analysis &amp; Corrective Action Report</div>
   <div class="hero-stats">
     <div class="hstat"><span class="hstat-n" id="h-wo">—</span><span class="hstat-l">WO No.</span></div>
     <div class="hstat"><span class="hstat-n" id="h-team">0</span><span class="hstat-l">Team</span></div>
@@ -251,7 +251,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
       <div class="mf"><label>WO No.</label><input type="text" id="wo-no" placeholder="WO-xxxxxx"></div>
       <div class="mf"><label>Priority</label><input type="number" id="wo-priority" min="1" max="10" step="1" inputmode="numeric" placeholder="cth. 3"></div>
       <div class="mf"><label>Unit</label>
-        <select id="unit"><option>Unit 7</option><option selected>Unit 8</option><option>Common Plant</option></select>
+        <select id="unit"><option selected>Unit 8</option><option>Common Plant</option></select>
       </div>
       <div class="mf"><label>System / Area</label><input type="text" id="system-area" placeholder="cth. Boiler Feed Pump System"></div>
       <div class="mf"><label>Asset Tag</label><input type="text" id="asset-tag" placeholder="cth. 8EB-BFP-01"></div>
@@ -547,7 +547,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
 </div><!-- /wrap -->
 
 <footer class="footer">
-  <div class="footer-l">UNIT 7/8 · MAINTENANCE CORRECTIVE ACTION REPORT</div>
+  <div class="footer-l">UNIT 8 · MAINTENANCE CORRECTIVE ACTION REPORT</div>
   <div class="footer-r">POMI ELECTRIC · PAITON ENERGY</div>
 </footer>
 
@@ -1267,7 +1267,7 @@ async function generatePDF(opts){
   sectionHeader('A. WORK ORDER & ASSET IDENTIFICATION');
   formRow('WO No.', valueText(gv('wo-no')||'From Maximo work order record', {italic:!gv('wo-no'), color:gv('wo-no')?DARK:[120,120,120]}));
   formRow('Priority', valueText(gv('wo-priority')||'Maximo work order priority (1 = highest)', {italic:!gv('wo-priority'), color:gv('wo-priority')?DARK:[120,120,120]}));
-  chkGroupRow('Unit', [['Unit 7','Unit 7'],['Unit 8','Unit 8'],['Common Plant','Common Plant']], gv('unit'));
+  chkGroupRow('Unit', [['Unit 8','Unit 8'],['Common Plant','Common Plant']], gv('unit'));
   formRow('System / Area', valueText(gv('system-area')||''));
   formRow('Asset Tag', valueText(gv('asset-tag')||''));
   formRow('Asset Description', valueText(gv('asset-desc')||''));
