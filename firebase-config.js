@@ -18,12 +18,13 @@
 // ============================================================
 
 const firebaseConfig = {
-  apiKey: "ISI_API_KEY_ANDA",
-  authDomain: "PROJECT_ID_ANDA.firebaseapp.com",
-  projectId: "PROJECT_ID_ANDA",
-  storageBucket: "PROJECT_ID_ANDA.firebasestorage.app",
-  messagingSenderId: "ISI_SENDER_ID_ANDA",
-  appId: "ISI_APP_ID_ANDA"
+  apiKey: "AIzaSyAPycVDgRUW1jF5IMBhRSOI2O-X50pOY7E",
+  authDomain: "eic8-3d7f1.firebaseapp.com",
+  projectId: "eic8-3d7f1",
+  storageBucket: "eic8-3d7f1.firebasestorage.app",
+  messagingSenderId: "547008302127",
+  appId: "1:547008302127:web:9b398bf2c2713664960ada",
+  measurementId: "G-VVSNKJ1EL9"
 };
 
 firebase.initializeApp(firebaseConfig);
