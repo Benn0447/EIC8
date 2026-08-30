@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Riwayat PM — Unit 7</title>
+<script src="shared.js"></script>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="topbar">
+  <button class="topbar-back" onclick="window.location.href='index.html'">&#8592; Dashboard</button>
+  <div class="topbar-sep"></div>
+  <div class="topbar-logo">RIWAYAT</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-sub">Riwayat Preventive Maintenance — Unit 7</div>
+  <div class="topbar-right"><div class="live-dot"></div></div>
+</div>
+
+<div class="wrapper">
+
+  <div class="page-header">
+    <div>
+      <div class="page-header-sub">Database Supabase</div>
+      <div class="page-header-title">Riwayat <span>PM</span></div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" id="histTabBtnList" onclick="switchHistTab('list')">📋 Riwayat</button>
+    <button class="tab-btn" id="histTabBtnAreaMap" onclick="switchHistTab('areamap')">🗺️ Pemetaan Area</button>
+  </div>
+
+  <div class="tab-content active" id="histTabList">
+  <div class="panel">
+    <div class="section-label">Filter Modul</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <button class="btn btn-outline" onclick="loadHistory('')" style="font-size:12px;padding:6px 14px;flex:none">Semua</button>
+      <button class="btn btn-outline" onclick="loadHistory('FEGT')" style="font-size:12px;padding:6px 14px;flex:none">FEGT</button>
+      <button class="btn btn-outline" onclick="loadHistory('CEMS Calibration')" style="font-size:12px;padding:6px 14px;flex:none">CEMS Calibration</button>
+      <button class="btn btn-outline" onclick="loadHistory('SO2')" style="font-size:12px;padding:6px 14px;flex:none">SO2</button>
+      <button class="btn btn-outline" onclick="loadHistory('OPACITY')" style="font-size:12px;padding:6px 14px;flex:none">Opacity</button>
+      <button class="btn btn-outline" onclick="loadHistory('MAINTENANCE_REPORT')" style="font-size:12px;padding:6px 14px;flex:none">Maintenance</button>
+      <button class="btn btn-outline" onclick="loadHistory('BELT CONVEYOR E4-E5')" style="font-size:12px;padding:6px 14px;flex:none">Belt E4/E5</button>
+      <button class="btn btn-outline" onclick="loadHistory('BELT CONVEYOR E2-E3')" style="font-size:12px;padding:6px 14px;flex:none">Belt E2/E3</button>
+      <button class="btn btn-outline" onclick="loadHistory('BELT CONVEYOR B1-B2')" style="font-size:12px;padding:6px 14px;flex:none">Belt B1/B2</button>
+      <button class="btn btn-outline" onclick="loadHistory('Coal Feeder Calibration')" style="font-size:12px;padding:6px 14px;flex:none">Coal Feeder</button>
+      <button class="btn btn-outline" onclick="loadHistory('Analyzer Indicator Transmitter (pH)')" style="font-size:12px;padding:6px 14px;flex:none">pH Analyzer</button>
+      <button class="btn btn-outline" onclick="loadHistory('COAL_SILO_LEVEL')" style="font-size:12px;padding:6px 14px;flex:none">Coal Silo Level</button>
+      <button class="btn btn-outline" onclick="loadHistory('DCS-HMI')" style="font-size:12px;padding:6px 14px;flex:none">Dcs-HMI</button>
+      <button class="btn btn-outline" onclick="loadHistory('Flow Meter FGD Inlet &amp; Quencher')" style="font-size:12px;padding:6px 14px;flex:none">Flow Meter FGD</button>
+      <button class="btn btn-outline" onclick="loadHistory('PM HG Analyzer')" style="font-size:12px;padding:6px 14px;flex:none">PM HG Analyzer</button>
+      <button class="btn btn-outline" onclick="loadHistory('O2')" style="font-size:12px;padding:6px 14px;flex:none">O2 Report</button>
+      <button class="btn btn-outline" onclick="loadHistory('GENERATOR_STATOR_LEAK')" style="font-size:12px;padding:6px 14px;flex:none">Gen Stator Leak</button>
+      <button class="btn btn-outline" onclick="loadHistory('Mark VIe Alarm & Module Inspection')" style="font-size:12px;padding:6px 14px;flex:none">Mark VIe</button>
+    </div>
+    <div id="historyList" style="overflow-x:auto">
+      <div style="text-align:center;color:var(--text3);padding:32px;font-size:13px">Memuat...</div>
+    </div>
+  </div>
+  </div>
+
+  <div class="tab-content" id="histTabAreaMap">
+  <div class="panel">
+    <div class="section-label">Pemetaan Modul → Area → Review Approval Dashboard</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.6">
+      Review Approval Dashboard (Firebase, punya EenPutra) me-routing laporan ke TechOp2 (reviewer)
+      berdasarkan siapa yang terdaftar meng-cover satu area, dicocokkan lewat field <code>submittedBy</code> —
+      bukan berdasarkan isi checksheet. Supaya laporan tiap modul PASTI masuk ke reviewer area yang benar
+      (bukan tergantung siapa yang ngetik PIC/Checked By di form), tiap modul yang sudah dipetakan di bawah
+      ini dikirim dengan identitas <code>submittedBy</code> sintetis sesuai areanya — nama PIC/Checked By asli
+      tetap utuh di PDF &amp; riwayat sini, cuma field pengiriman ke Firebase yang diganti.
+    </div>
+    <div id="areaMapList"></div>
+  </div>
+  </div>
+
+</div>
+
+<script>
+/* Mapping modul ke URL page -- sekarang di shared.js (raModulToUrl/
+   raModulToPrintUrl), dipakai juga oleh raRetryPendingFirebaseSyncs().
+   Alias nama lokal dipertahankan supaya baris lain di file ini tidak perlu
+   diubah. */
+function modulToUrl(modul, id) { return raModulToUrl(modul, id); }
+function modulToPrintUrl(modul, id) { return raModulToPrintUrl(modul, id); }
+
+/* Badge status laporan -- alur Checker/Reviewer/SPV sudah dihapus, jadi
+   status yang ada sekarang cuma DRAFT (belum submit) dan SUBMITTED (sudah
+   diminta kirim ke Review Approval Dashboard). Status lama (CHECKED/RETURNED/
+   FINAL_APPROVED) masih mungkin nempel di data lama sebelum revert ini --
+   fallback ke DRAFT lewat historyStatusBadge() kalau ketemu. */
+/* SATU badge saja per laporan (dulu 2 badge terpisah -- "Submitted" +
+   "Menyusul" -- kesannya kontradiktif: kok sudah "Submitted" tapi masih
+   "menyusul"? Digabung supaya tulisannya sendiri sudah jelas tahapannya:
+     - DRAFT                         -> "Draft" (kuning)
+     - SUBMITTED, belum ada feedback -> "Submitted — Menunggu Feedback" (abu2,
+       masih diproses/dicoba ulang otomatis oleh raRetryPendingFirebaseSyncs
+       di shared.js, BUKAN berarti gagal)
+     - SUBMITTED, sudah confirmed    -> "✓ Tersubmit" (hijau, benar-benar
+       sudah sampai & tercatat di Review Approval Dashboard)
+   Status lama (CHECKED/RETURNED/FINAL_APPROVED, alur Checker/Reviewer/SPV
+   yang sudah dihapus) masih mungkin nempel di data lama -- fallback ke
+   Draft. */
+function historyStatusBadge(status, firebaseSyncedAt) {
+  var up = (status || 'DRAFT').toUpperCase();
+  var s;
+  if (up === 'SUBMITTED') {
+    s = firebaseSyncedAt
+      ? { label: '✓ Tersubmit', bg: '#d1fae5', fg: '#065f46', title: 'Sudah dikonfirmasi sampai di Review Approval Dashboard.' }
+      : { label: '⏳ Submitted — Menunggu Feedback', bg: '#f3f4f6', fg: '#6b7280', title: 'Sudah disubmit dari sini, tapi belum ada konfirmasi sukses dari Review Approval Dashboard -- otomatis dicoba lagi di latar belakang selama ada koneksi. Bukan berarti gagal.' };
+  } else {
+    s = { label: 'Draft', bg: '#fef3c7', fg: '#92400e', title: '' };
+  }
+  return '<span style="display:inline-block;padding:2px 9px;border-radius:999px;font-size:10.5px;font-weight:700;background:'+s.bg+';color:'+s.fg+'" title="'+s.title+'">'+s.label+'</span>';
+}
+
+function loadHistory(modul) {
+  var container = document.getElementById('historyList');
+  container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3)">Memuat...</div>';
+  dbList(modul, function(rows) {
+    if (!rows.length) {
+      container.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px">Belum ada data tersimpan.</div>';
+      return;
+    }
+    var html = '<table class="manual-table" style="width:100%;font-size:12px">'+
+      '<thead><tr><th>Modul</th><th>Tanggal</th><th>PIC</th><th>Work Order</th><th>Status</th><th>Disimpan</th><th>Aksi</th></tr></thead><tbody>';
+    rows.forEach(function(r) {
+      var saved = dbFmtLocalDateTime(r.updated_at);
+      var openUrl = modulToUrl(r.modul, r.id);
+      var printUrl = modulToPrintUrl(r.modul, r.id);
+      var delBtn = '<button onclick="historyDelete(\''+r.id+'\')" style="padding:4px 10px;font-size:11px;background:var(--fail);color:#fff;border:none;border-radius:4px;cursor:pointer">&#128465;</button>';
+      // Tombol Submit buat laporan yang masih DRAFT. Tombol Resubmit (beda
+      // warna, oranye) khusus laporan yang SUDAH SUBMITTED tapi BELUM
+      // sukses nyampe ke Review Approval Dashboard (firebase_synced_at
+      // masih kosong -- lihat historyStatusBadge "⏳ Submitted — Menunggu
+      // Feedback") -- raRetryPendingFirebaseSyncs() (shared.js) sudah
+      // otomatis coba kirim ulang di background tiap halaman dibuka,
+      // tombol ini cuma buat user yang mau langsung memicu percobaan tanpa
+      // nunggu. Begitu sudah sukses (badge jadi "✓ Tersubmit"), tombol ini
+      // otomatis hilang lagi.
+      // id tombol dipakai historySubmit() buat update tulisan/nonaktifkan
+      // tombol ini sendiri begitu proses (di iframe tersembunyi) selesai.
+      var submitBtnId = 'histSubmitBtn-' + r.id;
+      var statusUp = (r.status || 'DRAFT').toUpperCase();
+      var submitBtn = '';
+      if (statusUp === 'DRAFT') {
+        submitBtn = '<button id="'+submitBtnId+'" onclick="historySubmit(\''+r.id+'\',\''+r.modul+'\')" style="padding:4px 10px;font-size:11px;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:4px">&#128274; Submit</button>';
+      } else if (statusUp === 'SUBMITTED' && !r.firebase_synced_at) {
+        submitBtn = '<button id="'+submitBtnId+'" onclick="historySubmit(\''+r.id+'\',\''+r.modul+'\')" style="padding:4px 10px;font-size:11px;background:#f59e0b;color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:4px">&#128260; Resubmit</button>';
+      }
+      html += '<tr>'+
+        '<td><span class="path-label">'+r.modul+'</span></td>'+
+        '<td>'+(r.tanggal||'-')+'</td>'+
+        '<td>'+(r.pic||'-')+'</td>'+
+        '<td>'+(r.work_order||'-')+'</td>'+
+        '<td>'+historyStatusBadge(r.status, r.firebase_synced_at)+'</td>'+
+        '<td style="font-size:10px;color:var(--text3)">'+saved+'</td>'+
+        '<td style="white-space:nowrap;text-align:right">'+
+          submitBtn+
+          '<button onclick="window.location.href=\''+openUrl+'\'" style="padding:4px 10px;font-size:11px;background:var(--ok);color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:4px">&#9998; Buka</button>'+
+          '<button onclick="window.open(\''+printUrl+'\',\'_blank\')" style="padding:4px 10px;font-size:11px;background:#3498db;color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:4px">&#128438; Print</button>'+
+          delBtn+
+        '</td></tr>';
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  });
+}
+
+function switchHistTab(tab) {
+  document.getElementById('histTabBtnList').classList.toggle('active', tab === 'list');
+  document.getElementById('histTabBtnAreaMap').classList.toggle('active', tab === 'areamap');
+  document.getElementById('histTabList').classList.toggle('active', tab === 'list');
+  document.getElementById('histTabAreaMap').classList.toggle('active', tab === 'areamap');
+  if (tab === 'areamap') renderAreaMapping();
+}
+
+/* Render tab "Pemetaan Area" -- baca LANGSUNG dari RA_MODUL_AREA/
+   RA_AREA_SUBMITTER_NAME/RA_ASSET_LABEL di shared.js (satu-satunya sumber
+   data, tidak diduplikasi ke sini) supaya kalau pemetaannya diubah di sana,
+   tab ini otomatis ikut berubah tanpa perlu disentuh lagi. */
+function renderAreaMapping() {
+  var container = document.getElementById('areaMapList');
+  if (!container || typeof RA_ASSET_LABEL === 'undefined') return;
+  var areaOrder = ['boiler', 'turbine', 'common', 'wwtp'];
+  var areaLabel = { boiler: 'Boiler', turbine: 'Turbine', common: 'Common CHCB', wwtp: 'Common WWTP' };
+  var byArea = {};
+  var unmapped = [];
+  Object.keys(RA_ASSET_LABEL).forEach(function(key) {
+    var area = (typeof RA_MODUL_AREA !== 'undefined') ? RA_MODUL_AREA[key] : null;
+    if (!area) { unmapped.push(key); return; }
+    (byArea[area] = byArea[area] || []).push(key);
+  });
+  var html = '';
+  areaOrder.forEach(function(area) {
+    var mods = byArea[area] || [];
+    var submitterName = (typeof RA_AREA_SUBMITTER_NAME !== 'undefined') ? RA_AREA_SUBMITTER_NAME[area] : '-';
+    html += '<div style="margin-bottom:20px">' +
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">' +
+        '<span style="font-weight:700;font-size:13px">' + areaLabel[area] + '</span>' +
+        '<span style="font-size:10.5px;color:var(--text3)">→ dikirim sebagai <code>' + submitterName + '</code></span>' +
+      '</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:6px">' +
+      (mods.length
+        ? mods.map(function(k){ return '<span style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:#eef2f6;color:var(--text-mid,#334155)">' + RA_ASSET_LABEL[k] + '</span>'; }).join('')
+        : '<span style="font-size:11px;color:var(--text3)">(belum ada modul)</span>') +
+      '</div></div>';
+  });
+  if (unmapped.length) {
+    html += '<div style="margin-top:8px;padding-top:16px;border-top:1px dashed var(--panel-border)">' +
+      '<div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--text3)">Belum dipetakan ke area manapun (pakai nama PIC/Checked By asli apa adanya)</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:6px">' +
+      unmapped.map(function(k){ return '<span style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:#fef3c7;color:#92400e">' + RA_ASSET_LABEL[k] + '</span>'; }).join('') +
+      '</div></div>';
+  }
+  container.innerHTML = html;
+}
+
+function historyDelete(id) {
+  if (!confirm('Hapus data ini?')) return;
+  supaFetch('DELETE', SUPA_TABLE + '?id=eq.' + id)
+    .then(function() {
+      dbShowToast('Data berhasil dihapus');
+      setTimeout(function(){ loadHistory(''); }, 500);
+    })
+    .catch(function(err){ alert('Gagal hapus: ' + (err.message||err)); });
+}
+
+/* ── SUBMIT LANGSUNG DARI RIWAYAT (tab biasa, bukan iframe tersembunyi) ──
+   Versi awal fitur ini pakai iframe TERSEMBUNYI (display:none) supaya
+   usernya tidak perlu lihat halaman modulnya sama sekali. Ternyata itu
+   JADI MASALAH di HP: browser mobile (terutama Chrome Android) membatasi/
+   menunda aktivitas jaringan di iframe/tab yang TIDAK TERLIHAT untuk hemat
+   baterai -- akibatnya upload PDF ke Review Approval Dashboard bisa
+   nyangkut TANPA PERNAH selesai (sukses maupun gagal) selama iframe-nya
+   tersembunyi, bahkan dengan timeout sekalipun (timeout-nya sendiri bisa
+   ikut tertunda kalau tab/iframe sedang di-throttle browser).
+   Sekarang pakai window.open() -- tab BIASA yang kelihatan -- supaya
+   prosesnya jalan di tab yang aktif/foreground, tidak kena pembatasan itu.
+   Tab itu otomatis menutup diri sendiri begitu selesai (lihat autoclose=1
+   di raSubmitReportAuto(), shared.js), jadi user tetap tidak perlu
+   menutup manual, cuma akan melihat sekilas tab itu terbuka lalu tertutup
+   sendiri. Modul yang sudah selesai (sukses/gagal) lapor balik lewat
+   postMessage ke window.opener, ditangkap oleh listener di bawah -- BARU
+   setelah PDF-nya benar-benar tuntas dikirim, bukan begitu status Supabase
+   ke-update. Timeout di bawah cuma jaring pengaman kalau modulnya
+   benar-benar macet total -- KALAU kena timeout ATAU tabnya ditutup
+   usernya sebelum selesai, laporan TIDAK hilang: statusnya sudah SUBMITTED
+   di Supabase, dan raRetryPendingFirebaseSyncs() (shared.js, lewat iframe
+   tersembunyi sebagai best-effort) akan tetap otomatis mencoba mengirim
+   ulang di kunjungan berikutnya. */
+var _histSubmitJobs = {}; // id -> {popup, btn, timeoutId}
+
+function historySubmit(id, modul) {
+  if (_histSubmitJobs[id]) return; // sudah ada proses submit berjalan buat id ini
+  if (!confirm('Yakin submit laporan ini ke Review Approval Dashboard?\n\nSebuah tab baru akan terbuka sebentar untuk memprosesnya, lalu tertutup otomatis.')) return;
+  var url = modulToUrl(modul, id);
+  if (!url || url === 'index.html') { alert('Modul tidak dikenali, tidak bisa disubmit dari sini.'); return; }
+  var btn = document.getElementById('histSubmitBtn-' + id);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sedang mensubmit...'; btn.style.opacity = '0.75'; }
+
+  var popup = window.open(url + '&autosubmit=1&autoclose=1', '_blank');
+  if (!popup) {
+    alert('Tab baru diblokir browser (popup blocker). Izinkan pop-up untuk situs ini, lalu coba Resubmit lagi.');
+    if (btn) { btn.disabled = false; btn.textContent = '🔁 Resubmit'; btn.style.opacity = '1'; }
+    return;
+  }
+
+  // 4 menit -- HARUS lebih besar dari total timeout internal di
+  // raSendFinalPdfToFirebaseDashboard (shared.js: 30 detik simpan + 3
+  // menit upload PDF = 3.5 menit), supaya laporan besar/banyak foto (mis.
+  // Coal Feeder + 4000 Hours Mill) sempat dapat pesan error yang jelas dari
+  // sana duluan, bukan keburu dianggap "timeout" di sini padahal masih
+  // benar-benar berjalan.
+  var timeoutId = setTimeout(function(){
+    historySubmitDone(id, false, 'Belum selesai dalam 4 menit -- kemungkinan koneksi lambat (banyak foto). Laporan TETAP tersubmit, akan otomatis dicoba lagi di latar belakang.');
+  }, 240000);
+
+  _histSubmitJobs[id] = { popup: popup, btn: btn, timeoutId: timeoutId };
+}
+
+function historySubmitDone(id, ok, err) {
+  var job = _histSubmitJobs[id];
+  if (!job) return; // sudah ditangani sebelumnya (mis. timeout duluan lalu pesan asli nyusul)
+  delete _histSubmitJobs[id];
+  clearTimeout(job.timeoutId);
+  try { if (job.popup && !job.popup.closed) job.popup.close(); } catch (e) {} // jaga-jaga kalau autoclose di sisi tab gagal
+
+  if (ok) {
+    if (job.btn) {
+      job.btn.disabled = true;
+      job.btn.textContent = '✓ Tersubmit';
+      job.btn.style.background = 'var(--ok)';
+      job.btn.style.opacity = '1';
+    }
+    dbShowToast('✓ Laporan berhasil disubmit ke Review Approval Dashboard');
+  } else {
+    // Bisa dua hal: (a) status Supabase gagal ke-update sama sekali (jarang,
+    // biasanya jaringan putus di awal) -- tombol Submit akan muncul lagi
+    // setelah reload di bawah karena statusnya masih DRAFT, atau (b) status
+    // sudah SUBMITTED tapi kirim PDF-nya belum tuntas -- setelah reload,
+    // badge "⏳ Menyusul" muncul dan raRetryPendingFirebaseSyncs() yang
+    // melanjutkan otomatis. Tidak perlu dibedakan di sini -- reload di bawah
+    // akan menampilkan status yang sebenarnya.
+    dbShowToast('⏳ ' + (err || 'Belum selesai, akan dicoba lagi otomatis di latar belakang.'));
+  }
+  setTimeout(function(){ loadHistory(''); }, 800); // refresh badge status/dashboard sesuai kondisi sebenarnya
+}
+
+window.addEventListener('message', function(e) {
+  if (!e.data || e.data.type !== 'raAutosubmitDone') return;
+  historySubmitDone(e.data.id, !!e.data.ok, e.data.error);
+});
+
+/* Auto-load all on open */
+loadHistory('');
+</script>
+</body>
+</html>

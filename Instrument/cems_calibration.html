@@ -1,0 +1,2666 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CEMS Calibration — Unit 7</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="shared.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="db-helper.js"></script>
+<script src="storage-helper.js"></script>
+<script src="approval-helper.js"></script>
+<link rel="stylesheet" href="shared.css">
+<style>
+/* ── Struktur lokal khusus modul CEMS Calibration ── */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #000;border-radius:6px;overflow:hidden;background:#fffbd6}
+.info-row{display:grid;grid-template-columns:130px 1fr;border-bottom:1px solid #000;border-right:1px solid #000}
+.info-row:nth-child(2n){border-right:none}
+.info-row:last-child,.info-row:nth-last-child(2){border-bottom:none}
+.info-row label{padding:8px 10px;font-weight:700;font-size:12.5px;color:#37508c;background:#fff7c2;display:flex;align-items:center}
+.info-row input,.info-row select{border:none;background:transparent;padding:8px 10px;font-size:13px;font-weight:600;color:#14201d;width:100%;box-sizing:border-box}
+.info-row input:focus,.info-row select:focus{outline:2px solid #2ecc71;outline-offset:-2px}
+@media (max-width:700px){.info-grid{grid-template-columns:1fr}.info-row{border-right:none!important}}
+
+.step-panel{margin-bottom:18px}
+.step-title{font-family:'Arial Narrow',sans-serif;font-weight:800;font-size:17px;letter-spacing:.3px;color:#1c2b22;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #dde3de;display:flex;align-items:center;gap:8px}
+.step-title .stepnum{background:#2ecc71;color:#fff;border-radius:50%;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+
+.freq-choices{display:flex;flex-direction:column;gap:8px}
+.freq-choice{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid #cfd8d2;border-radius:8px;cursor:pointer;background:#fafcfb}
+.freq-choice input{width:18px;height:18px}
+.freq-choice.checked{background:#eafcf1;border-color:#2ecc71}
+.freq-choice span{font-weight:600;font-size:14px;color:#20302a}
+
+.cems-table{width:100%;border-collapse:collapse;font-size:13px}
+.cems-table th,.cems-table td{border:1px solid #cfd8d2;padding:8px 10px;text-align:left}
+.cems-table th{background:#f3e9c9;font-weight:700;color:#20302a}
+.cems-table thead.hdr-zero th{background:#d6f5df}
+.cems-table thead.hdr-span1 th{background:#fff3b0}
+.cems-table thead.hdr-span2 th{background:#ffdfae}
+.cems-table thead.hdr-optical th{background:#f4d9a6}
+.cems-table input[type=text],.cems-table input[type=number]{width:100%;box-sizing:border-box;border:1px solid #dfe6e1;border-radius:6px;padding:7px 8px;font-size:13px;background:#f7f8f6}
+.cems-table input:disabled{color:#9aa39d;font-style:italic;background:#eef0ee}
+.cems-table td.param-cell{font-weight:700;color:#20302a;background:#fafcfb;white-space:nowrap}
+
+.field-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.field-item label{display:block;font-size:12px;font-weight:700;color:#3d4c44;margin-bottom:4px}
+.field-item input{width:100%;box-sizing:border-box;border:1px solid #dfe6e1;border-radius:7px;padding:9px 10px;font-size:13.5px;background:#f7f8f6}
+.field-item .unit{font-size:10.5px;color:#8a9791;font-weight:600}
+.overall-row{display:flex;align-items:center;gap:8px;margin-top:10px}
+.overall-row label{font-weight:700;font-size:13px;color:#20302a}
+.overall-row input{width:120px;border:1px solid #dfe6e1;border-radius:7px;padding:8px 10px;font-size:13.5px;background:#f7f8f6}
+
+.check-list{display:flex;flex-direction:column;gap:10px}
+.check-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid #e4e8e5;border-radius:8px;background:#fafcfb}
+.check-item input{width:19px;height:19px;margin-top:2px;flex:none}
+.check-item span{font-size:13.5px;color:#20302a;line-height:1.4}
+.btn-checkall{margin-left:auto;flex:none;border:1px solid #2ecc71;background:#eafcf1;color:#1c8a4a;font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;cursor:pointer;white-space:nowrap}
+.btn-checkall:active{background:#d3f7e1}
+.btn-checkall.is-all{background:#2ecc71;color:#fff;border-color:#219150}
+
+.evidence-box{margin-top:14px;padding:12px;border:1px dashed #b7c3bb;border-radius:8px;background:#f7faf8}
+.evidence-title{font-size:12.5px;font-weight:700;color:#3d4c44;margin-bottom:8px}
+.evidence-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.evidence-phase-block{margin-bottom:14px}
+.evidence-phase-block:last-child{margin-bottom:0}
+.evidence-phase-label{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:2px 9px;border-radius:999px;margin-bottom:8px}
+.evidence-phase-label.before{background:#fff3e0;color:#b45309}
+.evidence-phase-label.after{background:#e6f7f1;color:#0f7a5c}
+.evidence-thumb{position:relative;border:1px solid #dfe6e1;border-radius:8px;overflow:hidden;background:#fff}
+.evidence-thumb img{width:100%;height:90px;object-fit:cover;display:block}
+.evidence-thumb .cap{width:100%;box-sizing:border-box;border:none;border-top:1px solid #eee;font-size:10.5px;padding:4px 6px}
+.evidence-thumb .del{position:absolute;top:3px;right:3px;background:#e53935;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:1}
+.evidence-thumb .redo{position:absolute;top:3px;left:3px;background:#2563eb;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:1}
+.evidence-add{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:2px dashed #b7c3bb;border-radius:8px;height:90px;background:#fff;color:#7c8b83;font-size:11px;cursor:pointer}
+.evidence-add span{font-size:20px}
+.evidence-add.dragover{border-color:#2ecc71;background:#eafcf1}
+
+/* ── Fitur reusable: geser posisi foto (nudge) ── */
+.img-nudge{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:4px}
+.img-nudge-label{font-size:8px;color:#8a8a8a;text-align:center;line-height:1.2;max-width:100px}
+.img-nudge-controls{display:flex;align-items:center;justify-content:center;gap:3px}
+.img-nudge button{width:18px;height:18px;border-radius:4px;border:1px solid #ccc;background:#f2f2f2;color:#333;font-size:9px;cursor:pointer;padding:0;line-height:1}
+.img-nudge span{font-size:9px;color:#666;min-width:28px;text-align:center}
+
+/* ── MULTI-UPLOAD NOTIFICATION OVERLAY ── */
+#evidUploadOverlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:rgba(0,0,0,0.8);flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+#evidUploadOverlay.show{display:flex}
+#evidUploadOverlaySpinner{width:38px;height:38px;border:4px solid rgba(255,255,255,0.25);border-top-color:#2ecc71;border-radius:50%;animation:evidSpin 0.8s linear infinite;margin-bottom:16px}
+#evidUploadOverlayTitle{font-size:15px;font-weight:700;color:#fff}
+#evidUploadOverlaySub{font-size:12px;color:#c9d6cf;margin-top:6px;max-width:280px}
+@keyframes evidSpin{to{transform:rotate(360deg)}}
+
+#stepGasReg .field-grid .field-item.zero-fld input{background:#eafcf1}
+#stepGasReg .field-grid .field-item.span1-fld input{background:#fffbe0}
+#stepGasReg .field-grid .field-item.span2-fld input{background:#fff2e0}
+
+/* ── CROP MODAL (3-mode: Default/Preset/Manual) — reusable dari fegt/opacity ── */
+#cropModal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.85);flex-direction:column;align-items:center;justify-content:center;padding:12px}
+#cropModal.show{display:flex}
+.crop-dialog{background:#1a221e;border:1px solid #2a3a30;border-radius:10px;width:min(96vw,540px);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.crop-header{background:#243228;padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.crop-header-title{font-weight:700;font-size:13px;color:#e0f0e8;letter-spacing:0.5px}
+.crop-header-hint{font-size:10px;color:#8aab96}
+#cropWrap{position:relative;width:100%;height:min(55vw,320px);background:#111;overflow:hidden;user-select:none;-webkit-user-select:none}
+.crop-rotate-toolbar{position:absolute;top:8px;right:8px;display:flex;gap:6px;z-index:6}
+.crop-rotate-btn{width:34px;height:34px;border-radius:50%;border:none;background:rgba(0,0,0,0.6);color:#fff;font-size:17px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.35)}
+.crop-rotate-btn:active{background:rgba(0,0,0,0.85)}
+#cropImg{position:absolute;max-width:none;pointer-events:none;display:block}
+#cropBox{position:absolute;border:2px solid #2ecc71;box-shadow:0 0 0 9999px rgba(0,0,0,0.45);cursor:move;touch-action:none;min-width:40px;min-height:40px}
+.crop-handle{position:absolute;width:12px;height:12px;background:#2ecc71;border-radius:2px}
+.crop-handle.nw{top:-6px;left:-6px;cursor:nw-resize} .crop-handle.ne{top:-6px;right:-6px;cursor:ne-resize}
+.crop-handle.sw{bottom:-6px;left:-6px;cursor:sw-resize} .crop-handle.se{bottom:-6px;right:-6px;cursor:se-resize}
+.crop-handle.n{width:10px;height:10px;top:-5px;left:50%;transform:translateX(-50%);cursor:n-resize}
+.crop-handle.s{width:10px;height:10px;bottom:-5px;left:50%;transform:translateX(-50%);cursor:s-resize}
+.crop-handle.w{width:10px;height:10px;left:-5px;top:50%;transform:translateY(-50%);cursor:w-resize}
+.crop-handle.e{width:10px;height:10px;right:-5px;top:50%;transform:translateY(-50%);cursor:e-resize}
+.crop-footer{padding:10px 14px;background:#1a221e;border-top:1px solid #2a3a30}
+.crop-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.crop-btn{padding:7px 16px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600}
+.crop-btn-outline{background:transparent;border:1px solid #4a6a55;color:#aac8b5}
+.crop-btn-save{background:#2ecc71;color:#fff}
+.crop-size-panel{border-top:1px solid #2a3a30;padding-top:8px;margin-top:2px}
+.crop-size-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.crop-preset-btn,.crop-orient-btn,.crop-mode-btn{padding:5px 10px;border-radius:6px;border:1px solid #3a4f42;background:#222e26;color:#aac8b5;font-size:11px;font-weight:600;cursor:pointer}
+.crop-preset-btn.active,.crop-orient-btn.active,.crop-mode-btn.active{background:#2ecc71;color:#0e150f;border-color:#2ecc71}
+.crop-mode-btn{padding:6px 12px;font-size:12px}
+.crop-cm-field{display:flex;flex-direction:column;gap:2px}
+.crop-cm-field label{font-size:9px;color:#8aab96;font-weight:600}
+.crop-cm-field input{width:64px;padding:5px 6px;font-size:12px;border-radius:5px;border:1px solid #3a4f42;background:#0f1512;color:#e0f0e8}
+.crop-size-label{font-size:11px;color:#7fd9a4;font-weight:600;margin-left:4px}
+.crop-default-label{font-size:12px;color:#7fd9a4;font-weight:600;padding:4px 2px}
+
+/* ── EDIT GAMBAR (Insert Shape) ── */
+.editimg-dialog{width:98vw;height:96vh;max-width:1600px;max-height:1600px;display:flex;flex-direction:column}
+#editImgOuter{position:relative;flex:1 1 auto;min-height:0;background:#0c100d;overflow:auto;touch-action:none;display:flex;align-items:center;justify-content:center}
+#editImgWrap{position:relative;flex:none;touch-action:none}
+#editImg{position:absolute;left:0;top:0;user-select:none;-webkit-user-select:none;pointer-events:none;display:block}
+#editSvgOverlay{position:absolute;left:0;top:0;cursor:crosshair;touch-action:none}
+.edit-toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 14px;background:#1a221e;border-top:1px solid #2a3a30;flex:none}
+.edit-tool-btn{width:36px;height:36px;border-radius:7px;border:1px solid #3a4f42;background:#222e26;color:#aac8b5;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.edit-tool-btn.active{background:#2ecc71;color:#0e150f;border-color:#2ecc71}
+.edit-tool-btn.zoom-label{width:auto;padding:0 8px;font-size:12px;font-weight:700}
+.edit-toolbar-sep{width:1px;align-self:stretch;background:#2a3a30;margin:2px 2px}
+.edit-color-swatch{width:24px;height:24px;border-radius:50%;border:2px solid #3a4f42;cursor:pointer;padding:0}
+.edit-color-swatch.active{border-color:#fff;box-shadow:0 0 0 2px #2ecc71}
+.edit-thick-swatch{width:32px;height:36px;border-radius:7px;border:1px solid #3a4f42;background:#222e26;color:#aac8b5;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.edit-thick-swatch.active{background:#2ecc71;color:#0e150f;border-color:#2ecc71}
+
+/* ── PDF PREVIEW MODAL — render via PDF.js canvas, aman untuk Chrome Android ── */
+.pdf-preview-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:rgba(0,0,0,0.85);flex-direction:column;align-items:center;justify-content:center;padding:12px}
+.pdf-preview-modal.show{display:flex}
+.pdf-preview-dialog{background:#1a221e;border:1px solid #2a3a30;border-radius:10px;width:min(96vw,900px);height:min(92vh,1100px);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);display:flex;flex-direction:column}
+.pdf-preview-header{background:#243228;padding:10px 46px 10px 16px;flex:0 0 auto;position:relative}
+.pdf-preview-title{font-weight:700;font-size:14px;color:#e0f0e8}
+.pdf-preview-hint{font-size:11px;color:#8aab96;margin-top:2px}
+.pdf-preview-close-x{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;border:1px solid #3a4f42;background:#1a221e;color:#e0f0e8;font-size:16px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.pdf-preview-close-x:active{background:#2a3a30}
+.pdf-preview-body{flex:1 1 auto;background:#333;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.pdf-canvas-container{display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px}
+.pdf-canvas-container canvas{max-width:100%;height:auto;box-shadow:0 2px 10px rgba(0,0,0,0.5);background:#fff}
+.pdf-canvas-loading{color:#8aab96;font-size:13px;padding:40px 0;text-align:center}
+.pdf-preview-footer{padding:12px 14px;background:#1a221e;border-top:1px solid #2a3a30;display:flex;gap:8px;justify-content:flex-end;flex:0 0 auto}
+.pdf-preview-footer .crop-btn{padding:12px 18px;font-size:14px;min-height:44px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="topbar-back" onclick="window.location.href='index.html'">&#8592; Dashboard</button>
+  <button class="topbar-back" style="margin-left:8px" onclick="window.location.href='history.html'">RIWAYAT</button>
+  <div class="topbar-sep"></div>
+  <div class="topbar-logo">CEMS</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-sub">PLTU Paiton Unit 7 &nbsp;·&nbsp; Continuous Emission Monitoring System Calibration</div>
+  <div class="topbar-right">
+    <div class="live-dot"></div>
+    <div class="topbar-time" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<div class="wrapper">
+
+  <div class="page-header">
+    <div>
+      <div class="page-header-sub">Data Calibration</div>
+      <div class="page-header-title">CEMS <span>Unit 7</span></div>
+    </div>
+    <div style="margin-bottom:8px">
+      <span class="badge" id="freqBadge">FREQUENCY BELUM DIPILIH</span>
+    </div>
+  </div>
+
+  <!-- INFO PEKERJAAN -->
+  <div class="panel">
+    <div class="section-label">Informasi Pekerjaan</div>
+    <div class="info-grid">
+      <div class="info-row"><label>Workorder</label><input type="text" id="metaWorkorder" placeholder="No. Workorder..."></div>
+      <div class="info-row"><label>Asset</label><input type="text" id="metaAsset" placeholder="Kode Asset..." value="7BGCEMAI107"></div>
+      <div class="info-row"><label>Desc Asset</label><input type="text" id="metaDescAsset" placeholder="Deskripsi Asset..." value="CEMS Analyzer Unit 7"></div>
+      <div class="info-row"><label>PIC</label><input type="text" id="metaPic" placeholder="Nama PIC..."></div>
+      <div class="info-row"><label>Tanggal</label><input type="date" id="metaTanggal"></div>
+      <div class="info-row"><label>Frequency</label><input type="text" id="metaFrequency" placeholder="— pilih di Step 1 —" readonly></div>
+      <div class="info-row"><label>Checked By - Technician</label>
+        <select id="metaCheckedBy">
+          <option value="Zaini Nur Hidayat">Zaini Nur Hidayat</option>
+          <option value="Isyana Ray Sasongko">Isyana Ray Sasongko</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="panel step-panel">
+    <div class="step-title"><span class="stepnum">1</span> Calibration Frequency</div>
+    <div class="freq-choices" id="freqChoices">
+      <label class="freq-choice"><input type="radio" name="freq" value="2-Weekly" onchange="onFreqChange()"><span>2-Weekly</span></label>
+      <label class="freq-choice"><input type="radio" name="freq" value="Monthly" onchange="onFreqChange()"><span>Monthly</span></label>
+      <label class="freq-choice"><input type="radio" name="freq" value="3-Monthly" onchange="onFreqChange()"><span>3-Monthly</span></label>
+      <label class="freq-choice"><input type="radio" name="freq" value="2-Yearly" onchange="onFreqChange()"><span>2-Yearly</span></label>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="panel step-panel" id="stepGasReg">
+    <div class="step-title"><span class="stepnum">2</span> Cal Gas Regulator Outlet Pressure (psi)</div>
+    <div style="font-size:12px;color:#7c8b83;font-style:italic;margin-bottom:10px">Check before calibration</div>
+    <div class="field-grid">
+      <div class="field-item zero-fld"><label>Zero - Outlet Pressure</label><input type="number" id="gasZeroOutlet"></div>
+      <div class="field-item zero-fld"><label>Zero - Remaining Gas Cylinder</label><input type="number" id="gasZeroCyl"></div>
+      <div class="field-item span1-fld"><label>Span 1 - Outlet Pressure</label><input type="number" id="gasSpan1Outlet"></div>
+      <div class="field-item span1-fld"><label>Span 1 - Remaining Gas Cylinder</label><input type="number" id="gasSpan1Cyl"></div>
+      <div class="field-item span2-fld"><label>Span 2 - Outlet Pressure</label><input type="number" id="gasSpan2Outlet"></div>
+      <div class="field-item span2-fld"><label>Span 2 - Remaining Gas Cylinder</label><input type="number" id="gasSpan2Cyl"></div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="panel step-panel">
+    <div class="step-title"><span class="stepnum">3</span> Optical Energy Reading Before Calibration</div>
+    <div style="overflow-x:auto"><table class="cems-table" id="tblOpticalBefore"></table></div>
+    <div class="overall-row"><label>Overall System Energy:</label><input type="number" id="ob_overall" step="0.01"><span class="unit">%</span></div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="panel step-panel">
+    <div class="step-title"><span class="stepnum">4</span> Analyzer Reading (DAS) Before Calibration</div>
+    <div class="field-grid" id="dasBeforeGrid"></div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="panel step-panel">
+    <div class="step-title"><span class="stepnum">5</span> Calibration</div>
+
+    <div style="font-weight:800;font-size:14px;margin:14px 0 8px;color:#1c2b22">a. Zero Calibration</div>
+    <div style="overflow-x:auto"><table class="cems-table" id="tblZero"></table></div>
+    <div class="evidence-box" id="evidZero"></div>
+
+    <div style="font-weight:800;font-size:14px;margin:20px 0 8px;color:#1c2b22">b. Span 1 Calibration</div>
+    <div style="overflow-x:auto"><table class="cems-table" id="tblSpan1"></table></div>
+    <div class="evidence-box" id="evidSpan1"></div>
+
+    <div style="font-weight:800;font-size:14px;margin:20px 0 8px;color:#1c2b22">c. Span 2 Calibration</div>
+    <div style="overflow-x:auto"><table class="cems-table" id="tblSpan2"></table></div>
+    <div class="evidence-box" id="evidSpan2"></div>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="panel step-panel">
+    <div class="step-title"><span class="stepnum">6</span> Optical Energy Reading After Calibration</div>
+    <div style="overflow-x:auto"><table class="cems-table" id="tblOpticalAfter"></table></div>
+    <div class="overall-row"><label>Overall System Energy:</label><input type="number" id="oa_overall" step="0.01"><span class="unit">%</span></div>
+  </div>
+
+  <!-- STEP 7 -->
+  <div class="panel step-panel">
+    <div class="step-title"><span class="stepnum">7</span> Analyzer Reading (DAS) After Calibration</div>
+    <div class="field-grid" id="dasAfterGrid"></div>
+  </div>
+
+  <!-- STEP 8 -->
+  <div class="panel step-panel">
+    <div class="step-title"><span class="stepnum">8</span> Actual Temperature Reading (°C)</div>
+    <div class="field-grid" id="tempGrid"></div>
+  </div>
+
+  <!-- STEP 9 — INSPECTION (dinamis mengikuti frequency yang dipilih di Step 1;
+       lihat getInspectionPlan()/renderInspectionStep() di script bawah) -->
+  <div class="panel step-panel" id="step9" style="display:none">
+    <div class="step-title"><span class="stepnum">9</span> <span id="step9Title">Inspection</span>
+      <button type="button" class="btn-checkall" id="btnCheckAll_step9" onclick="toggleCheckAll('step9')">☑ Check All</button>
+    </div>
+    <div class="check-list" id="step9CheckList"></div>
+    <div class="evidence-box" id="evidFlowstack"></div>
+    <div class="evidence-box" id="evidSampleprobe"></div>
+    <div class="evidence-box" id="evidFilterprobe"></div>
+    <div class="evidence-box" id="evidPumpdiaphragm"></div>
+  </div>
+
+  <!-- BUTTONS -->
+  <div class="btn-row" style="margin-top:20px;margin-bottom:40px">
+    <button class="btn btn-pdf" id="btnPdf" onclick="exportPdf()">⬇ Export PDF</button>
+    <button class="btn" id="btnSave" style="background:#0891b2;color:#fff;border-color:#0891b2" onclick="dbSave('CEMS Calibration')">💾 Simpan ke Database</button>
+    <button class="btn" style="background:#2563eb;color:#fff;border-color:#2563eb" onclick="window._raBuildPdf=exportPdf; raSubmitReport()">🔒 Submit Laporan</button>
+    <button class="btn btn-danger" onclick="resetAll()">✕ Reset</button>
+  </div>
+
+</div>
+
+<input type="file" id="evidFileInput" accept="image/*,.heic,.heif" style="display:none" multiple>
+
+<!-- MULTI-UPLOAD NOTIFICATION OVERLAY -->
+<div id="evidUploadOverlay" onclick="evidHideUploadOverlay()">
+    <div id="evidUploadOverlaySpinner"></div>
+    <div id="evidUploadOverlayTitle"></div>
+    <div id="evidUploadOverlaySub"></div>
+</div>
+
+<!-- CROP MODAL (3-mode: Default/Preset/Manual) -->
+<div id="cropModal">
+    <div class="crop-dialog">
+        <div class="crop-header">
+            <div class="crop-header-title">✂️ Crop Gambar</div>
+            <div class="crop-header-hint">Drag pojok/sisi untuk resize • Drag tengah untuk pindah</div>
+        </div>
+        <div id="cropWrap">
+            <img id="cropImg" src="">
+            <div class="crop-rotate-toolbar">
+                <button type="button" class="crop-rotate-btn" onclick="rotateCropImage(-1)" title="Putar gambar 90° ke kiri">&#8634;</button>
+                <button type="button" class="crop-rotate-btn" onclick="rotateCropImage(1)" title="Putar gambar 90° ke kanan">&#8635;</button>
+            </div>
+            <div id="cropBox">
+                <div class="crop-handle nw"></div><div class="crop-handle ne"></div>
+                <div class="crop-handle sw"></div><div class="crop-handle se"></div>
+                <div class="crop-handle n"></div><div class="crop-handle s"></div>
+                <div class="crop-handle w"></div><div class="crop-handle e"></div>
+            </div>
+        </div>
+        <div class="crop-footer">
+            <div class="crop-size-panel">
+                <div class="crop-size-row" id="cropModeRow">
+                    <button type="button" class="crop-mode-btn" id="cropModeDefault" onclick="setCropMode('default')">⭐ Default</button>
+                    <button type="button" class="crop-mode-btn" id="cropModePreset" onclick="setCropMode('preset')">▦ Preset</button>
+                    <button type="button" class="crop-mode-btn" id="cropModeManual" onclick="setCropMode('manual')">✋ Manual</button>
+                </div>
+                <div class="crop-default-label" id="cropDefaultLabel" style="display:none">Ukuran cetak: 7.2 × 5.18 cm — gambar penuh (tidak dipotong)</div>
+                <div id="cropPresetControls" style="display:none">
+                    <div class="crop-size-row" id="cropPresetRow"></div>
+                    <div class="crop-size-row" style="margin-top:8px">
+                        <button type="button" class="crop-orient-btn" id="cropOrientPotrait" onclick="setCropOrientation('portrait')">⬍ Potrait</button>
+                        <button type="button" class="crop-orient-btn" id="cropOrientLandscape" onclick="setCropOrientation('landscape')">⬌ Lanskap</button>
+                    </div>
+                    <div class="crop-size-row" style="margin-top:8px">
+                        <button type="button" class="crop-preset-btn" id="cropPresetSquare" onclick="applySquarePreset()" title="Rasio 1:1 berdiri sendiri, tidak ikut Potrait/Lanskap">◻ 1:1</button>
+                    </div>
+                </div>
+                <div class="crop-size-row" id="cropCmRow" style="margin-top:8px;display:none">
+                    <div class="crop-cm-field"><label>Panjang (cm)</label><input type="number" id="cropWcm" min="0.5" max="16.4" step="0.1" value="5" oninput="onCustomCmChange('w')" onblur="onCustomCmCommit('w')"></div>
+                    <div class="crop-cm-field"><label>Lebar (cm)</label><input type="number" id="cropHcm" min="0.5" max="24.4" step="0.1" value="5" oninput="onCustomCmChange('h')" onblur="onCustomCmCommit('h')"></div>
+                    <div class="crop-size-label" id="cropSizeLabel">Bebas (ukuran default saat cetak)</div>
+                </div>
+            </div>
+            <div class="crop-btns">
+                <button class="crop-btn crop-btn-outline" onclick="openImageEditor()">🖍️ Edit Gambar</button>
+                <button class="crop-btn crop-btn-outline" onclick="cropReset()">↺ Reset</button>
+                <button class="crop-btn crop-btn-outline" onclick="skipCrop()">Lewati</button>
+                <button class="crop-btn crop-btn-save" onclick="cropAndSave()">✓ Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ EDIT GAMBAR (Insert Shape: Teks/Panah/Garis/Kotak/Oval) ═══ -->
+<div id="editImgModal" class="pdf-preview-modal">
+    <div class="crop-dialog editimg-dialog">
+        <div class="pdf-preview-header">
+            <button type="button" class="pdf-preview-close-x" onclick="closeImageEditor(true)" aria-label="Tutup">✕</button>
+            <div class="pdf-preview-title">🖍️ Edit Gambar</div>
+            <div class="pdf-preview-hint">Tambah teks/panah/garis/kotak/oval • ✋ geser tampilan • 🔍 zoom</div>
+        </div>
+        <div id="editImgOuter">
+            <div id="editImgWrap">
+                <img id="editImg" src="" alt="">
+                <svg id="editSvgOverlay" xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
+        </div>
+        <div class="edit-toolbar" id="editToolbar">
+            <button type="button" class="edit-tool-btn active" data-tool="select" onclick="setEditTool('select')" title="Pilih / Pindah">↖</button>
+            <button type="button" class="edit-tool-btn" data-tool="text" onclick="setEditTool('text')" title="Tambah Teks">🅰</button>
+            <button type="button" class="edit-tool-btn" data-tool="arrow" onclick="setEditTool('arrow')" title="Panah">↗</button>
+            <button type="button" class="edit-tool-btn" data-tool="line" onclick="setEditTool('line')" title="Garis">╱</button>
+            <button type="button" class="edit-tool-btn" data-tool="rect" onclick="setEditTool('rect')" title="Kotak">▭</button>
+            <button type="button" class="edit-tool-btn" data-tool="oval" onclick="setEditTool('oval')" title="Oval">◯</button>
+            <button type="button" class="edit-tool-btn" data-tool="pan" onclick="setEditTool('pan')" title="Geser Tampilan">✋</button>
+            <span class="edit-toolbar-sep"></span>
+            <button type="button" class="edit-color-swatch active" data-color="#e53935" style="background:#e53935" onclick="setEditColor('#e53935',this)" title="Merah"></button>
+            <button type="button" class="edit-color-swatch" data-color="#1a1a1a" style="background:#1a1a1a" onclick="setEditColor('#1a1a1a',this)" title="Hitam"></button>
+            <button type="button" class="edit-color-swatch" data-color="#1e88e5" style="background:#1e88e5" onclick="setEditColor('#1e88e5',this)" title="Biru"></button>
+            <button type="button" class="edit-color-swatch" data-color="#fdd835" style="background:#fdd835" onclick="setEditColor('#fdd835',this)" title="Kuning"></button>
+            <span class="edit-toolbar-sep"></span>
+            <button type="button" class="edit-thick-swatch" data-thick="S" onclick="setEditThickness('S',this)" title="Garis Tipis">▁</button>
+            <button type="button" class="edit-thick-swatch active" data-thick="M" onclick="setEditThickness('M',this)" title="Garis Sedang">▃</button>
+            <button type="button" class="edit-thick-swatch" data-thick="L" onclick="setEditThickness('L',this)" title="Garis Tebal">▅</button>
+            <button type="button" class="edit-thick-swatch" data-thick="XL" onclick="setEditThickness('XL',this)" title="Garis Sangat Tebal">▇</button>
+            <span class="edit-toolbar-sep"></span>
+            <button type="button" class="edit-tool-btn" onclick="ieZoomOut()" title="Perkecil Tampilan">➖</button>
+            <button type="button" class="edit-tool-btn zoom-label" id="editZoomLabel" onclick="ieZoomReset()" title="Reset Zoom">100%</button>
+            <button type="button" class="edit-tool-btn" onclick="ieZoomIn()" title="Perbesar Tampilan">➕</button>
+            <span class="edit-toolbar-sep"></span>
+            <button type="button" class="edit-tool-btn" id="editTextSmallerBtn" onclick="ieResizeSelectedText(-1)" title="Perkecil Teks" style="display:none">A−</button>
+            <button type="button" class="edit-tool-btn" id="editTextBiggerBtn" onclick="ieResizeSelectedText(1)" title="Perbesar Teks" style="display:none">A+</button>
+            <button type="button" class="edit-tool-btn" id="editTextEditBtn" onclick="editSelectedText()" title="Edit Teks" style="display:none">✏️</button>
+            <button type="button" class="edit-tool-btn" id="editDeleteBtn" onclick="deleteSelectedShape()" title="Hapus" style="display:none">🗑️</button>
+        </div>
+        <div class="pdf-preview-footer">
+            <button class="crop-btn crop-btn-outline" onclick="closeImageEditor(true)">Batal</button>
+            <button class="crop-btn crop-btn-save" onclick="applyImageEdits()">✓ Selesai</button>
+        </div>
+    </div>
+</div>
+
+<!-- PDF PREVIEW MODAL -->
+<div id="pdfPreviewModal" class="pdf-preview-modal">
+    <div class="pdf-preview-dialog">
+        <div class="pdf-preview-header">
+            <button type="button" class="pdf-preview-close-x" onclick="closePdfPreview()" aria-label="Tutup">✕</button>
+            <div class="pdf-preview-title">📄 Preview Hasil PDF</div>
+            <div class="pdf-preview-hint">Ini tampilan asli file PDF-nya, cek dulu sebelum download</div>
+        </div>
+        <div class="pdf-preview-body"><div id="pdfPreviewFrame" class="pdf-canvas-container"></div></div>
+        <div class="pdf-preview-footer">
+            <button class="crop-btn crop-btn-outline" onclick="closePdfPreview()">✏️ Tutup, Edit Lagi</button>
+            <button class="crop-btn crop-btn-save" onclick="confirmDownloadPdf()">⬇ Download PDF</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   DATA MODEL
+   ══════════════════════════════════════════════════════════════ */
+window.CURRENT_MODUL = 'CEMS Calibration';
+
+var OPTICAL_ROWS = [
+  {key:'CO',   label:'CO',      me:true},
+  {key:'NOx',  label:'NOx',     me:true},
+  {key:'SO2',  label:'SO2',     me:true},
+  {key:'H2O',  label:'H2O',     me:true},
+  {key:'CO2',  label:'CO2',     me:true},
+  {key:'Flow', label:'Flow',    me:false},
+  {key:'O2Wet',label:'O2 Wet',  me:false}
+];
+var DAS_FIELDS = [
+  {key:'NOx',      label:'NOx',      unit:'mg/Nm³'},
+  {key:'SO2',      label:'SO2',      unit:'mg/Nm³'},
+  {key:'CO2',      label:'CO2',      unit:'%'},
+  {key:'O2',       label:'O2',       unit:'%'},
+  {key:'Flow',     label:'Flow',     unit:'m³/s'},
+  {key:'Hg',       label:'Hg',       unit:'mg/Nm³'},
+  {key:'PM',       label:'PM',       unit:'mg/Nm³'},
+  {key:'Pressure', label:'Pressure', unit:'kPa'}
+];
+var TEMP_FIELDS = [
+  {key:'MC3',        label:'MC3 Cell'},
+  {key:'Detector',   label:'Detector'},
+  {key:'O2Sensor',   label:'O2 Sensor'},
+  {key:'SampleLine', label:'Sample Line'},
+  {key:'SamplePump', label:'Sample Pump'},
+  {key:'ProbeFilter',label:'Probe Filter'},
+  {key:'ProbeTube',  label:'Probe Tube'},
+  {key:'GasStack',   label:'Gas Stack Reading'},
+  {key:'RoomTemp',   label:'CEMS Room Temp'}
+];
+// Expected Value permanen (tidak bisa diedit user) kecuali baris yang
+// ditandai editable:true (cuma O2 Wet di tabel Zero).
+var ZERO_ROWS  = [
+  {key:'CO',  label:'CO',    exp:'0'},
+  {key:'CO2', label:'CO2',   exp:'0'},
+  {key:'H2O', label:'H2O',   exp:'0'},
+  {key:'NOx', label:'NOx',   exp:'0'},
+  {key:'SO2', label:'SO2',   exp:'0'},
+  {key:'Flow',label:'Flow',  exp:'0'},
+  {key:'O2Wet',label:'O2 Wet',exp:'12', editable:true}
+];
+var SPAN1_ROWS = [
+  {key:'CO',  label:'CO',  exp:'367.80'},
+  {key:'SO2', label:'SO2', exp:'76.80'},
+  {key:'CO2', label:'CO2', exp:'17.03'}
+];
+var SPAN2_ROWS = [
+  {key:'NOx', label:'NOx', exp:'340.80'},
+  {key:'SO2', label:'SO2', exp:'439.80'}
+];
+
+var calEvidence = null;
+var ALL_EVID_GROUPS = ['zero','span1','span2','flowstack','sampleprobe','filterprobe','pumpdiaphragm'];
+// Grup evidence inspeksi (flowstack/sampleprobe/filterprobe/pumpdiaphragm di
+// Step 9-11) pakai struktur Before/After — dipakai untuk membandingkan
+// kondisi sebelum vs sesudah pekerjaan (purging/cleaning/replace).
+// Grup kalibrasi (Zero/Span1/Span2) tetap satu daftar foto biasa (tidak
+// perlu before/after).
+var BEFORE_AFTER_GROUPS = ['flowstack','sampleprobe','filterprobe','pumpdiaphragm'];
+function isBeforeAfterGroup(g){ return BEFORE_AFTER_GROUPS.indexOf(g) >= 0; }
+function freshCalEvidence(){
+  var o = {};
+  ALL_EVID_GROUPS.forEach(function(g){ o[g] = isBeforeAfterGroup(g) ? {before:[],after:[]} : []; });
+  return o;
+}
+// Ambil array foto aktual untuk suatu grup. Untuk grup Before/After, phase
+// ('before'/'after') wajib diisi; untuk grup biasa, phase diabaikan (boleh
+// null) karena datanya cuma satu array flat.
+function getEvidArr(group, phase){
+  return isBeforeAfterGroup(group) ? calEvidence[group][phase] : calEvidence[group];
+}
+calEvidence = freshCalEvidence();
+function renderAllEvidence(){ ALL_EVID_GROUPS.forEach(function(g){ renderEvidence(g); }); }
+var evidPendingGroup = null;
+var evidPendingPhase = null;
+var evidUploadQueue = null;
+var evidUploadGroup = null;
+
+/* ══════════════════════════════════════════════════════════════
+   BACKGROUND TEMPLATE PDF — dipakai di tiap halaman (reusable dari opacity)
+   ══════════════════════════════════════════════════════════════ */
+var reportBgImg = null;
+var reportBgReady = false;
+var reportBgCallbacks = [];
+
+function initReportBackground() {
+  if (reportBgImg) return;
+  reportBgImg = new Image();
+  reportBgImg.onload = function() {
+    reportBgReady = true;
+    var cbs = reportBgCallbacks.splice(0);
+    for (var i = 0; i < cbs.length; i++) cbs[i]();
+  };
+  reportBgImg.onerror = function() {
+    reportBgReady = false;
+    var cbs = reportBgCallbacks.splice(0);
+    for (var i = 0; i < cbs.length; i++) cbs[i]();
+  };
+  reportBgImg.src = 'DRAFT PM KOSONG.jpg';
+}
+
+function ensureReportBackground(callback) {
+  if (!reportBgImg) { reportBgCallbacks.push(callback); initReportBackground(); return; }
+  if (reportBgReady) { callback(); return; }
+  if (reportBgImg.complete && reportBgImg.naturalWidth > 0) { reportBgReady = true; callback(); return; }
+  reportBgCallbacks.push(callback);
+}
+
+function drawBg(doc, pw, ph) {
+  if (!reportBgImg || !reportBgImg.naturalWidth) return;
+  try { doc.addImage(reportBgImg, 'JPEG', 0, 0, pw, ph); } catch(e) {}
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CROP MODAL (3-mode: Default/Preset/Manual) — reusable dari fegt/opacity.
+   imgOpenCropper(dataUrl, name, type, imgArr, side, modulePrefix, replaceIdx)
+   ══════════════════════════════════════════════════════════════ */
+var cropModalState = document.getElementById('cropModal');
+cropModalState._pending = null;
+cropModalState._ratioLocked = false;
+cropModalState._cropWcm = null;
+cropModalState._cropHcm = null;
+cropModalState._orientation = 'portrait';
+cropModalState._activePresetIdx = -1;
+cropModalState._lastRatioPresetIdx = -1; // ingat preset rasio (bukan 1:1) terakhir dipakai
+cropModalState._mode = 'default';
+cropModalState._presetRatio = 1;
+var DEFAULT_CROP_W_CM = 7.2, DEFAULT_CROP_H_CM = 5.18;
+var PRESET_DEFAULT_LONG_CM = 7;
+// Panjang (cropWcm) = dimensi HORIZONTAL saat dicetak di PDF -> dibatasi ketat
+// oleh lebar kertas A4. Dihitung dari margin PDF file ini.
+var MANUAL_MAX_W_CM = 16.4;
+// Lebar (cropHcm) = dimensi VERTIKAL saat dicetak -> lebih longgar karena kalau
+// kelebihan cuma pindah halaman.
+var MANUAL_MAX_H_CM = 24.4;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   EDIT GAMBAR — Insert Shape (Teks / Panah / Garis / Kotak / Oval)
+   Dipanggil dari dalam Crop Modal ("🖍️ Edit Gambar"). Bekerja di atas
+   gambar ASLI (sebelum crop), lalu hasil flatten (gambar + anotasi jadi
+   satu) dikembalikan ke #cropImg supaya alur crop selanjutnya normal.
+   Koordinat shape disimpan dalam ruang piksel ASLI gambar (naturalW/H)
+   supaya scaling ke layar & flatten ke canvas konsisten.
+   ══════════════════════════════════════════════════════════════════════════ */
+var NS_SVG = 'http://www.w3.org/2000/svg';
+var imgEditState = {
+    tool: 'select', color: '#e53935', thickness: 'M', zoom: 1, baseScale: 1, shapes: [], selectedId: null,
+    naturalW: 0, naturalH: 0, nextId: 1, drawing: null, sourceUrl: null
+};
+var IE_THICKNESS_FACTORS = { S: 0.0022, M: 0.0045, L: 0.0075, XL: 0.012 };
+var IE_ZOOM_MIN = 1, IE_ZOOM_MAX = 4, IE_ZOOM_STEP = 0.5;
+
+function ieMinSize(){ return Math.max(20, imgEditState.naturalW * 0.02); }
+function ieHandleR(){ return Math.max(9, imgEditState.naturalW * 0.009); }
+function ieHandleHitR(){
+    var scale = (imgEditState.baseScale || 1) * (imgEditState.zoom || 1);
+    var minTouchPx = 22;
+    return Math.max(ieHandleR(), minTouchPx / scale);
+}
+function ieStrokeWFor(shape){
+    var key = (shape && shape.strokeSize) || imgEditState.thickness || 'M';
+    var f = IE_THICKNESS_FACTORS[key] || IE_THICKNESS_FACTORS.M;
+    return Math.max(2, imgEditState.naturalW * f);
+}
+function ieFontDefault(){ return Math.max(18, imgEditState.naturalW * 0.035); }
+function ieColorId(c){ return 'ie_' + c.replace('#',''); }
+function ieTextBoxSize(shape){
+    return { w: Math.max(20, (shape.text.length||1) * shape.fontSize * 0.55), h: shape.fontSize*1.2 };
+}
+
+function openImageEditor(){
+    var cropImg = document.getElementById('cropImg');
+    if (!cropImg || !cropImg.src) { alert('Gambar belum siap untuk diedit.'); return; }
+    imgEditState.shapes = []; imgEditState.selectedId = null; imgEditState.nextId = 1;
+    imgEditState.tool = 'select'; imgEditState.color = '#e53935'; imgEditState.thickness = 'M'; imgEditState.zoom = 1;
+    setEditTool('select');
+    var swatches = document.querySelectorAll('.edit-color-swatch');
+    swatches.forEach(function(s){ s.classList.toggle('active', s.getAttribute('data-color') === imgEditState.color); });
+    var tswatches = document.querySelectorAll('.edit-thick-swatch');
+    tswatches.forEach(function(s){ s.classList.toggle('active', s.getAttribute('data-thick') === imgEditState.thickness); });
+    ieUpdateZoomLabel();
+    var editImg = document.getElementById('editImg');
+    editImg.onload = function(){
+        imgEditState.naturalW = editImg.naturalWidth;
+        imgEditState.naturalH = editImg.naturalHeight;
+        fitEditImageToWrap();
+        renderAllShapes();
+    };
+    imgEditState.sourceUrl = cropImg.src;
+    editImg.src = cropImg.src;
+    document.getElementById('editImgModal').classList.add('show');
+}
+
+function fitEditImageToWrap(){
+    var outer = document.getElementById('editImgOuter');
+    var wrap = document.getElementById('editImgWrap');
+    var img = document.getElementById('editImg');
+    var svg = document.getElementById('editSvgOverlay');
+    var ow = outer.clientWidth, oh = outer.clientHeight;
+    var nw = imgEditState.naturalW, nh = imgEditState.naturalH;
+    if (!nw || !nh || !ow || !oh) return;
+    var baseScale = Math.min(ow/nw, oh/nh);
+    imgEditState.baseScale = baseScale;
+    var scale = baseScale * (imgEditState.zoom || 1);
+    var dw = nw*scale, dh = nh*scale;
+    wrap.style.width = dw+'px'; wrap.style.height = dh+'px';
+    img.style.width = dw+'px'; img.style.height = dh+'px';
+    svg.style.width = dw+'px'; svg.style.height = dh+'px';
+    svg.setAttribute('viewBox', '0 0 '+nw+' '+nh);
+    outer.style.justifyContent = (dw <= ow + 1) ? 'center' : 'flex-start';
+    outer.style.alignItems = (dh <= oh + 1) ? 'center' : 'flex-start';
+    if (dw > ow) outer.scrollLeft = Math.max(0, (dw-ow)/2);
+    if (dh > oh) outer.scrollTop = Math.max(0, (dh-oh)/2);
+}
+function ieUpdateZoomLabel(){
+    var lbl = document.getElementById('editZoomLabel');
+    if (lbl) lbl.textContent = Math.round((imgEditState.zoom||1)*100) + '%';
+}
+function ieSetZoom(z){
+    imgEditState.zoom = Math.max(IE_ZOOM_MIN, Math.min(IE_ZOOM_MAX, z));
+    ieUpdateZoomLabel();
+    fitEditImageToWrap();
+}
+function ieZoomIn(){ ieSetZoom((imgEditState.zoom||1) + IE_ZOOM_STEP); }
+function ieZoomOut(){ ieSetZoom((imgEditState.zoom||1) - IE_ZOOM_STEP); }
+function ieZoomReset(){ ieSetZoom(1); }
+window.addEventListener('resize', function(){
+    if (document.getElementById('editImgModal').classList.contains('show')) fitEditImageToWrap();
+});
+
+function closeImageEditor(discard){
+    document.getElementById('editImgModal').classList.remove('show');
+    if (discard) { imgEditState.shapes = []; imgEditState.selectedId = null; }
+}
+
+function setEditTool(tool){
+    imgEditState.tool = tool;
+    deselectShape();
+    document.querySelectorAll('.edit-tool-btn[data-tool]').forEach(function(b){
+        b.classList.toggle('active', b.getAttribute('data-tool') === tool);
+    });
+    var svg = document.getElementById('editSvgOverlay');
+    svg.style.cursor = (tool === 'select') ? 'default' : (tool === 'pan' ? 'grab' : 'crosshair');
+}
+
+/* Kembali ke tool 'select' setelah shape baru dibuat, TANPA menghapus seleksi
+   shape yang baru saja dibuat (supaya langsung bisa digeser/resize). */
+function ieBackToSelectKeepSelection(){
+    imgEditState.tool = 'select';
+    document.querySelectorAll('.edit-tool-btn[data-tool]').forEach(function(b){
+        b.classList.toggle('active', b.getAttribute('data-tool') === 'select');
+    });
+    var svg = document.getElementById('editSvgOverlay');
+    svg.style.cursor = 'default';
+}
+
+function setEditColor(color, btnEl){
+    imgEditState.color = color;
+    document.querySelectorAll('.edit-color-swatch').forEach(function(s){ s.classList.remove('active'); });
+    if (btnEl) btnEl.classList.add('active');
+    var sel = getShapeById(imgEditState.selectedId);
+    if (sel) { sel.color = color; renderAllShapes(); }
+}
+
+function setEditThickness(key, btnEl){
+    imgEditState.thickness = key;
+    document.querySelectorAll('.edit-thick-swatch').forEach(function(s){ s.classList.remove('active'); });
+    if (btnEl) btnEl.classList.add('active');
+    var sel = getShapeById(imgEditState.selectedId);
+    if (sel && sel.type !== 'text') { sel.strokeSize = key; renderAllShapes(); }
+}
+
+function getShapeById(id){
+    for (var i=0;i<imgEditState.shapes.length;i++) if (imgEditState.shapes[i].id === id) return imgEditState.shapes[i];
+    return null;
+}
+function addShape(shape){
+    shape.id = imgEditState.nextId++;
+    imgEditState.shapes.push(shape);
+    return shape;
+}
+function ieSetSelButtonsDisplay(shape){
+    var isText = !!(shape && shape.type === 'text');
+    var db = document.getElementById('editDeleteBtn'); if (db) db.style.display = shape ? 'flex' : 'none';
+    var tb = document.getElementById('editTextEditBtn'); if (tb) tb.style.display = isText ? 'flex' : 'none';
+    var sb = document.getElementById('editTextSmallerBtn'); if (sb) sb.style.display = isText ? 'flex' : 'none';
+    var bb = document.getElementById('editTextBiggerBtn'); if (bb) bb.style.display = isText ? 'flex' : 'none';
+}
+function deselectShape(){
+    imgEditState.selectedId = null;
+    ieSetSelButtonsDisplay(null);
+    renderAllShapes();
+}
+function setSelectedShape(id){
+    imgEditState.selectedId = id;
+    var shape = getShapeById(id);
+    ieSetSelButtonsDisplay(shape);
+    if (shape) {
+        document.querySelectorAll('.edit-color-swatch').forEach(function(s){ s.classList.toggle('active', s.getAttribute('data-color')===shape.color); });
+        if (shape.strokeSize) document.querySelectorAll('.edit-thick-swatch').forEach(function(s){ s.classList.toggle('active', s.getAttribute('data-thick')===shape.strokeSize); });
+    }
+    renderAllShapes();
+}
+function deleteSelectedShape(){
+    if (!imgEditState.selectedId) return;
+    imgEditState.shapes = imgEditState.shapes.filter(function(s){ return s.id !== imgEditState.selectedId; });
+    deselectShape();
+}
+function editSelectedText(){
+    var s = getShapeById(imgEditState.selectedId);
+    if (!s || s.type !== 'text') return;
+    var val = prompt('Edit teks:', s.text);
+    ieForceHideKeyboard();
+    if (val === null) return;
+    s.text = val || ' ';
+    renderAllShapes();
+}
+/* Fix: setelah window.prompt() ditutup di Android Chrome, soft keyboard kadang
+   "menempel" (tidak ikut turun) karena tidak ada <input> asli di halaman yang
+   kehilangan fokus. Trik: fokuskan sebentar lalu blur input tersembunyi supaya
+   Android benar-benar mendeteksi ada elemen form yang di-blur dan menutup IME. */
+function ieForceHideKeyboard(){
+    if (document.activeElement && document.activeElement !== document.body && document.activeElement.blur) {
+        document.activeElement.blur();
+    }
+    var dummy = document.getElementById('ieKeyboardDismiss');
+    if (!dummy) {
+        dummy = document.createElement('input');
+        dummy.id = 'ieKeyboardDismiss';
+        dummy.setAttribute('type', 'text');
+        dummy.style.position = 'fixed';
+        dummy.style.top = '-1000px';
+        dummy.style.left = '0';
+        dummy.style.width = '1px';
+        dummy.style.height = '1px';
+        dummy.style.opacity = '0';
+        document.body.appendChild(dummy);
+    }
+    // readonly saat focus supaya Android TIDAK memunculkan keyboard baru di
+    // input dummy ini — cuma dipakai untuk memicu event blur yang sungguhan.
+    dummy.setAttribute('readonly', 'readonly');
+    dummy.focus();
+    setTimeout(function(){ dummy.blur(); dummy.removeAttribute('readonly'); }, 0);
+}
+function ieResizeSelectedText(dir){
+    var s = getShapeById(imgEditState.selectedId);
+    if (!s || s.type !== 'text') return;
+    var step = Math.max(2, imgEditState.naturalW*0.006);
+    s.fontSize = Math.max(10, (s.fontSize||ieFontDefault()) + dir*step);
+    renderAllShapes();
+}
+
+function getSvgPoint(evt){
+    var svg = document.getElementById('editSvgOverlay');
+    var rect = svg.getBoundingClientRect();
+    var t = evt.touches ? (evt.touches[0] || evt.changedTouches[0]) : evt;
+    var x = (t.clientX - rect.left) * (imgEditState.naturalW / rect.width);
+    var y = (t.clientY - rect.top) * (imgEditState.naturalH / rect.height);
+    return { x: x, y: y };
+}
+
+/* Pakai Pointer Events (bukan touchstart/mousedown terpisah) supaya drag di HP
+   (Chrome/Safari Android & iOS) lebih andal — menghindari konflik event
+   sentuh vs mouse sintetis yang kadang bikin drag "putus" di tengah jalan. */
+function ieAddDocListeners(onMove, onUp){
+    document.addEventListener('pointermove', onMove, {passive:false});
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+}
+function ieRemoveDocListeners(onMove, onUp){
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onUp);
+}
+
+/* ── Mulai gambar shape baru (drag dari kosong) ── */
+function onEditSvgPointerDown(e){
+    var tool = imgEditState.tool;
+    if (tool === 'pan') {
+        if (e.cancelable) e.preventDefault();
+        var outer = document.getElementById('editImgOuter');
+        var t0 = e.touches ? e.touches[0] : e;
+        var startX = t0.clientX, startY = t0.clientY;
+        var startL = outer.scrollLeft, startT = outer.scrollTop;
+        var svgEl = document.getElementById('editSvgOverlay'); svgEl.style.cursor = 'grabbing';
+        function onMove(mv){
+            if (mv.cancelable) mv.preventDefault();
+            var t = mv.touches ? mv.touches[0] : mv;
+            outer.scrollLeft = startL - (t.clientX - startX);
+            outer.scrollTop = startT - (t.clientY - startY);
+        }
+        function onUp(){ ieRemoveDocListeners(onMove, onUp); svgEl.style.cursor = 'grab'; }
+        ieAddDocListeners(onMove, onUp);
+        return;
+    }
+    if (tool === 'select') { if (e.target.id === 'editSvgOverlay') deselectShape(); return; }
+    if (e.cancelable) e.preventDefault();
+    var pt = getSvgPoint(e);
+    if (tool === 'text') {
+        var txt = prompt('Masukkan teks:');
+        ieForceHideKeyboard();
+        if (txt && txt.trim()) {
+            var shapeT = addShape({type:'text', x:pt.x, y:pt.y, text:txt.trim(), color:imgEditState.color, fontSize: ieFontDefault()});
+            setSelectedShape(shapeT.id);
+        }
+        ieBackToSelectKeepSelection();
+        return;
+    }
+    imgEditState.drawing = {type:tool, x1:pt.x, y1:pt.y, x2:pt.x, y2:pt.y, color:imgEditState.color, strokeSize:imgEditState.thickness};
+    renderAllShapes();
+    function onMove(mv){
+        if (mv.cancelable) mv.preventDefault();
+        var p = getSvgPoint(mv);
+        imgEditState.drawing.x2 = p.x; imgEditState.drawing.y2 = p.y;
+        renderAllShapes();
+    }
+    function onUp(){
+        ieRemoveDocListeners(onMove, onUp);
+        var d = imgEditState.drawing; imgEditState.drawing = null;
+        if (d && (Math.abs(d.x2-d.x1) > 4 || Math.abs(d.y2-d.y1) > 4)) {
+            var shape;
+            if (d.type === 'rect' || d.type === 'oval') {
+                shape = addShape({type:d.type, x:Math.min(d.x1,d.x2), y:Math.min(d.y1,d.y2), w:Math.abs(d.x2-d.x1), h:Math.abs(d.y2-d.y1), color:d.color, strokeSize:d.strokeSize, rotation:0});
+            } else {
+                shape = addShape({type:d.type, x1:d.x1, y1:d.y1, x2:d.x2, y2:d.y2, color:d.color, strokeSize:d.strokeSize});
+            }
+            setSelectedShape(shape.id);
+            ieBackToSelectKeepSelection();
+        } else { renderAllShapes(); }
+    }
+    ieAddDocListeners(onMove, onUp);
+}
+
+/* ── Pindahkan shape yang ada (drag body) ── */
+function startDragShape(id, ev){
+    setSelectedShape(id);
+    var shape = getShapeById(id);
+    if (!shape) return;
+    var startPt = getSvgPoint(ev);
+    var orig = JSON.parse(JSON.stringify(shape));
+    function onMove(mv){
+        if (mv.cancelable) mv.preventDefault();
+        var p = getSvgPoint(mv);
+        var dx = p.x - startPt.x, dy = p.y - startPt.y;
+        if (shape.type === 'line' || shape.type === 'arrow') {
+            shape.x1 = orig.x1+dx; shape.y1 = orig.y1+dy; shape.x2 = orig.x2+dx; shape.y2 = orig.y2+dy;
+        } else {
+            shape.x = orig.x+dx; shape.y = orig.y+dy;
+        }
+        renderAllShapes();
+    }
+    function onUp(){ ieRemoveDocListeners(onMove, onUp); }
+    ieAddDocListeners(onMove, onUp);
+}
+
+/* ── Handle resize/endpoint drag ── */
+function startHandleDrag(onDragMove){
+    function onMove(mv){ if (mv.cancelable) mv.preventDefault(); onDragMove(getSvgPoint(mv)); renderAllShapes(); }
+    function onUp(){ ieRemoveDocListeners(onMove, onUp); }
+    ieAddDocListeners(onMove, onUp);
+}
+
+function ieMakeHandle(svg, cx, cy, cursor, onDragMove){
+    var c = document.createElementNS(NS_SVG, 'circle');
+    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', ieHandleR());
+    c.setAttribute('fill', '#2ecc71'); c.setAttribute('stroke', '#fff'); c.setAttribute('stroke-width', Math.max(1,ieHandleR()*0.2));
+    c.style.cursor = cursor; c.style.touchAction = 'none'; c.style.pointerEvents = 'none';
+    svg.appendChild(c);
+    // Hit-area transparan yang lebih besar, ditumpuk di atas titik visual,
+    // supaya gampang dipencet di HP tanpa mengubah ukuran titik yang terlihat.
+    var hit = document.createElementNS(NS_SVG, 'circle');
+    hit.setAttribute('cx', cx); hit.setAttribute('cy', cy); hit.setAttribute('r', ieHandleHitR());
+    hit.setAttribute('fill', 'transparent');
+    hit.style.cursor = cursor; hit.style.touchAction = 'none'; hit.style.pointerEvents = 'all';
+    hit.addEventListener('pointerdown', function(e){ e.stopPropagation(); if (e.cancelable) e.preventDefault(); startHandleDrag(onDragMove); });
+    svg.appendChild(hit);
+}
+
+/* ── Bangun 1 elemen visual shape (dipakai utk overlay interaktif & flatten) ── */
+function ieBuildShapeVisual(shape){
+    var el;
+    if (shape.type === 'rect') {
+        el = document.createElementNS(NS_SVG, 'rect');
+        el.setAttribute('x', shape.x); el.setAttribute('y', shape.y);
+        el.setAttribute('width', shape.w); el.setAttribute('height', shape.h);
+        el.setAttribute('fill', 'none'); el.setAttribute('stroke', shape.color); el.setAttribute('stroke-width', ieStrokeWFor(shape));
+    } else if (shape.type === 'oval') {
+        el = document.createElementNS(NS_SVG, 'ellipse');
+        el.setAttribute('cx', shape.x+shape.w/2); el.setAttribute('cy', shape.y+shape.h/2);
+        el.setAttribute('rx', shape.w/2); el.setAttribute('ry', shape.h/2);
+        el.setAttribute('fill', 'none'); el.setAttribute('stroke', shape.color); el.setAttribute('stroke-width', ieStrokeWFor(shape));
+    } else if (shape.type === 'line' || shape.type === 'arrow') {
+        el = document.createElementNS(NS_SVG, 'line');
+        el.setAttribute('x1', shape.x1); el.setAttribute('y1', shape.y1);
+        el.setAttribute('x2', shape.x2); el.setAttribute('y2', shape.y2);
+        el.setAttribute('stroke', shape.color); el.setAttribute('stroke-width', ieStrokeWFor(shape)); el.setAttribute('stroke-linecap', 'round');
+        if (shape.type === 'arrow') el.setAttribute('marker-end', 'url(#'+ieColorId(shape.color)+')');
+    } else if (shape.type === 'text') {
+        el = document.createElementNS(NS_SVG, 'text');
+        el.setAttribute('x', shape.x); el.setAttribute('y', shape.y + shape.fontSize);
+        el.setAttribute('fill', shape.color); el.setAttribute('font-size', shape.fontSize);
+        el.setAttribute('font-family', 'Arial, sans-serif'); el.setAttribute('font-weight', '700');
+        el.textContent = shape.text;
+    }
+    return el;
+}
+
+function ieBuildDefs(svg){
+    var defs = document.createElementNS(NS_SVG, 'defs');
+    ['#e53935','#1a1a1a','#1e88e5','#fdd835'].forEach(function(c){
+        var marker = document.createElementNS(NS_SVG, 'marker');
+        marker.setAttribute('id', ieColorId(c)); marker.setAttribute('markerWidth', '10'); marker.setAttribute('markerHeight', '10');
+        marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5'); marker.setAttribute('orient', 'auto');
+        var path = document.createElementNS(NS_SVG, 'path');
+        path.setAttribute('d', 'M0,0 L10,5 L0,10 Z'); path.setAttribute('fill', c);
+        marker.appendChild(path); defs.appendChild(marker);
+    });
+    svg.appendChild(defs);
+}
+
+/* ── Rotasi titik (px,py) mengelilingi pusat (cx,cy) sejauh `deg` derajat ── */
+function ieRotatePoint(px, py, cx, cy, deg){
+    var rad = deg * Math.PI/180;
+    var cos = Math.cos(rad), sin = Math.sin(rad);
+    var dx = px-cx, dy = py-cy;
+    return { x: cx + dx*cos - dy*sin, y: cy + dx*sin + dy*cos };
+}
+
+/* ── Render ulang seluruh overlay interaktif (shapes + preview + handle seleksi) ── */
+function renderAllShapes(){
+    var svg = document.getElementById('editSvgOverlay');
+    if (!svg) return;
+    svg.innerHTML = '';
+    ieBuildDefs(svg);
+    imgEditState.shapes.forEach(function(shape){
+        var g = document.createElementNS(NS_SVG, 'g');
+        var visual = ieBuildShapeVisual(shape);
+        if (!visual) return;
+        g.appendChild(visual);
+        // Hit-area lebih lebar supaya mudah disentuh (untuk garis/panah tipis,
+        // dan bagian dalam kotak/oval yang defaultnya fill:none tidak bisa disentuh)
+        if (shape.type === 'line' || shape.type === 'arrow') {
+            var hit = document.createElementNS(NS_SVG, 'line');
+            hit.setAttribute('x1', shape.x1); hit.setAttribute('y1', shape.y1);
+            hit.setAttribute('x2', shape.x2); hit.setAttribute('y2', shape.y2);
+            hit.setAttribute('stroke', 'transparent'); hit.setAttribute('stroke-width', Math.max(24, imgEditState.naturalW*0.02));
+            g.insertBefore(hit, visual);
+        } else if (shape.type === 'rect' || shape.type === 'oval') {
+            var fhit = document.createElementNS(NS_SVG, shape.type === 'rect' ? 'rect' : 'ellipse');
+            if (shape.type === 'rect') {
+                fhit.setAttribute('x', shape.x); fhit.setAttribute('y', shape.y);
+                fhit.setAttribute('width', shape.w); fhit.setAttribute('height', shape.h);
+            } else {
+                fhit.setAttribute('cx', shape.x+shape.w/2); fhit.setAttribute('cy', shape.y+shape.h/2);
+                fhit.setAttribute('rx', shape.w/2); fhit.setAttribute('ry', shape.h/2);
+            }
+            fhit.setAttribute('fill', 'transparent');
+            g.insertBefore(fhit, visual);
+        } else if (shape.type === 'text') {
+            // <text> secara default cuma bisa "diklik" tepat di garis huruf. Tambahkan
+            // hit-area kotak penuh (transparan) supaya teks mudah digeser/dipilih di HP.
+            var tb = ieTextBoxSize(shape);
+            var padX = tb.w*0.08, padY = tb.h*0.15;
+            var thit = document.createElementNS(NS_SVG, 'rect');
+            thit.setAttribute('x', shape.x - padX); thit.setAttribute('y', shape.y - padY);
+            thit.setAttribute('width', tb.w + padX*2); thit.setAttribute('height', tb.h + padY*2);
+            thit.setAttribute('fill', 'transparent');
+            g.insertBefore(thit, visual);
+        }
+        g.style.cursor = 'move';
+        if ((shape.type === 'rect' || shape.type === 'oval') && shape.rotation) {
+            var rcx = shape.x + shape.w/2, rcy = shape.y + shape.h/2;
+            g.setAttribute('transform', 'rotate(' + shape.rotation + ' ' + rcx + ' ' + rcy + ')');
+        }
+        var start = (function(shapeId){ return function(ev){
+            if (imgEditState.tool !== 'select') return;
+            ev.stopPropagation(); if (ev.cancelable) ev.preventDefault();
+            startDragShape(shapeId, ev);
+        }; })(shape.id);
+        g.addEventListener('pointerdown', start);
+        svg.appendChild(g);
+
+        if (shape.id === imgEditState.selectedId) {
+            if (shape.type === 'rect' || shape.type === 'oval') {
+                var rot = shape.rotation || 0;
+                var cx = shape.x + shape.w/2, cy = shape.y + shape.h/2;
+                var box = document.createElementNS(NS_SVG, 'rect');
+                box.setAttribute('x', shape.x); box.setAttribute('y', shape.y);
+                box.setAttribute('width', shape.w); box.setAttribute('height', shape.h);
+                box.setAttribute('fill', 'none'); box.setAttribute('stroke', '#2ecc71');
+                box.setAttribute('stroke-width', Math.max(1, imgEditState.naturalW*0.0015));
+                box.setAttribute('stroke-dasharray', '6,4'); box.setAttribute('pointer-events', 'none');
+                if (rot) box.setAttribute('transform', 'rotate(' + rot + ' ' + cx + ' ' + cy + ')');
+                svg.appendChild(box);
+                // Handle resize di pojok kanan-bawah — posisinya dihitung ulang sesuai
+                // rotasi saat ini, dan resize dihitung di ruang LOKAL (belum dirotasi)
+                // supaya tetap membesar/mengecil mengikuti arah kotaknya sendiri.
+                var cornerLocal = {x: shape.x+shape.w, y: shape.y+shape.h};
+                var cornerWorld = rot ? ieRotatePoint(cornerLocal.x, cornerLocal.y, cx, cy, rot) : cornerLocal;
+                ieMakeHandle(svg, cornerWorld.x, cornerWorld.y, 'nwse-resize', function(p){
+                    var local = rot ? ieRotatePoint(p.x, p.y, cx, cy, -rot) : p;
+                    shape.w = Math.max(ieMinSize(), local.x-shape.x); shape.h = Math.max(ieMinSize(), local.y-shape.y);
+                });
+                // Handle rotasi — bulatan di atas tengah kotak, tarik memutar sekeliling pusat.
+                var rotDist = Math.max(24, imgEditState.naturalW*0.03);
+                var rotHandleLocal = {x: cx, y: shape.y - rotDist};
+                var rotHandleWorld = rot ? ieRotatePoint(rotHandleLocal.x, rotHandleLocal.y, cx, cy, rot) : rotHandleLocal;
+                var rotLine = document.createElementNS(NS_SVG, 'line');
+                rotLine.setAttribute('x1', cx); rotLine.setAttribute('y1', shape.y);
+                rotLine.setAttribute('x2', rotHandleLocal.x); rotLine.setAttribute('y2', rotHandleLocal.y);
+                rotLine.setAttribute('stroke', '#2ecc71'); rotLine.setAttribute('stroke-width', Math.max(1, imgEditState.naturalW*0.0015));
+                rotLine.setAttribute('pointer-events', 'none');
+                if (rot) rotLine.setAttribute('transform', 'rotate(' + rot + ' ' + cx + ' ' + cy + ')');
+                svg.appendChild(rotLine);
+                ieMakeHandle(svg, rotHandleWorld.x, rotHandleWorld.y, 'grab', function(p){
+                    var deg = Math.atan2(p.x-cx, -(p.y-cy)) * 180/Math.PI;
+                    shape.rotation = Math.round(deg);
+                });
+            } else if (shape.type === 'line' || shape.type === 'arrow') {
+                ieMakeHandle(svg, shape.x1, shape.y1, 'move', function(p){ shape.x1=p.x; shape.y1=p.y; });
+                ieMakeHandle(svg, shape.x2, shape.y2, 'move', function(p){ shape.x2=p.x; shape.y2=p.y; });
+            } else if (shape.type === 'text') {
+                var tbSel = ieTextBoxSize(shape);
+                var box2 = document.createElementNS(NS_SVG, 'rect');
+                box2.setAttribute('x', shape.x); box2.setAttribute('y', shape.y);
+                box2.setAttribute('width', tbSel.w); box2.setAttribute('height', tbSel.h);
+                box2.setAttribute('fill', 'none'); box2.setAttribute('stroke', '#2ecc71');
+                box2.setAttribute('stroke-width', Math.max(1, imgEditState.naturalW*0.0015));
+                box2.setAttribute('stroke-dasharray', '6,4'); box2.setAttribute('pointer-events', 'none');
+                svg.appendChild(box2);
+                ieMakeHandle(svg, shape.x+tbSel.w, shape.y+tbSel.h, 'nwse-resize', function(p){
+                    var newH = Math.max(10, p.y-shape.y);
+                    shape.fontSize = newH/1.2;
+                });
+            }
+        }
+    });
+    if (imgEditState.drawing) {
+        var dvisual = ieBuildShapeVisual(
+            (imgEditState.drawing.type==='rect'||imgEditState.drawing.type==='oval')
+            ? {type:imgEditState.drawing.type, x:Math.min(imgEditState.drawing.x1,imgEditState.drawing.x2), y:Math.min(imgEditState.drawing.y1,imgEditState.drawing.y2), w:Math.abs(imgEditState.drawing.x2-imgEditState.drawing.x1), h:Math.abs(imgEditState.drawing.y2-imgEditState.drawing.y1), color:imgEditState.drawing.color, strokeSize:imgEditState.drawing.strokeSize}
+            : imgEditState.drawing
+        );
+        if (dvisual) { dvisual.setAttribute('opacity','0.75'); svg.appendChild(dvisual); }
+    }
+}
+
+(function initEditSvgEvents(){
+    var svg = document.getElementById('editSvgOverlay');
+    if (!svg) return;
+    svg.addEventListener('pointerdown', onEditSvgPointerDown);
+})();
+
+/* ── Terapkan semua anotasi: gabung ke gambar asli, kembalikan ke #cropImg ── */
+function applyImageEdits(){
+    if (!imgEditState.shapes.length) { closeImageEditor(false); return; }
+    var nw = imgEditState.naturalW, nh = imgEditState.naturalH;
+    var flatSvg = document.createElementNS(NS_SVG, 'svg');
+    flatSvg.setAttribute('xmlns', NS_SVG);
+    flatSvg.setAttribute('width', nw); flatSvg.setAttribute('height', nh);
+    flatSvg.setAttribute('viewBox', '0 0 '+nw+' '+nh);
+    ieBuildDefs(flatSvg);
+    imgEditState.shapes.forEach(function(shape){
+        var v = ieBuildShapeVisual(shape);
+        if (!v) return;
+        if ((shape.type === 'rect' || shape.type === 'oval') && shape.rotation) {
+            var cx = shape.x + shape.w/2, cy = shape.y + shape.h/2;
+            v.setAttribute('transform', 'rotate(' + shape.rotation + ' ' + cx + ' ' + cy + ')');
+        }
+        flatSvg.appendChild(v);
+    });
+    var svgStr = new XMLSerializer().serializeToString(flatSvg);
+    var svgImg = new Image();
+    svgImg.onload = function(){
+        var canvas = document.createElement('canvas');
+        canvas.width = nw; canvas.height = nh;
+        var ctx = canvas.getContext('2d');
+        var srcImg = new Image();
+        srcImg.onload = function(){
+            ctx.drawImage(srcImg, 0, 0, nw, nh);
+            ctx.drawImage(svgImg, 0, 0, nw, nh);
+            var outUrl = canvas.toDataURL('image/jpeg', 0.92);
+            var cropImg = document.getElementById('cropImg');
+            cropImg.onload = function(){
+                var wrap = document.getElementById('cropWrap');
+                var ww = wrap.clientWidth, wh = wrap.clientHeight;
+                var scale = Math.min(ww/cropImg.naturalWidth, wh/cropImg.naturalHeight);
+                var dw = cropImg.naturalWidth*scale, dh = cropImg.naturalHeight*scale;
+                cropImg.style.width = dw+'px'; cropImg.style.height = dh+'px';
+                cropImg.style.left = ((ww-dw)/2)+'px'; cropImg.style.top = ((wh-dh)/2)+'px';
+                if (cropModalState._mode === 'default') fitCropBoxToFullImage();
+                else if (cropModalState._ratioLocked) reshapeCropBoxToRatio();
+            };
+            cropImg.src = outUrl;
+            closeImageEditor(false);
+        };
+        srcImg.src = imgEditState.sourceUrl;
+    };
+    svgImg.onerror = function(){ alert('Gagal menerapkan anotasi pada gambar. Coba lagi.'); };
+    svgImg.src = 'data:image/svg+xml;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+}
+
+var CROP_PRESETS = [
+    {label:'3:2', w:3, h:2}, {label:'4:3', w:4, h:3},
+    {label:'5:4', w:5, h:4}, {label:'16:9', w:16, h:9}, {label:'A4', w:210, h:297}, {label:'Letter', w:216, h:279}
+];
+// Kenali kembali preset rasio (3:2, 4:3, dst / bujur sangkar 1:1) dari ukuran cm
+// yang tersimpan di foto, supaya waktu buka ulang foto lama dari data tersimpan
+// (mis. dari Riwayat), mode Preset & tombol rasionya otomatis kepilih lagi --
+// sebelumnya selalu jatuh ke Manual/Custom karena tidak pernah dicek sama sekali.
+function matchCropPreset(w, h) {
+    if (!w || !h) return null;
+    if (Math.abs(w - h) < 0.15) return {idx:'square'};
+    var ratio = Math.max(w, h) / Math.min(w, h);
+    for (var i = 0; i < CROP_PRESETS.length; i++) {
+        var p = CROP_PRESETS[i];
+        var pRatio = Math.max(p.w, p.h) / Math.min(p.w, p.h);
+        if (Math.abs(ratio - pRatio) < 0.018) return {idx:i};
+    }
+    return null;
+}
+
+function renderPresetButtons() {
+    var row = document.getElementById('cropPresetRow');
+    if (!row) return;
+    row.innerHTML = '';
+    CROP_PRESETS.forEach(function(p, i) {
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'crop-preset-btn'; btn.id = 'cropPreset-'+i;
+        btn.textContent = p.label; btn.onclick = function () { applyPreset(i); };
+        row.appendChild(btn);
+    });
+}
+function highlightPreset(activeIdx) {
+    CROP_PRESETS.forEach(function (p, idx) {
+        var btn = document.getElementById('cropPreset-'+idx);
+        if (btn) btn.classList.toggle('active', idx === activeIdx);
+    });
+    // 1:1 berdiri sendiri di luar daftar rasio — begitu salah satu preset
+    // rasio (yang ikut Potrait/Lanskap) dipilih, tombol 1:1 ikut nonaktif.
+    var sq = document.getElementById('cropPresetSquare');
+    if (sq) sq.classList.toggle('active', activeIdx === 'square');
+}
+// Preset 1:1 sengaja dipisah dari daftar CROP_PRESETS supaya TIDAK ikut
+// terpengaruh toggle Potrait/Lanskap (bujur sangkar tidak punya orientasi).
+function applySquarePreset() {
+    cropModalState._activePresetIdx = 'square';
+    var side = Math.min(PRESET_DEFAULT_LONG_CM, MANUAL_MAX_W_CM, MANUAL_MAX_H_CM);
+    cropModalState._presetRatio = 1;
+    // Selalu mulai dari kotak crop full image dulu sebelum diperkecil ke rasio 1:1.
+    fitCropBoxToFullImage();
+    setLockedSize(side, side);
+    highlightPreset('square');
+    // 1:1 tidak punya orientasi — lepas status aktif tombol Potrait/Lanskap
+    // supaya tidak kelihatan dua-duanya aktif bersamaan (1:1 + Potrait/Lanskap).
+    // Ini juga yang mencegah bug lama: box kelihatan "mengecil tiba-tiba" saat
+    // pindah dari 1:1 ke Potrait/Lanskap, karena sekarang begitu 1:1 aktif,
+    // tidak ada orientasi yang tertinggal aktif untuk ikut memicu reshape rasio.
+    var pB = document.getElementById('cropOrientPotrait'), lB = document.getElementById('cropOrientLandscape');
+    if (pB) pB.classList.remove('active');
+    if (lB) lB.classList.remove('active');
+}
+function getMaxForField(field) {
+    return field === 'w' ? MANUAL_MAX_W_CM : MANUAL_MAX_H_CM;
+}
+function clampCmValue(v, maxV) {
+    v = parseFloat(v);
+    if (!isFinite(v) || v<=0) v=0.5;
+    if (v>maxV) v=maxV;
+    if (v<0.5) v=0.5;
+    return Math.round(v*10)/10;
+}
+function setCropMode(mode) {
+    cropModalState._mode = mode;
+    ['Default','Preset','Manual'].forEach(function(m){
+        var b = document.getElementById('cropMode'+m);
+        if (b) b.classList.toggle('active', mode === m.toLowerCase());
+    });
+    var presetControls = document.getElementById('cropPresetControls');
+    var cmRow = document.getElementById('cropCmRow');
+    var defaultLabel = document.getElementById('cropDefaultLabel');
+    // Selalu mulai dari kotak crop yang menutupi seluruh gambar dulu setiap
+    // pindah tab (Default/Preset/Manual), supaya user tidak perlu geser2
+    // manual kalau kotak sebelumnya kekecilan/di posisi lain.
+    fitCropBoxToFullImage();
+    if (mode === 'default') {
+        presetControls.style.display='none'; cmRow.style.display='none'; defaultLabel.style.display='block';
+        highlightPreset(-1); applyDefaultSize();
+    } else if (mode === 'preset') {
+        presetControls.style.display='block'; cmRow.style.display='flex'; defaultLabel.style.display='none';
+        if (cropModalState._activePresetIdx === 'square') applySquarePreset();
+        else applyPreset((cropModalState._activePresetIdx === -1 || cropModalState._activePresetIdx == null) ? 0 : cropModalState._activePresetIdx);
+    } else {
+        presetControls.style.display='none'; cmRow.style.display='flex'; defaultLabel.style.display='none';
+        highlightPreset(-1);
+        setFreeSize(cropModalState._cropWcm||5, cropModalState._cropHcm||5);
+    }
+}
+function applyDefaultSize() {
+    cropModalState._ratioLocked = false;
+    cropModalState._cropWcm = DEFAULT_CROP_W_CM; cropModalState._cropHcm = DEFAULT_CROP_H_CM;
+    updateSizeLabel(); fitCropBoxToFullImage();
+}
+function fitCropBoxToFullImage() {
+    var box = document.getElementById('cropBox');
+    var img = document.getElementById('cropImg');
+    if (!box || !img) return;
+    var iL = parseInt(img.style.left) || 0, iT = parseInt(img.style.top) || 0;
+    var iW = img.offsetWidth, iH = img.offsetHeight;
+    if (!iW || !iH) return;
+    box.style.left = iL + 'px'; box.style.top = iT + 'px';
+    box.style.width = iW + 'px'; box.style.height = iH + 'px';
+}
+function applyPreset(i) {
+    var p = CROP_PRESETS[i];
+    var ratioValue = Math.max(p.w,p.h) / Math.min(p.w,p.h);
+    cropModalState._activePresetIdx = i;
+    cropModalState._lastRatioPresetIdx = i;
+    var longSide = PRESET_DEFAULT_LONG_CM;
+    var shortSide = Math.round((longSide/ratioValue)*10)/10;
+    var w,h;
+    if (cropModalState._orientation === 'landscape') { w=longSide; h=shortSide; } else { h=longSide; w=shortSide; }
+    cropModalState._presetRatio = w/h;
+    setLockedSize(w,h); highlightPreset(i);
+}
+function setCropOrientation(orientation) {
+    cropModalState._orientation = orientation;
+    document.getElementById('cropOrientPotrait').classList.toggle('active', orientation==='portrait');
+    document.getElementById('cropOrientLandscape').classList.toggle('active', orientation==='landscape');
+    // Potrait/Lanskap adalah milik preset RASIO, bukan 1:1. Kalau sebelumnya
+    // lagi di preset 1:1, klik Potrait/Lanskap TIDAK langsung memaksakan
+    // salah satu rasio (3:2/4:3/16:9/dst) — itu penyebab box kelihatan
+    // "mengecil tiba-tiba" alih-alih benar-benar kembali full dulu, karena
+    // rasio tertentu (apalagi yang jauh dari bentuk gambar aslinya) pasti
+    // menghasilkan box yang lebih kecil dari full image. Jadi di sini box
+    // cukup dikembalikan ke ukuran PENUH gambar dan status 1:1 dilepas —
+    // biar user sendiri yang pilih rasio mana yang mau dipakai berikutnya.
+    if (cropModalState._activePresetIdx === 'square') {
+        fitCropBoxToFullImage();
+        cropModalState._activePresetIdx = -1;
+        cropModalState._ratioLocked = false;
+        cropModalState._cropWcm = null;
+        cropModalState._cropHcm = null;
+        highlightPreset(-1);
+        var wEl=document.getElementById('cropWcm'), hEl=document.getElementById('cropHcm'), lblEl=document.getElementById('cropSizeLabel');
+        if (wEl) wEl.value = ''; if (hEl) hEl.value = '';
+        if (lblEl) lblEl.textContent = 'Pilih salah satu rasio di bawah';
+        return;
+    }
+    // Selalu mulai dari kotak crop full image dulu sebelum di-reshape ke
+    // rasio baru sesuai orientasi — supaya kotak tidak "nyangkut" di
+    // ukuran/posisi lama waktu pindah Lanskap↔Potrait.
+    fitCropBoxToFullImage();
+    var w = cropModalState._cropWcm||1, h = cropModalState._cropHcm||1;
+    var longVal=Math.max(w,h), shortVal=Math.min(w,h), neww, newh;
+    if (orientation==='landscape') { neww=longVal; newh=shortVal; } else { newh=longVal; neww=shortVal; }
+    cropModalState._presetRatio = neww/newh;
+    setLockedSize(neww, newh);
+}
+// Selama user masih MENGETIK (oninput): update preview kotak crop kalau
+// angkanya sudah valid, tapi JANGAN menimpa balik nilai input -- dulu di sini
+// langsung clamp+tulis-ulang tiap ketikan, akibatnya begitu field dikosongkan
+// (mau ganti angka) langsung "dipaksa" balik ke angka lain sebelum sempat
+// mengetik angka barunya. Validasi/pembulatan final baru terjadi di
+// onCustomCmCommit() saat field kehilangan fokus (blur).
+function onCustomCmChange(field) {
+    if (cropModalState._mode === 'preset') { onPresetFieldChange(field, false); return; }
+    if (cropModalState._mode === 'manual') {
+        var wRaw = parseFloat(document.getElementById('cropWcm').value);
+        var hRaw = parseFloat(document.getElementById('cropHcm').value);
+        var w = (isFinite(wRaw) && wRaw > 0) ? wRaw : cropModalState._cropWcm;
+        var h = (isFinite(hRaw) && hRaw > 0) ? hRaw : cropModalState._cropHcm;
+        setFreeSize(w, h, true); // skipInputSync=true -> jangan timpa input yang lagi diketik
+    }
+}
+// Dipanggil saat field kehilangan fokus (blur) -- baru di sini nilai
+// di-clamp ke batas min/max, dibulatkan, dan ditulis ulang ke input.
+function onCustomCmCommit(field) {
+    if (cropModalState._mode === 'preset') { onPresetFieldChange(field, true); return; }
+    if (cropModalState._mode === 'manual') {
+        var w = clampCmValue(document.getElementById('cropWcm').value, getMaxForField('w'));
+        var h = clampCmValue(document.getElementById('cropHcm').value, getMaxForField('h'));
+        document.getElementById('cropWcm').value = w; document.getElementById('cropHcm').value = h;
+        setFreeSize(w, h, true);
+    }
+}
+function onPresetFieldChange(field, commit) {
+    var ratio = cropModalState._presetRatio || 1;
+    var wEl=document.getElementById('cropWcm'), hEl=document.getElementById('cropHcm');
+    var raw = parseFloat((field==='w'?wEl:hEl).value);
+    if (!isFinite(raw) || raw<=0) {
+        if (!commit) return;
+        raw = 0.5;
+    }
+    var w,h;
+    if (field==='w') { w=raw; h=w/ratio; } else { h=raw; w=h*ratio; }
+    var maxW=getMaxForField('w'), maxH=getMaxForField('h');
+    var scale = Math.min(1, maxW/w, maxH/h); w*=scale; h*=scale;
+    if (w<0.5) { w=0.5; h=w/ratio; }
+    if (h<0.5) { h=0.5; w=h*ratio; }
+    w=Math.round(w*10)/10; h=Math.round(h*10)/10;
+    cropModalState._ratioLocked=true; cropModalState._cropWcm=w; cropModalState._cropHcm=h;
+    if (commit) { wEl.value=w; hEl.value=h; }
+    updateSizeLabel(); reshapeCropBoxToRatio();
+}
+function setLockedSize(w,h,skipInputSync) {
+    w=clampCmValue(w,getMaxForField('w')); h=clampCmValue(h,getMaxForField('h'));
+    cropModalState._ratioLocked=true; cropModalState._cropWcm=w; cropModalState._cropHcm=h;
+    if (!skipInputSync) { document.getElementById('cropWcm').value=w; document.getElementById('cropHcm').value=h; }
+    updateSizeLabel(); reshapeCropBoxToRatio();
+}
+function setFreeSize(w,h,skipInputSync) {
+    w=clampCmValue(w,getMaxForField('w')); h=clampCmValue(h,getMaxForField('h'));
+    cropModalState._ratioLocked=false; cropModalState._cropWcm=w; cropModalState._cropHcm=h;
+    if (!skipInputSync) { document.getElementById('cropWcm').value=w; document.getElementById('cropHcm').value=h; }
+    updateSizeLabel();
+}
+function updateSizeLabel() {
+    var lbl = document.getElementById('cropSizeLabel'); if (!lbl) return;
+    var w=cropModalState._cropWcm, h=cropModalState._cropHcm;
+    lbl.textContent = cropModalState._mode==='preset'
+        ? 'Ukuran cetak: '+w+' cm × '+h+' cm (rasio terkunci)'
+        : 'Ukuran cetak: '+w+' cm × '+h+' cm (bebas, maks Panjang '+MANUAL_MAX_W_CM+'cm × Lebar '+MANUAL_MAX_H_CM+'cm)';
+}
+function clampNum(val, min, max) { return Math.max(min, Math.min(max, val)); }
+function reshapeCropBoxToRatio() {
+    var box = document.getElementById('cropBox');
+    var img = document.getElementById('cropImg');
+    if (!box || !img || !cropModalState._cropWcm || !cropModalState._cropHcm) return;
+    var ratio = cropModalState._cropWcm / cropModalState._cropHcm;
+    var iL=parseInt(img.style.left)||0, iT=parseInt(img.style.top)||0;
+    var iW=img.offsetWidth, iH=img.offsetHeight;
+    var bL=parseInt(box.style.left)||0, bT=parseInt(box.style.top)||0;
+    var bW=box.offsetWidth, bH=box.offsetHeight;
+    var cx=bL+bW/2, cy=bT+bH/2;
+    var newW=bW, newH=bW/ratio;
+    if (newH>bH*1.6||newH<bH*0.6) { newH=bH; newW=bH*ratio; }
+    newW = Math.min(newW, iW); newH = Math.min(newH, iH);
+    if (newW/newH > ratio) newW = newH*ratio; else newH = newW/ratio;
+    var nl = clampNum(cx-newW/2, iL, iL+iW-newW);
+    var nt = clampNum(cy-newH/2, iT, iT+iH-newH);
+    box.style.left=nl+'px'; box.style.top=nt+'px'; box.style.width=newW+'px'; box.style.height=newH+'px';
+}
+function imgOpenCropper(dataUrl, name, type, imgArr, side, modulePrefix, replaceIdx) {
+    cropModalState._pending = {dataUrl:dataUrl, name:name, type:type, imgArr:imgArr, side:side, modulePrefix:modulePrefix, replaceIdx:(replaceIdx!==undefined?replaceIdx:-1)};
+    var existing = (replaceIdx>=0 && imgArr[replaceIdx]) ? imgArr[replaceIdx] : null;
+    var preferredSize = (existing && existing.widthCm && existing.heightCm) ? {w:existing.widthCm, h:existing.heightCm} : null;
+    cropModalState._orientation = 'portrait';
+    cropModalState._activePresetIdx = -1;
+    if (preferredSize) {
+        document.getElementById('cropWcm').value = preferredSize.w;
+        document.getElementById('cropHcm').value = preferredSize.h;
+        if (preferredSize.w === DEFAULT_CROP_W_CM && preferredSize.h === DEFAULT_CROP_H_CM) {
+            setCropMode('default');
+        } else {
+            var _match = matchCropPreset(preferredSize.w, preferredSize.h);
+            if (_match) {
+                cropModalState._orientation = (preferredSize.w >= preferredSize.h) ? 'landscape' : 'portrait';
+                cropModalState._activePresetIdx = _match.idx;
+                setCropMode('preset');
+                setLockedSize(preferredSize.w, preferredSize.h, true);
+                cropModalState._presetRatio = preferredSize.w / preferredSize.h;
+            } else {
+                setCropMode('manual'); setFreeSize(preferredSize.w, preferredSize.h);
+            }
+        }
+    } else {
+        document.getElementById('cropWcm').value = 5; document.getElementById('cropHcm').value = 5;
+        setCropMode('default');
+    }
+    var img = document.getElementById('cropImg');
+    img.onload = function() {
+        var wrap = document.getElementById('cropWrap');
+        var ww = wrap.clientWidth, wh = wrap.clientHeight;
+        var scale = Math.min(ww/img.naturalWidth, wh/img.naturalHeight);
+        var dw = img.naturalWidth*scale, dh = img.naturalHeight*scale;
+        img.style.width = dw+'px'; img.style.height = dh+'px';
+        img.style.left = ((ww-dw)/2)+'px'; img.style.top = ((wh-dh)/2)+'px';
+        var box = document.getElementById('cropBox');
+        var bw = Math.min(dw,dh)*0.8, bh = bw;
+        box.style.width = bw+'px'; box.style.height = bh+'px';
+        box.style.left = ((ww-bw)/2)+'px'; box.style.top = ((wh-bh)/2)+'px';
+        if (cropModalState._mode === 'default') fitCropBoxToFullImage();
+        else if (cropModalState._ratioLocked) reshapeCropBoxToRatio();
+    };
+    img.src = dataUrl;
+    cropModalState.classList.add('show');
+}
+function closeCropModal() {
+    cropModalState.classList.remove('show');
+    cropModalState._pending = null;
+}
+function cropReset() {
+    var img = document.getElementById('cropImg');
+    var p = cropModalState._pending;
+    if (img && img.src && p) imgOpenCropper(img.src, p.name, p.type, p.imgArr, p.side, p.modulePrefix, p.replaceIdx);
+}
+function skipCrop() { closeCropModal(); processNextEvidUpload(); }
+/* ── Rotasi gambar 90° kiri/kanan di dalam modal crop ──
+   dir: -1 = putar ke kiri (counter-clockwise), 1 = putar ke kanan (clockwise).
+   Gambar SUMBER (bukan cuma crop box) diputar lewat canvas, lalu hasilnya
+   dipasang balik ke #cropImg -- ini otomatis memicu ulang event onload yang
+   sudah ada (lihat imgOpenCropper), yang menyesuaikan ulang ukuran/posisi
+   gambar dan crop box (termasuk kalau lagi mode Preset/Manual dengan rasio
+   terkunci), jadi tidak perlu logika reposisi terpisah. cropAndSave()
+   menggambar dari elemen #cropImg langsung, jadi hasil akhirnya otomatis
+   ikut gambar yang sudah diputar. */
+function rotateCropImage(dir) {
+    var img = document.getElementById('cropImg');
+    if (!img || !img.naturalWidth || !img.naturalHeight) return;
+    var canvas = document.createElement('canvas');
+    canvas.width = img.naturalHeight;
+    canvas.height = img.naturalWidth;
+    var ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width/2, canvas.height/2);
+    ctx.rotate(dir * 90 * Math.PI/180);
+    ctx.drawImage(img, -img.naturalWidth/2, -img.naturalHeight/2);
+    var rotatedUrl = canvas.toDataURL('image/jpeg', 0.95);
+    img.src = rotatedUrl; // memicu ulang img.onload -> refit gambar & crop box
+    if (cropModalState._pending) cropModalState._pending.dataUrl = rotatedUrl;
+}
+function cropAndSave() {
+    var img = document.getElementById('cropImg');
+    var box = document.getElementById('cropBox');
+    var p = cropModalState._pending;
+    if (!p) { alert('Target upload tidak ditemukan. Coba upload ulang.'); closeCropModal(); return; }
+
+    var iLeft=parseInt(img.style.left)||0, iTop=parseInt(img.style.top)||0;
+    var iW=img.offsetWidth, iH=img.offsetHeight;
+    if (!img.naturalWidth || !img.naturalHeight || !iW || !iH) { alert('Gambar belum siap diproses. Coba tunggu sebentar lalu simpan lagi.'); return; }
+    var bLeft=parseInt(box.style.left)||0, bTop=parseInt(box.style.top)||0;
+    var bW=box.offsetWidth, bH=box.offsetHeight;
+    var scale = img.naturalWidth / iW;
+    var sx=Math.max(0,(bLeft-iLeft)*scale), sy=Math.max(0,(bTop-iTop)*scale);
+    var sw=Math.min(img.naturalWidth-sx, bW*scale), sh=Math.min(img.naturalHeight-sy, bH*scale);
+
+    var canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(sw)); canvas.height = Math.max(1, Math.round(sh));
+    canvas.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+    var imgArr = p.imgArr;
+    var existing = (p.replaceIdx >= 0 && imgArr[p.replaceIdx]) ? imgArr[p.replaceIdx] : null;
+    var caption = existing ? (existing.caption||'') : '';
+    var offsetX = existing ? (existing.offsetX||0) : 0;
+    // CATATAN: sebelumnya di sini ada `imgArr.splice(p.replaceIdx, 1)` yang
+    // menghapus foto lama DARI AWAL, sebelum entry baru dibuat. Itu bug: baris
+    // di bawah (`imgArr.splice(p.replaceIdx, 1, entry)`) lalu menghapus SATU
+    // LAGI item di index yang sama -- padahal array sudah bergeser sejak
+    // penghapusan pertama, jadi yang kehapus itu foto LAIN yang tidak
+    // terkait (bukan foto yang sedang di-crop-ulang), lalu foto itu hilang
+    // permanen dari galeri tanpa disadari. Diperbaiki dengan TIDAK menghapus
+    // di awal -- budget ukuran (MAX_TOTAL) di bawah dihitung dengan
+    // mengecualikan index replaceIdx secara eksplisit lewat ternary, sama
+    // seperti pola di modul lain (opacity.html dkk).
+
+    var MAX = 1*1024*1024;
+    var dataUrl;
+    for (var q=0.9; q>=0.25; q-=0.1) {
+        dataUrl = canvas.toDataURL('image/jpeg', q);
+        var currentTotal = imgArr.reduce(function(a,im,i){ return a+((existing && i===p.replaceIdx) ? 0 : (im.dataUrl?im.dataUrl.length*0.75:0)); }, 0);
+        var newSize = dataUrl.length*0.75;
+        if (currentTotal+newSize <= MAX) break;
+        if (q<=0.25) {
+            var factor = Math.sqrt(MAX/(currentTotal+newSize));
+            var c2 = document.createElement('canvas');
+            c2.width = Math.max(50, Math.floor(canvas.width*factor));
+            c2.height = Math.max(50, Math.floor(canvas.height*factor));
+            c2.getContext('2d').drawImage(canvas,0,0,c2.width,c2.height);
+            dataUrl = c2.toDataURL('image/jpeg', 0.7);
+            break;
+        }
+    }
+
+    var entry = {name:(p.name||'photo.jpg').replace(/\.[^.]+$/,'.jpg'), dataUrl: dataUrl, type:'image/jpeg', caption: caption};
+    if (offsetX) entry.offsetX = offsetX;
+    if (cropModalState._cropWcm && cropModalState._cropHcm) { entry.widthCm = cropModalState._cropWcm; entry.heightCm = cropModalState._cropHcm; }
+    // Foto yang di-edit ulang (replaceIdx>=0) ditaruh KEMBALI di posisi yang sama,
+    // bukan dihapus lalu ditambahkan di akhir array — supaya urutan galeri (dan
+    // keterangan yang mengikuti indexnya saat render) tidak berubah/tertukar.
+    if (existing) imgArr.splice(p.replaceIdx, 1, entry);
+    else imgArr.push(entry);
+    // Foto lama yang diganti (crop-ulang) dihapus dari Drive lewat fileId
+    // pasti, bukan lewat cocokkan nama -- supaya tidak salah hapus file foto
+    // lain yang kebetulan nama device-nya sama.
+    if (existing && existing.driveFileId) deleteFotoDariGDrive(existing.driveFileId);
+
+    if (typeof uploadFotoKeGDrive === 'function') uploadFotoKeGDrive(entry.dataUrl, entry.name, 'CEMS Calibration', p.side||'', entry);
+
+    closeCropModal();
+    if (typeof renderEvidence === 'function' && p.side) renderEvidence(p.side);
+    processNextEvidUpload();
+}
+function initCropDrag() {
+    var box = document.getElementById('cropBox');
+    box.addEventListener('mousedown', onCropDragStart, false);
+    box.addEventListener('touchstart', onCropDragStart, {passive: false});
+}
+function onCropDragStart(e) {
+    e.preventDefault(); e.stopPropagation();
+    var box = document.getElementById('cropBox');
+    var t = e.touches ? e.touches[0] : e;
+    var startX=t.clientX, startY=t.clientY;
+    var startL=parseInt(box.style.left)||0, startT=parseInt(box.style.top)||0;
+    var startW=box.offsetWidth, startH=box.offsetHeight;
+    var rect=box.getBoundingClientRect();
+    var rx=t.clientX-rect.left, ry=t.clientY-rect.top, edge=22;
+    var edgeX = rx<edge?'l':rx>startW-edge?'r':'';
+    var edgeY = ry<edge?'t':ry>startH-edge?'b':'';
+    var mode = (edgeX||edgeY) ? edgeX+edgeY : 'move';
+    function onMove(ev) {
+        ev.preventDefault();
+        var mv = ev.touches?ev.touches[0]:ev;
+        var dx=mv.clientX-startX, dy=mv.clientY-startY;
+        var img=document.getElementById('cropImg');
+        var iL=parseInt(img.style.left)||0, iT=parseInt(img.style.top)||0;
+        var iW=img.offsetWidth, iH=img.offsetHeight;
+        if (mode==='move') {
+            box.style.left = clampNum(startL+dx, iL, iL+iW-startW)+'px';
+            box.style.top = clampNum(startT+dy, iT, iT+iH-startH)+'px';
+            return;
+        }
+        if (cropModalState._ratioLocked && cropModalState._cropWcm && cropModalState._cropHcm) {
+            var ratio = cropModalState._cropWcm / cropModalState._cropHcm;
+            var growRight=mode.indexOf('r')>=0, growLeftEdge=mode.indexOf('l')>=0;
+            var growBottom=mode.indexOf('b')>=0, growTopEdge=mode.indexOf('t')>=0;
+            var isCorner = mode.length===2;
+            var anchorX = growLeftEdge ? (startL+startW) : startL;
+            var anchorY = growTopEdge ? (startT+startH) : startT;
+            var dxSigned = growRight?dx:(growLeftEdge?-dx:0);
+            var dySigned = growBottom?dy:(growTopEdge?-dy:0);
+            var newW,newH;
+            if (isCorner) {
+                if (Math.abs(dxSigned)>=Math.abs(dySigned)) { newW=startW+dxSigned; newH=newW/ratio; }
+                else { newH=startH+dySigned; newW=newH*ratio; }
+            } else if (growLeftEdge||growRight) { newW=startW+dxSigned; newH=newW/ratio; }
+            else { newH=startH+dySigned; newW=newH*ratio; }
+            if (newW<40) { newW=40; newH=newW/ratio; }
+            if (newH<40) { newH=40; newW=newH*ratio; }
+            var maxW = growLeftEdge?(anchorX-iL):(iL+iW-anchorX);
+            var maxH = growTopEdge?(anchorY-iT):(iT+iH-anchorY);
+            var scaleDown = Math.min(1, maxW>0?maxW/newW:1, maxH>0?maxH/newH:1);
+            newW*=scaleDown; newH*=scaleDown;
+            var nl,nt;
+            if (isCorner||growLeftEdge||growRight) nl = growLeftEdge?(anchorX-newW):anchorX; else nl = startL+(startW-newW)/2;
+            if (isCorner||growTopEdge||growBottom) nt = growTopEdge?(anchorY-newH):anchorY; else nt = startT+(startH-newH)/2;
+            box.style.left=nl+'px'; box.style.top=nt+'px'; box.style.width=newW+'px'; box.style.height=newH+'px';
+        } else {
+            var growRight2=mode.indexOf('r')>=0, growLeftEdge2=mode.indexOf('l')>=0;
+            var growBottom2=mode.indexOf('b')>=0, growTopEdge2=mode.indexOf('t')>=0;
+            var nl2=startL, nt2=startT, nw2=startW, nh2=startH;
+            if (growRight2) nw2 = clampNum(startW+dx, 40, iL+iW-startL);
+            if (growLeftEdge2) { nw2 = clampNum(startW-dx, 40, startL+startW-iL); nl2 = startL+startW-nw2; }
+            if (growBottom2) nh2 = clampNum(startH+dy, 40, iT+iH-startT);
+            if (growTopEdge2) { nh2 = clampNum(startH-dy, 40, startT+startH-iT); nt2 = startT+startH-nh2; }
+            box.style.left=nl2+'px'; box.style.top=nt2+'px'; box.style.width=nw2+'px'; box.style.height=nh2+'px';
+        }
+    }
+    function onUp() {
+        document.removeEventListener('mousemove',onMove); document.removeEventListener('touchmove',onMove);
+        document.removeEventListener('mouseup',onUp); document.removeEventListener('touchend',onUp);
+    }
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('touchmove',onMove,{passive:false});
+    document.addEventListener('mouseup',onUp);
+    document.addEventListener('touchend',onUp);
+}
+
+/* ── Antrean upload: crop modal hanya proses 1 gambar per waktu, file lain dari
+   multi-select diproses berurutan setelah crop sebelumnya Simpan/Lewati ── */
+function processNextEvidUpload(){
+    if (!evidUploadQueue || !evidUploadQueue.length) { evidUploadQueue = null; return; }
+    var file = evidUploadQueue.shift();
+    var group = evidUploadGroup;
+    function afterConvert(dataUrl){
+        if (!dataUrl) { processNextEvidUpload(); return; }
+        imgOpenCropper(dataUrl, file.name, 'image/jpeg', calEvidence[group], group, 'cems', -1);
+    }
+    if (typeof fileToJpegDataUrl === 'function') fileToJpegDataUrl(file, afterConvert);
+    else compressImageLocal(file, afterConvert);
+}
+function reEditEvidence(group, phase, idx){
+    var arr = getEvidArr(group, phase);
+    var img = arr[idx];
+    if (!img) return;
+    var side = isBeforeAfterGroup(group) ? group+'_'+phase : group;
+    imgOpenCropper(img.dataUrl, img.name, img.type||'image/jpeg', arr, side, 'cems', idx);
+}
+
+/* ── PDF PREVIEW (PDF.js canvas — aman untuk Chrome Android) ── */
+var pdfPreviewState = { doc: null, filename: '', blobUrl: '' };
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+function showPdfPreview(doc, filename) {
+    if (typeof window._raPdfCapture === 'function') { var _raCb = window._raPdfCapture; window._raPdfCapture = null; _raCb(doc, filename); return; }
+    if (pdfPreviewState.blobUrl) { URL.revokeObjectURL(pdfPreviewState.blobUrl); pdfPreviewState.blobUrl=''; }
+    pdfPreviewState.doc = doc; pdfPreviewState.filename = filename;
+    var modal = document.getElementById('pdfPreviewModal');
+    if (window._pdfEmbedMode) { var pf=document.querySelector('.pdf-preview-footer'); if (pf) pf.style.display='none'; }
+    var container = document.getElementById('pdfPreviewFrame');
+    container.innerHTML = '<div class="pdf-canvas-loading">⏳ Menyiapkan preview...</div>';
+    modal.classList.add('show');
+    if (typeof pdfjsLib === 'undefined') {
+        container.innerHTML = '<div class="pdf-canvas-loading">Preview tidak tersedia di browser ini.<br>Silakan langsung download untuk melihat hasilnya.</div>';
+        return;
+    }
+    var arrayBuffer = doc.output('arraybuffer');
+    pdfjsLib.getDocument({data: arrayBuffer}).promise.then(function(pdf) {
+        container.innerHTML = '';
+        function renderPage(pageNum) {
+            pdf.getPage(pageNum).then(function(page) {
+                var viewport = page.getViewport({scale: 1.8});
+                var canvas = document.createElement('canvas');
+                canvas.width = viewport.width; canvas.height = viewport.height;
+                container.appendChild(canvas);
+                page.render({canvasContext: canvas.getContext('2d'), viewport: viewport}).promise.then(function() {
+                    if (pageNum < pdf.numPages) renderPage(pageNum+1);
+                });
+            });
+        }
+        renderPage(1);
+    }).catch(function(err) {
+        console.error(err);
+        container.innerHTML = '<div class="pdf-canvas-loading">Gagal menampilkan preview.<br>Silakan langsung download untuk melihat hasilnya.</div>';
+    });
+}
+function confirmDownloadPdf() { if (pdfPreviewState.doc) pdfPreviewState.doc.save(pdfPreviewState.filename); }
+function closePdfPreview() {
+    document.getElementById('pdfPreviewModal').classList.remove('show');
+    document.getElementById('pdfPreviewFrame').innerHTML = '';
+    if (pdfPreviewState.blobUrl) { URL.revokeObjectURL(pdfPreviewState.blobUrl); pdfPreviewState.blobUrl=''; }
+    pdfPreviewState.doc = null;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BUILD TABLES / GRIDS
+   ══════════════════════════════════════════════════════════════ */
+function buildOpticalTable(tblId, prefix){
+  var tbl = document.getElementById(tblId);
+  var html = '<thead class="hdr-optical"><tr><th>Parameter</th><th>Measured Energy</th><th>Concentration</th></tr></thead><tbody>';
+  OPTICAL_ROWS.forEach(function(r){
+    html += '<tr><td class="param-cell">'+r.label+'</td>' +
+      '<td>' + (r.me ? '<input type="number" step="0.01" id="'+prefix+'_'+r.key+'_me">' : '<input type="text" value="N/A" disabled>') + '</td>' +
+      '<td><input type="number" step="0.01" id="'+prefix+'_'+r.key+'_c"></td></tr>';
+  });
+  html += '</tbody>';
+  tbl.innerHTML = html;
+}
+function buildDasGrid(gridId, prefix){
+  var grid = document.getElementById(gridId);
+  var html = '';
+  DAS_FIELDS.forEach(function(f){
+    html += '<div class="field-item"><label>'+f.label+' <span class="unit">('+f.unit+')</span></label>' +
+      '<input type="number" step="0.01" id="'+prefix+'_'+f.key+'"></div>';
+  });
+  grid.innerHTML = html;
+}
+function buildTempGrid(){
+  var grid = document.getElementById('tempGrid');
+  var html = '';
+  TEMP_FIELDS.forEach(function(f){
+    html += '<div class="field-item"><label>'+f.label+'</label><input type="number" step="0.01" id="t_'+f.key+'"></div>';
+  });
+  grid.innerHTML = html;
+}
+function buildCalTable(tblId, headerClass, rows, prefix){
+  var tbl = document.getElementById(tblId);
+  var html = '<thead class="'+headerClass+'"><tr><th>Parameter</th><th>Expected Value</th><th>Concentration</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var expVal = (r.exp!==undefined ? r.exp : '');
+    // Expected Value permanen (disabled) kecuali r.editable true (O2 Wet).
+    var expCell = r.editable
+      ? '<input type="number" step="0.01" id="'+prefix+'_'+r.key+'_exp" value="'+expVal+'">'
+      : '<input type="number" step="0.01" id="'+prefix+'_'+r.key+'_exp" value="'+expVal+'" disabled>';
+    html += '<tr><td class="param-cell">'+r.label+'</td>' +
+      '<td>'+expCell+'</td>' +
+      '<td><input type="number" step="0.01" id="'+prefix+'_'+r.key+'_act"></td></tr>';
+  });
+  html += '</tbody>';
+  tbl.innerHTML = html;
+}
+
+buildOpticalTable('tblOpticalBefore', 'ob');
+buildOpticalTable('tblOpticalAfter', 'oa');
+buildDasGrid('dasBeforeGrid', 'da');
+buildDasGrid('dasAfterGrid', 'db');
+buildTempGrid();
+buildCalTable('tblZero', 'hdr-zero', ZERO_ROWS, 'z');
+buildCalTable('tblSpan1', 'hdr-span1', SPAN1_ROWS, 'sp1');
+buildCalTable('tblSpan2', 'hdr-span2', SPAN2_ROWS, 'sp2');
+
+/* ══════════════════════════════════════════════════════════════
+   STEP 9 — INSPECTION (gabungan 1 Monthly / 3 Monthly / 2 Yearly).
+   SATU sumber data dipakai bareng oleh form (renderInspectionStep)
+   dan PDF (exportPdf) supaya isinya selalu sinkron:
+   - Monthly    : poin a-d (1 Monthly) apa adanya.
+   - 3-Monthly  : 1 Monthly TIDAK tampil sendiri lagi — langsung
+                  digantikan checklist gabungan: a,b,c dari 1 Monthly
+                  + b,c dari 3 Monthly (saat ini), diurutkan ulang
+                  jadi a,b,c,d,e.
+   - 2-Yearly   : checklist gabungan di atas + poin b dari 2 Yearly,
+                  jadi a,b,c,d,e,f. 1 Monthly & 3 Monthly yang lama
+                  tidak ditampilkan lagi supaya tidak rancu saat
+                  upload evidence (evidence box juga tidak dobel).
+   ══════════════════════════════════════════════════════════════ */
+function getInspectionPlan(freq){
+  var ITM = {
+    i1a: {id:'insp1_a', text:'Following 2 Weekly - Unit 7 CEMS Inspection & Maintenance'},
+    i1b: {id:'insp1_b', text:'Perform Purging Flow stack gas - elv 110 chimney U78 and Last reading (7BGCEMAI107)'},
+    i1c: {id:'insp1_c', text:'Perform Purging-cleaning sample probe - elv 110 chimney U7'},
+    i1d: {id:'insp1_d', text:'Perform Purging-cleaning alumunium filter probe - elv 110 chimney U78'},
+    i3b: {id:'insp3_b', text:'Analyzer MKS 2000 maintenance (cleaning and cell inspection)'},
+    i3c: {id:'insp3_c', text:'Perform Replace alumunium filter probe and Kit - elv 110 chimney U78'},
+    i2b: {id:'insp2y_b', text:'Replace Pump Diaphragm HW for MC3 Analyzer by ECOCHEM item ID PU1286-N026'}
+  };
+  var EG = {
+    flow:   {key:'flowstack',     title:'Purging/Cleaning Flow Stack Gas (elv 110 chimney U7/U78)'},
+    sample: {key:'sampleprobe',   title:'Purging-Cleaning Sample Probe (elv 110 chimney U7)'},
+    filter: {key:'filterprobe',   title:'Filter Probe Alumunium (elv 110 chimney U78)'},
+    pump:   {key:'pumpdiaphragm', title:'Replace Pump Diaphragm HW MC3 Analyzer (ECOCHEM PU1286-N026)'}
+  };
+  function withLetters(list){
+    var letters = 'abcdefgh';
+    return list.map(function(it, i){ return {id:it.id, letter:letters[i], text:it.text}; });
+  }
+  if (freq==='Monthly'){
+    return {
+      title:'1 Monthly Inspection',
+      items: withLetters([ITM.i1a, ITM.i1b, ITM.i1c, ITM.i1d]),
+      evidenceGroups: [EG.flow, EG.sample, EG.filter]
+    };
+  }
+  if (freq==='3-Monthly'){
+    return {
+      title:'3 Monthly Inspection',
+      items: withLetters([ITM.i1a, ITM.i1b, ITM.i1c, ITM.i3b, ITM.i3c]),
+      evidenceGroups: [EG.flow, EG.sample, EG.filter]
+    };
+  }
+  if (freq==='2-Yearly'){
+    return {
+      title:'2 Yearly Inspection',
+      items: withLetters([ITM.i1a, ITM.i1b, ITM.i1c, ITM.i3b, ITM.i3c, ITM.i2b]),
+      evidenceGroups: [EG.flow, EG.sample, EG.filter, EG.pump]
+    };
+  }
+  return null;
+}
+function renderInspectionStep(freq){
+  var panel = document.getElementById('step9');
+  if (!panel) return;
+  var plan = getInspectionPlan(freq);
+  if (!plan){
+    panel.style.display = 'none';
+    document.getElementById('step9CheckList').innerHTML = '';
+    return;
+  }
+  panel.style.display = 'block';
+  document.getElementById('step9Title').textContent = plan.title;
+  document.getElementById('step9CheckList').innerHTML = plan.items.map(function(it){
+    return '<label class="check-item"><input type="checkbox" id="'+it.id+'"><span>'+it.letter+'. '+it.text+'</span></label>';
+  }).join('');
+  var showGroups = {};
+  plan.evidenceGroups.forEach(function(g){ showGroups[g.key] = true; });
+  ['flowstack','sampleprobe','filterprobe','pumpdiaphragm'].forEach(function(g){
+    var box = document.getElementById('evid'+g.charAt(0).toUpperCase()+g.slice(1));
+    if (box) box.style.display = showGroups[g] ? '' : 'none';
+  });
+  panel.querySelectorAll('.check-list input[type="checkbox"]').forEach(function(b){
+    b.addEventListener('change', function(){ syncCheckAllBtn('step9'); });
+  });
+  syncCheckAllBtn('step9');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   STEP 1 — FREQUENCY (mengendalikan isi & visibilitas Step 9)
+   ══════════════════════════════════════════════════════════════ */
+function onFreqChange(){
+  var checked = document.querySelector('input[name="freq"]:checked');
+  var val = checked ? checked.value : '';
+  document.getElementById('metaFrequency').value = val;
+  document.getElementById('freqBadge').textContent = val ? (val.toUpperCase()+' CALIBRATION') : 'FREQUENCY BELUM DIPILIH';
+  document.querySelectorAll('.freq-choice').forEach(function(el){
+    el.classList.toggle('checked', el.querySelector('input').checked);
+  });
+  renderInspectionStep(val);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CHECK ALL — Step 9 (checklist inspeksi dinamis)
+   Tombol toggle: kalau belum semua tercentang -> centang semua,
+   kalau sudah semua tercentang -> lepas semua. Label & style tombol
+   ikut menyesuaikan status saat ini.
+   ══════════════════════════════════════════════════════════════ */
+function syncCheckAllBtn(stepId){
+  var panel = document.getElementById(stepId);
+  var btn = document.getElementById('btnCheckAll_'+stepId);
+  if (!panel || !btn) return;
+  var boxes = panel.querySelectorAll('.check-list input[type="checkbox"]');
+  var allChecked = boxes.length>0 && Array.prototype.every.call(boxes, function(b){ return b.checked; });
+  btn.textContent = allChecked ? '☑ Uncheck All' : '☐ Check All';
+  btn.classList.toggle('is-all', allChecked);
+}
+function toggleCheckAll(stepId){
+  var panel = document.getElementById(stepId);
+  if (!panel) return;
+  var boxes = panel.querySelectorAll('.check-list input[type="checkbox"]');
+  var allChecked = boxes.length>0 && Array.prototype.every.call(boxes, function(b){ return b.checked; });
+  boxes.forEach(function(b){ b.checked = !allChecked; });
+  syncCheckAllBtn(stepId);
+  if (typeof scheduleAutosave === 'function') scheduleAutosave();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FOTO EVIDENCE (Zero / Span 1 / Span 2)
+   Uploader sederhana: kompresi ke JPEG + thumbnail + caption + hapus.
+   Kalau shared.js menyediakan fileToJpegDataUrl/uploadFotoKeGDrive,
+   otomatis dipakai (dicek via typeof) supaya foto ikut ke-backup GDrive.
+   ══════════════════════════════════════════════════════════════ */
+function renderEvidence(groupOrSide){
+  // p.side dari imgOpenCropper/cropAndSave bisa berupa 'group' polos atau
+  // 'group_before'/'group_after' (dipakai juga sebagai suffix nama file
+  // GDrive) — di sini dinormalisasi balik ke group polos, karena satu box
+  // render selalu menampilkan seluruh isi grup itu sekaligus.
+  var group = groupOrSide;
+  if (group.slice(-7) === '_before') group = group.slice(0, -7);
+  else if (group.slice(-6) === '_after') group = group.slice(0, -6);
+  var box = document.getElementById('evid'+group.charAt(0).toUpperCase()+group.slice(1));
+  if (!box) return;
+  var title = {
+    zero:'Foto Evidence — Zero Calibration', span1:'Foto Evidence — Span 1 Calibration', span2:'Foto Evidence — Span 2 Calibration',
+    flowstack:'Foto Evidence — Purging/Cleaning Flow Stack Gas (elv 110 chimney U7/U78)',
+    sampleprobe:'Foto Evidence — Purging-Cleaning Sample Probe (elv 110 chimney U7)',
+    filterprobe:'Foto Evidence — Filter Probe Alumunium (elv 110 chimney U78)',
+    pumpdiaphragm:'Foto Evidence — Replace Pump Diaphragm HW MC3 Analyzer (ECOCHEM PU1286-N026)'
+  }[group];
+  var subtitle = isBeforeAfterGroup(group) ? 'kondisi sebelum vs sesudah pekerjaan' : 'dokumentasi pekerjaan';
+  var html = '<div class="evidence-title">📷 '+title+' <span style="font-weight:400;color:#9aa39d">('+subtitle+')</span></div>';
+
+  function thumbHtml(img, idx, group, phase){
+    var phaseArg = phase ? '\''+phase+'\'' : 'null';
+    var nudgeTarget = 'calEvidence.'+group+(phase ? '.'+phase : '');
+    var stKey = group+(phase?'_'+phase:'');
+    var st = evidReorderState[stKey] || {active:false, selectedIdx:null};
+    var nudgeHtml = '<div class="img-nudge"><div class="img-nudge-label">Geser posisi di hasil PDF</div><div class="img-nudge-controls">'+
+      '<button type="button" onclick="event.stopPropagation();nudgeImageInArray('+nudgeTarget+','+idx+',-0.5,function(){renderEvidence(\''+group+'\')})" title="Geser posisi gambar ini ke kiri di hasil PDF">&#9664;</button>'+
+      '<span>'+(img.offsetX||0)+'cm</span>'+
+      '<button type="button" onclick="event.stopPropagation();nudgeImageInArray('+nudgeTarget+','+idx+',0.5,function(){renderEvidence(\''+group+'\')})" title="Geser posisi gambar ini ke kanan di hasil PDF">&#9654;</button>'+
+      '</div></div>';
+    var actionBtns = !st.active
+      ? ('<button type="button" class="redo" title="Crop Ulang" onclick="reEditEvidence(\''+group+'\','+phaseArg+','+idx+')">✂️</button>' +
+         '<button type="button" class="del" onclick="deleteEvidence(\''+group+'\','+phaseArg+','+idx+')">✕</button>')
+      : ('<label style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid var(--accent,#2563eb);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2">' +
+         '<input type="checkbox" '+(st.selectedIdx===idx?'checked':'')+' onchange="evidSelectForReorder(\''+group+'\','+phaseArg+','+idx+',this.checked)" style="margin:0;width:14px;height:14px;cursor:pointer"></label>');
+    return '<div class="evidence-thumb">' +
+      actionBtns +
+      '<img src="'+img.dataUrl+'">' +
+      '<input class="cap" placeholder="Keterangan..." value="'+(img.caption||'').replace(/"/g,'&quot;')+'" onchange="'+nudgeTarget+'['+idx+'].caption=this.value">' +
+      nudgeHtml +
+      '</div>';
+  }
+  function addTileHtml(group, phase){
+    var phaseArg = phase ? '\''+phase+'\'' : 'null';
+    var sourceId = 'evidSource_'+group+(phase?'_'+phase:'');
+    return '<div class="evidence-add" id="evidAdd_'+group+(phase?'_'+phase:'')+'" onclick="toggleSourceChoices(\''+sourceId+'\')" ondragover="event.preventDefault();this.classList.add(\'dragover\')" ondragleave="this.classList.remove(\'dragover\')" ondrop="this.classList.remove(\'dragover\');evidHandleDrop(event,\''+group+'\','+phaseArg+')">' +
+      '<span>＋</span>Tambah Foto' +
+      '<div id="'+sourceId+'" style="display:none;position:absolute;top:8px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.98);border:1px solid rgba(0,0,0,0.12);border-radius:8px;box-shadow:0 12px 28px rgba(0,0,0,0.12);padding:8px;gap:6px;z-index:10">' +
+        '<button type="button" onclick="event.stopPropagation();evidOpenSource(\''+group+'\','+phaseArg+',\'storage\')" style="padding:7px 10px;border:1px solid rgba(0,0,0,.08);border-radius:6px;background:#fff;color:#111;font-size:11px;cursor:pointer;min-width:88px;display:block;margin-bottom:4px">Penyimpanan</button>' +
+        '<button type="button" onclick="event.stopPropagation();evidOpenSource(\''+group+'\','+phaseArg+',\'camera\')" style="padding:7px 10px;border:1px solid rgba(0,0,0,.08);border-radius:6px;background:#fff;color:#111;font-size:11px;cursor:pointer;min-width:88px;display:block">Kamera</button>' +
+      '</div>' +
+    '</div>';
+  }
+  function reorderCtrlHtml(group, phase, arrLen){
+    if (arrLen <= 1) return '';
+    var stKey = group+(phase?'_'+phase:'');
+    var st = evidReorderState[stKey] || {active:false, selectedIdx:null};
+    var phaseArg = phase ? '\''+phase+'\'' : 'null';
+    var out = '<div style="display:inline-flex;flex-direction:column;align-items:flex-start;gap:4px;vertical-align:top;margin-left:2px">';
+    out += '<button type="button" onclick="evidToggleReorder(\''+group+'\','+phaseArg+')" style="background:'+(st.active?'var(--ok,#16a34a)':'#eef2f7')+';color:'+(st.active?'#fff':'#333')+';border:1px solid var(--panel-border,#ccc);border-radius:4px;font-size:10px;padding:5px 8px;cursor:pointer;white-space:nowrap">'+(st.active?'&#10003; Selesai':'&#128256; Urutkan Foto')+'</button>';
+    if (st.active && st.selectedIdx !== null) {
+      var atStart = st.selectedIdx <= 0, atEnd = st.selectedIdx >= arrLen - 1;
+      out += '<div style="display:flex;gap:4px">' +
+        '<button type="button" '+(atStart?'disabled':'')+' onclick="evidMoveImg(\''+group+'\','+phaseArg+',-1)" style="flex:1;background:#eef2f7;border:1px solid var(--panel-border,#ccc);border-radius:4px;font-size:11px;padding:5px 8px;cursor:'+(atStart?'default':'pointer')+';opacity:'+(atStart?'0.4':'1')+'">&#9664; Kiri</button>' +
+        '<button type="button" '+(atEnd?'disabled':'')+' onclick="evidMoveImg(\''+group+'\','+phaseArg+',1)" style="flex:1;background:#eef2f7;border:1px solid var(--panel-border,#ccc);border-radius:4px;font-size:11px;padding:5px 8px;cursor:'+(atEnd?'default':'pointer')+';opacity:'+(atEnd?'0.4':'1')+'">Kanan &#9654;</button>' +
+        '</div>';
+    }
+    out += '</div>';
+    return out;
+  }
+
+  if (isBeforeAfterGroup(group)) {
+    ['before','after'].forEach(function(phase){
+      var arr = calEvidence[group][phase];
+      var phaseLabel = phase === 'before' ? 'Before' : 'After';
+      html += '<div class="evidence-phase-block">';
+      html += '<div class="evidence-phase-label '+phase+'">'+phaseLabel+'</div>';
+      html += '<div class="evidence-grid">';
+      arr.forEach(function(img, idx){ html += thumbHtml(img, idx, group, phase); });
+      html += addTileHtml(group, phase);
+      html += reorderCtrlHtml(group, phase, arr.length);
+      html += '</div></div>';
+    });
+  } else {
+    var flatArr = calEvidence[group];
+    html += '<div class="evidence-grid">';
+    flatArr.forEach(function(img, idx){ html += thumbHtml(img, idx, group, null); });
+    html += addTileHtml(group, null);
+    html += reorderCtrlHtml(group, null, flatArr.length);
+    html += '</div>';
+  }
+  box.innerHTML = html;
+}
+var evidReorderState = {};
+function evidToggleReorder(group, phase){
+  var stKey = group+(phase?'_'+phase:'');
+  var st = evidReorderState[stKey] || (evidReorderState[stKey] = {active:false, selectedIdx:null});
+  st.active = !st.active;
+  st.selectedIdx = null;
+  renderEvidence(group);
+}
+function evidSelectForReorder(group, phase, idx, checked){
+  var stKey = group+(phase?'_'+phase:'');
+  var st = evidReorderState[stKey] || (evidReorderState[stKey] = {active:false, selectedIdx:null});
+  st.selectedIdx = checked ? idx : null;
+  renderEvidence(group);
+}
+function evidMoveImg(group, phase, dir){
+  var stKey = group+(phase?'_'+phase:'');
+  var st = evidReorderState[stKey];
+  if (!st || st.selectedIdx === null) return;
+  var arr = getEvidArr(group, phase);
+  var i = st.selectedIdx, j = i + dir;
+  if (j < 0 || j >= arr.length) return;
+  var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp; // swap 1 object utuh — caption/crop/offset ikut (tidak ada bug Fitur Q di sini, caption sudah live-synced via onchange langsung ke array, tidak ada re-sync by-posisi terpisah)
+  st.selectedIdx = j;
+  renderEvidence(group);
+}
+function evidOpenSource(group, phase, source){
+  evidPendingGroup = group;
+  evidPendingPhase = phase;
+  openFileInputSource('evidFileInput', source);
+}
+function triggerEvidenceUpload(group, phase){
+  evidPendingGroup = group;
+  evidPendingPhase = phase;
+  document.getElementById('evidFileInput').click();
+}
+function deleteEvidence(group, phase, idx){
+  getEvidArr(group, phase).splice(idx,1);
+  renderEvidence(group);
+}
+document.getElementById('evidFileInput').addEventListener('change', function(e){
+  var files = Array.prototype.slice.call(e.target.files||[]);
+  e.target.value = '';
+  if (!files.length || !evidPendingGroup) return;
+  if (isBeforeAfterGroup(evidPendingGroup) && !evidPendingPhase) return;
+  evidHandleFiles(files, evidPendingGroup, evidPendingPhase);
+});
+
+/* ── Drag & drop file langsung ke kotak "Tambah Foto" ── */
+function evidHandleDrop(e, group, phase){
+  e.preventDefault();
+  evidPendingGroup = group;
+  evidPendingPhase = phase;
+  evidHandleFiles(e.dataTransfer.files, group, phase);
+}
+
+/* ── Overlay notifikasi multi-upload: "memproses foto X dari Y" ── */
+var evidUploadOverlayTimer = null;
+function evidShowUploadOverlay(mode, current, total){
+  var ov = document.getElementById('evidUploadOverlay');
+  var spinner = document.getElementById('evidUploadOverlaySpinner');
+  var title = document.getElementById('evidUploadOverlayTitle');
+  var sub = document.getElementById('evidUploadOverlaySub');
+  if (!ov) return;
+  if (evidUploadOverlayTimer) { clearTimeout(evidUploadOverlayTimer); evidUploadOverlayTimer = null; }
+  if (mode === 'loading') {
+    spinner.style.display = '';
+    title.textContent = 'Memproses foto '+Math.min(current+1,total)+' dari '+total;
+    sub.textContent = 'Upload banyak gambar mungkin membutuhkan waktu';
+    ov.classList.add('show');
+  } else if (mode === 'done') {
+    spinner.style.display = 'none';
+    title.textContent = 'Selesai — semua foto berhasil diupload';
+    sub.textContent = 'Ketuk di mana saja untuk menutup';
+    ov.classList.add('show');
+    evidUploadOverlayTimer = setTimeout(evidHideUploadOverlay, 3000);
+  }
+}
+function evidHideUploadOverlay(){
+  var ov = document.getElementById('evidUploadOverlay');
+  if (ov) ov.classList.remove('show');
+  if (evidUploadOverlayTimer) { clearTimeout(evidUploadOverlayTimer); evidUploadOverlayTimer = null; }
+}
+
+/* ── Compress dataUrl gambar penuh (tanpa dipotong) mengikuti budget ukuran
+   yang sama seperti cropAndSave, dipakai untuk auto-skip-crop multi-upload ── */
+function evidCompressFullImage(dataUrl, imgArr, cb){
+  var img = new Image();
+  img.onload = function(){
+    var canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    var MAX = 1*1024*1024;
+    var out;
+    for (var q=0.9; q>=0.25; q-=0.1) {
+      out = canvas.toDataURL('image/jpeg', q);
+      var currentTotal = imgArr.reduce(function(a,im){ return a+(im.dataUrl?im.dataUrl.length*0.75:0); }, 0);
+      var newSize = out.length*0.75;
+      if (currentTotal+newSize <= MAX) break;
+      if (q<=0.25) {
+        var factor = Math.sqrt(MAX/(currentTotal+newSize));
+        var c2 = document.createElement('canvas');
+        c2.width = Math.max(50, Math.floor(canvas.width*factor));
+        c2.height = Math.max(50, Math.floor(canvas.height*factor));
+        c2.getContext('2d').drawImage(canvas,0,0,c2.width,c2.height);
+        out = c2.toDataURL('image/jpeg', 0.7);
+        break;
+      }
+    }
+    cb(out);
+  };
+  img.onerror = function(){ cb(null); };
+  img.src = dataUrl;
+}
+
+/* ── Upload evidence: 1 file → crop modal seperti biasa;
+   multi-select → skip crop (pakai ukuran default penuh) + overlay progress ── */
+function evidHandleFiles(files, group, phase){
+  var fileArr = Array.prototype.slice.call(files||[]);
+  if (!fileArr.length) return;
+  var isMulti = fileArr.length > 1;
+  var imgArr = getEvidArr(group, phase);
+  var side = isBeforeAfterGroup(group) ? group+'_'+phase : group;
+
+  if (!isMulti) {
+    fileArr.forEach(function(file){
+      var afterConvert = function(dataUrl){
+        if (!dataUrl) return;
+        imgOpenCropper(dataUrl, file.name.replace(/\.[^.]+$/,'.jpg'), 'image/jpeg', imgArr, side, 'cems', -1);
+      };
+      if (typeof fileToJpegDataUrl === 'function') fileToJpegDataUrl(file, afterConvert);
+      else compressImageLocal(file, afterConvert);
+    });
+    return;
+  }
+
+  var total = fileArr.length, done = 0;
+  evidShowUploadOverlay('loading', done, total);
+  var finishOne = function(){
+    done++;
+    if (done < total) evidShowUploadOverlay('loading', done, total);
+    else evidShowUploadOverlay('done');
+  };
+  fileArr.forEach(function(file){
+    var afterConvert = function(rawDataUrl){
+      if (!rawDataUrl) { finishOne(); return; }
+      evidCompressFullImage(rawDataUrl, imgArr, function(finalDataUrl){
+        if (!finalDataUrl) { finishOne(); return; }
+        var entry = {name:file.name.replace(/\.[^.]+$/,'.jpg'), dataUrl:finalDataUrl, type:'image/jpeg', caption:'', widthCm: DEFAULT_CROP_W_CM, heightCm: DEFAULT_CROP_H_CM};
+        imgArr.push(entry);
+        renderEvidence(group);
+        if (typeof uploadFotoKeGDrive === 'function') uploadFotoKeGDrive(entry.dataUrl, entry.name, 'cems', side, entry);
+        finishOne();
+      });
+    };
+    if (typeof fileToJpegDataUrl === 'function') fileToJpegDataUrl(file, afterConvert);
+    else compressImageLocal(file, afterConvert);
+  });
+}
+
+/* ── Geser posisi gambar (nudge) — generik untuk array manapun ── */
+function nudgeImageInArray(imgArr, imgIdx, delta, rerenderFn){
+  var img = imgArr[imgIdx];
+  if (!img) return;
+  var next = Math.round(((img.offsetX||0)+delta)*10)/10;
+  var LIMIT = 5;
+  if (next>LIMIT) next=LIMIT; if (next<-LIMIT) next=-LIMIT;
+  img.offsetX = next;
+  if (typeof rerenderFn === 'function') rerenderFn();
+}
+function compressImageLocal(file, callback){
+  var looksLikeImage = file && (/^image\//i.test(file.type||'') || /\.(jpe?g|png|gif|webp|bmp)$/i.test(file.name||''));
+  if (!looksLikeImage) { alert('File harus berupa gambar.'); callback(null); return; }
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var img = new Image();
+    img.onload = function(){
+      try{
+        var c = document.createElement('canvas');
+        var maxSide = 1400;
+        var scale = Math.min(maxSide/(img.naturalWidth||maxSide), maxSide/(img.naturalHeight||maxSide), 1);
+        c.width = Math.max(1, Math.round((img.naturalWidth||800)*scale));
+        c.height = Math.max(1, Math.round((img.naturalHeight||600)*scale));
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        callback(c.toDataURL('image/jpeg', 0.85));
+      }catch(err){ callback(ev.target.result); }
+    };
+    img.onerror = function(){ alert('Format gambar tidak bisa diproses. Gunakan JPG atau PNG.'); callback(null); };
+    img.src = ev.target.result;
+  };
+  reader.onerror = function(){ callback(null); };
+  reader.readAsDataURL(file);
+}
+renderAllEvidence();
+renderPresetButtons();
+initCropDrag();
+initReportBackground();
+
+/* ══════════════════════════════════════════════════════════════
+   COLLECT DATA
+   ══════════════════════════════════════════════════════════════ */
+function val(id){ var el=document.getElementById(id); return el ? el.value : ''; }
+// Ambil SATU bagian buat nama file PDF -- kalau field-nya berisi beberapa baris
+// (misal diisi lebih dari satu nomor), yang dipakai cuma baris PALING DEPAN/PERTAMA.
+// Karakter yang tidak valid di nama file dibuang, spasi dirapikan jadi tanpa-spasi.
+function pdfNamePart(s, maxLen) {
+  s = String(s || '').trim();
+  s = s.split(/\r?\n/)[0] || '';
+  s = s.replace(/[\\\/:*?"<>|]/g, '');
+  s = s.replace(/\s+/g, '');
+  if (maxLen && s.length > maxLen) s = s.substring(0, maxLen);
+  return s;
+}
+function chk(id){ var el=document.getElementById(id); return el ? el.checked : false; }
+
+function collectOptical(prefix){
+  var out = {};
+  OPTICAL_ROWS.forEach(function(r){
+    out[r.key] = { me: r.me ? val(prefix+'_'+r.key+'_me') : 'N/A', c: val(prefix+'_'+r.key+'_c') };
+  });
+  return out;
+}
+function collectDas(prefix){
+  var out = {};
+  DAS_FIELDS.forEach(function(f){ out[f.key] = val(prefix+'_'+f.key); });
+  return out;
+}
+function collectCal(prefix, rows){
+  var out = {};
+  rows.forEach(function(r){ out[r.key] = { exp: val(prefix+'_'+r.key+'_exp'), act: val(prefix+'_'+r.key+'_act') }; });
+  return out;
+}
+
+function collectData(){
+  return {
+    meta: {
+      workorder: val('metaWorkorder'), asset: val('metaAsset'), descAsset: val('metaDescAsset'),
+      pic: val('metaPic'), tanggal: val('metaTanggal'), frequency: val('metaFrequency'), checkedBy: val('metaCheckedBy')
+    },
+    gasReg: {
+      zeroOutlet: val('gasZeroOutlet'), zeroCyl: val('gasZeroCyl'),
+      span1Outlet: val('gasSpan1Outlet'), span1Cyl: val('gasSpan1Cyl'),
+      span2Outlet: val('gasSpan2Outlet'), span2Cyl: val('gasSpan2Cyl')
+    },
+    opticalBefore: collectOptical('ob'), opticalBeforeOverall: val('ob_overall'),
+    dasBefore: collectDas('da'),
+    zero: collectCal('z', ZERO_ROWS), span1: collectCal('sp1', SPAN1_ROWS), span2: collectCal('sp2', SPAN2_ROWS),
+    opticalAfter: collectOptical('oa'), opticalAfterOverall: val('oa_overall'),
+    dasAfter: collectDas('db'),
+    temperature: (function(){ var o={}; TEMP_FIELDS.forEach(function(f){o[f.key]=val('t_'+f.key);}); return o; })(),
+    inspection1: { a:chk('insp1_a'), b:chk('insp1_b'), c:chk('insp1_c'), d:chk('insp1_d') },
+    inspection3: { a:chk('insp3_a'), b:chk('insp3_b'), c:chk('insp3_c'), d:chk('insp3_d') },
+    inspection2y:{ a:chk('insp2y_a'), b:chk('insp2y_b'), c:chk('insp2y_c') },
+    evidence: calEvidence
+  };
+}
+function applyData(d){
+  if (!d) return;
+  if (d.meta){ val_set('metaWorkorder',d.meta.workorder); val_set('metaAsset',d.meta.asset); val_set('metaDescAsset',d.meta.descAsset); val_set('metaPic',d.meta.pic); val_set('metaTanggal',d.meta.tanggal); if (d.meta.checkedBy) val_set('metaCheckedBy', d.meta.checkedBy); }
+  if (d.meta && d.meta.frequency){
+    var r = document.querySelector('input[name="freq"][value="'+d.meta.frequency+'"]');
+    if (r) { r.checked = true; onFreqChange(); }
+  }
+  if (d.gasReg){ ['zeroOutlet','zeroCyl','span1Outlet','span1Cyl','span2Outlet','span2Cyl'].forEach(function(k){ val_set('gas'+k.charAt(0).toUpperCase()+k.slice(1), d.gasReg[k]); }); }
+  function applyOptical(prefix, data, overall){
+    if (!data) return;
+    OPTICAL_ROWS.forEach(function(r){
+      if (data[r.key]){ if(r.me) val_set(prefix+'_'+r.key+'_me', data[r.key].me); val_set(prefix+'_'+r.key+'_c', data[r.key].c); }
+    });
+  }
+  applyOptical('ob', d.opticalBefore); val_set('ob_overall', d.opticalBeforeOverall);
+  applyOptical('oa', d.opticalAfter); val_set('oa_overall', d.opticalAfterOverall);
+  function applyDas(prefix, data){ if(!data) return; DAS_FIELDS.forEach(function(f){ val_set(prefix+'_'+f.key, data[f.key]); }); }
+  applyDas('da', d.dasBefore); applyDas('db', d.dasAfter);
+  function applyCal(prefix, rows, data){ if(!data) return; rows.forEach(function(r){ if(data[r.key]){ val_set(prefix+'_'+r.key+'_exp', data[r.key].exp); val_set(prefix+'_'+r.key+'_act', data[r.key].act); } }); }
+  applyCal('z', ZERO_ROWS, d.zero); applyCal('sp1', SPAN1_ROWS, d.span1); applyCal('sp2', SPAN2_ROWS, d.span2);
+  if (d.temperature) TEMP_FIELDS.forEach(function(f){ val_set('t_'+f.key, d.temperature[f.key]); });
+  if (d.inspection1) ['a','b','c','d'].forEach(function(k){ chk_set('insp1_'+k, d.inspection1[k]); });
+  if (d.inspection3) ['a','b','c','d'].forEach(function(k){ chk_set('insp3_'+k, d.inspection3[k]); });
+  if (d.inspection2y) ['a','b','c'].forEach(function(k){ chk_set('insp2y_'+k, d.inspection2y[k]); });
+  if (d.evidence){
+    calEvidence = freshCalEvidence();
+    ALL_EVID_GROUPS.forEach(function(g){
+      var val = d.evidence[g];
+      if (!val) return;
+      if (isBeforeAfterGroup(g)) {
+        if (Array.isArray(val)) {
+          // Data lama (sebelum ada Before/After) — foto yang sudah ada dulu
+          // ditaruh semua ke "Before" supaya tidak hilang, "After" mulai kosong.
+          calEvidence[g] = { before: val, after: [] };
+        } else {
+          calEvidence[g] = { before: val.before||[], after: val.after||[] };
+        }
+      } else {
+        // Grup flat biasa — kalau data lama tersimpan sempat berbentuk
+        // before/after, digabung kembali jadi satu daftar supaya tidak hilang.
+        calEvidence[g] = Array.isArray(val) ? val : (val.before||[]).concat(val.after||[]);
+      }
+    });
+    renderAllEvidence();
+  }
+}
+function val_set(id,v){ var el=document.getElementById(id); if (el && v!==undefined && v!==null) el.value = v; }
+function chk_set(id,v){ var el=document.getElementById(id); if (el) el.checked = !!v; }
+
+/* ══════════════════════════════════════════════════════════════
+   SIMPAN — sepenuhnya lewat dbSave/dbCollectData shared.js.
+   Autosave draft (IndexedDB) & prompt "lanjutkan draft?" sudah otomatis
+   ditangani shared.js (autosaveCheckAndPrompt) selama dbCollectData +
+   restoreDraftData ada di sini — tidak perlu localStorage tambahan.
+   ══════════════════════════════════════════════════════════════ */
+function dbCollectData(modul){
+  // Dipanggil oleh shared.js (dbSave/autosave) — bentuk rec HARUS sesuai
+  // kolom tabel pm_records: modul, tanggal, pic, work_order, unit, data.
+  if (modul !== 'CEMS Calibration') return null;
+  var full = collectData();
+  return {
+    modul: 'CEMS Calibration',
+    tanggal: full.meta.tanggal || null,
+    pic: full.meta.pic || null,
+    work_order: full.meta.workorder || null,
+    unit: 'Unit 7',
+    data: full
+  };
+}
+function applyRecordToForm(rec){
+  if (!rec) return;
+  applyData(rec.data || rec);
+}
+function restoreDraftData(rec, editingId){
+  if (!rec) return;
+  setTimeout(function(){
+    applyRecordToForm(rec);
+    if (editingId) window._editingId = editingId;
+    if (typeof dbShowToast === 'function') dbShowToast('Draft sebelumnya berhasil dipulihkan ✓');
+  }, 300);
+}
+function resetAll(){
+  if (!confirm('Reset semua data yang sudah diisi?')) return;
+  document.querySelectorAll('input[type=text],input[type=number],input[type=date]').forEach(function(el){ el.value=''; });
+  document.querySelectorAll('input[type=checkbox]').forEach(function(el){ el.checked=false; });
+  document.querySelectorAll('input[name="freq"]').forEach(function(el){ el.checked=false; });
+  document.getElementById('metaFrequency').value='';
+  document.getElementById('freqBadge').textContent='FREQUENCY BELUM DIPILIH';
+  document.querySelectorAll('.freq-choice').forEach(function(el){ el.classList.remove('checked'); });
+  document.getElementById('step9').style.display='none';
+  document.getElementById('step9CheckList').innerHTML='';
+  calEvidence = freshCalEvidence();
+  renderAllEvidence();
+  window._editingId = null;
+  if (typeof autosaveClear === 'function') autosaveClear();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   EXPORT PDF — pola Fitur L (grid info full-width) + autoTable
+   + lampiran foto evidence kalibrasi.
+   ══════════════════════════════════════════════════════════════ */
+function safe(v){ return (v===undefined||v===null||v==='') ? '—' : String(v); }
+
+function exportPdf(){
+  var d = collectData();
+  var totalImgs = ALL_EVID_GROUPS.reduce(function(sum,g){
+    var v = calEvidence[g];
+    return sum + (isBeforeAfterGroup(g) ? (v.before.length+v.after.length) : v.length);
+  }, 0);
+  var loadingMsg = totalImgs>0 ? '⏳ Membuat PDF... memproses '+totalImgs+' gambar, mohon tunggu' : '⏳ Membuat PDF, mohon tunggu';
+  if (typeof showImgLoading === 'function') showImgLoading(loadingMsg);
+
+  ensureReportBackground(function() {
+  try {
+    var doc = new jspdf.jsPDF('p','mm','a4');
+    var pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+    var marginX = 20, marginTop = 26, marginBottom = 20, contentW = pw - marginX*2;
+    var y = marginTop;
+
+    // Background per halaman — dijaga supaya hanya digambar SEKALI per nomor
+    // halaman, walau dipicu berkali-kali (checkPage manual maupun auto-page-break
+    // internal jspdf-autotable), supaya tidak menimpa/menghapus konten yang
+    // sudah digambar duluan di halaman yang sama.
+    var bgDrawnPages = {};
+    function drawBgOnce(){
+      var pn = doc.internal.getCurrentPageInfo().pageNumber;
+      if (bgDrawnPages[pn]) return;
+      bgDrawnPages[pn] = true;
+      drawBg(doc, pw, ph);
+    }
+    var autoTableBgHook = { didDrawPage: function(){ drawBgOnce(); } };
+
+    // Halaman pertama — draw background SEKALI di awal
+    drawBgOnce();
+
+    function checkPage(need){
+      if (y + need > ph - marginBottom) { doc.addPage(); drawBgOnce(); y = marginTop; }
+    }
+    function sectionHeader(title, minFollowH){
+      // minFollowH = perkiraan tinggi konten yang MENEMPEL langsung di bawah
+      // judul ini (mis. beberapa baris pertama tabel) — supaya judul tidak
+      // orphan sendirian di bawah halaman lalu kontennya "hilang" ke halaman
+      // berikutnya tanpa konteks judul (bug lanjutan tabel/foto).
+      checkPage(12 + (minFollowH||0));
+      doc.setFillColor(30,45,38); doc.rect(marginX, y, contentW, 8, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(255,255,255);
+      doc.text(title, marginX+3, y+5.6);
+      y += 12;
+    }
+    // Perkiraan tinggi blok tabel (header row + beberapa baris pertama) untuk
+    // dipakai sebagai minFollowH di sectionHeader — dibatasi maksimal 3 baris
+    // supaya tabel yang memang panjang tetap boleh lanjut wajar ke halaman
+    // berikutnya (autoTable sudah handle pagination-nya sendiri secara benar,
+    // yang perlu dijaga cuma "judul jangan kepisah dari beberapa baris awal").
+    function estTableBlockH(rowCount){
+      return 7 + Math.min(rowCount||0, 3) * 6.5;
+    }
+
+    // ── JUDUL ──
+    doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(20,30,25);
+    doc.text('CEMS DATA CALIBRATION — UNIT 7', marginX, y); y += 8;
+
+    // ── INFO PEKERJAAN (Fitur L: grid full-width label|value) ──
+    var padIn = 3, labelColW = 40;
+    var valueX = marginX + labelColW + padIn, valueW = contentW - labelColW - padIn*2;
+    var infoFields = [
+      ['Workorder', safe(d.meta.workorder)],
+      ['Asset', safe(d.meta.asset)],
+      ['Desc Asset', safe(d.meta.descAsset)],
+      ['PIC', safe(d.meta.pic)],
+      ['Tanggal', safe(d.meta.tanggal)],
+      ['Frequency', safe(d.meta.frequency)]
+    ];
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    var infoRows = infoFields.map(function(f){
+      var lines = doc.splitTextToSize(String(f[1]||''), valueW);
+      var h = Math.max(7.5, 4.6 + (lines.length-1)*3.8 + 2.5);
+      return {label:f[0], lines:lines, h:h};
+    });
+    var totalH = infoRows.reduce(function(s,r){ return s+r.h; },0);
+    checkPage(totalH+6);
+    doc.setFillColor(255,251,214); doc.setDrawColor(0,0,0); doc.setLineWidth(0.35);
+    doc.rect(marginX, y, contentW, totalH, 'FD');
+    doc.line(marginX+labelColW, y, marginX+labelColW, y+totalH);
+    var rowY = y; doc.setLineWidth(0.25);
+    infoRows.forEach(function(r, idx){
+      if (idx>0) doc.line(marginX, rowY, marginX+contentW, rowY);
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(55,80,140);
+      doc.text(r.label, marginX+padIn, rowY+4.6);
+      doc.setFont('helvetica','bold'); doc.setTextColor(20,30,25);
+      doc.text(r.lines, valueX, rowY+4.6);
+      rowY += r.h;
+    });
+    y += totalH + 8;
+
+    // ── STEP 2: Cal Gas Regulator ──
+    sectionHeader('Step 2: Cal Gas Regulator Outlet Pressure (psi)', estTableBlockH(3));
+    doc.autoTable({
+      startY: y, margin:{left:marginX, right:marginX, top:marginTop, bottom:marginBottom}, willDrawPage:function(){drawBgOnce();},
+      head: [['Titik','Outlet Pressure (psi)','Remaining Gas Cylinder (psi)']],
+      body: [
+        ['Zero', safe(d.gasReg.zeroOutlet), safe(d.gasReg.zeroCyl)],
+        ['Span 1', safe(d.gasReg.span1Outlet), safe(d.gasReg.span1Cyl)],
+        ['Span 2', safe(d.gasReg.span2Outlet), safe(d.gasReg.span2Cyl)]
+      ],
+      styles:{fontSize:8.5, cellPadding:2.2}, headStyles:{fillColor:[243,233,201], textColor:[20,30,25]},
+      theme:'grid'
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    function opticalTableBody(data){
+      return OPTICAL_ROWS.map(function(r){ return [r.label, data[r.key].me, data[r.key].c]; });
+    }
+    // ── STEP 3 ──
+    sectionHeader('Step 3: Optical Energy Reading Before Calibration', estTableBlockH(OPTICAL_ROWS.length));
+    doc.autoTable({ startY:y, margin:{left:marginX,right:marginX,top:marginTop,bottom:marginBottom}, willDrawPage:function(){drawBgOnce();}, head:[['Parameter','Measured Energy','Concentration']],
+      body: opticalTableBody(d.opticalBefore), styles:{fontSize:8.5,cellPadding:2.2}, headStyles:{fillColor:[244,217,166],textColor:[20,30,25]}, theme:'grid' });
+    y = doc.lastAutoTable.finalY + 3;
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(20,30,25);
+    doc.text('Overall System Energy: '+safe(d.opticalBeforeOverall)+' %', marginX, y+4); y += 10;
+
+    // ── STEP 4 ──
+    sectionHeader('Step 4: Analyzer Reading (DAS) Before Calibration', estTableBlockH(DAS_FIELDS.length));
+    doc.autoTable({ startY:y, margin:{left:marginX,right:marginX,top:marginTop,bottom:marginBottom}, willDrawPage:function(){drawBgOnce();}, head:[['Parameter','Nilai']],
+      body: DAS_FIELDS.map(function(f){ return [f.label+' ('+f.unit+')', safe(d.dasBefore[f.key])]; }),
+      styles:{fontSize:8.5,cellPadding:2.2}, headStyles:{fillColor:[243,233,201],textColor:[20,30,25]}, theme:'grid' });
+    y = doc.lastAutoTable.finalY + 8;
+
+    // ── STEP 5 ──
+    sectionHeader('Step 5: Calibration', estTableBlockH(ZERO_ROWS.length));
+    function calTable(subtitle, headerColor, rows, data){
+      checkPage(7 + estTableBlockH(rows.length));
+      doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(20,30,25);
+      doc.text(subtitle, marginX, y+4); y += 7;
+      doc.autoTable({ startY:y, margin:{left:marginX,right:marginX,top:marginTop,bottom:marginBottom}, willDrawPage:function(){drawBgOnce();}, head:[['Parameter','Expected Value','Concentration']],
+        body: rows.map(function(r){ return [r.label, data[r.key].exp, data[r.key].act]; }),
+        styles:{fontSize:8.5,cellPadding:2.2}, headStyles:{fillColor:headerColor,textColor:[20,30,25]}, theme:'grid' });
+      y = doc.lastAutoTable.finalY + 6;
+    }
+    calTable('a. Zero Calibration', [214,245,223], ZERO_ROWS, d.zero);
+    calTable('b. Span 1 Calibration', [255,243,176], SPAN1_ROWS, d.span1);
+    calTable('c. Span 2 Calibration', [255,223,174], SPAN2_ROWS, d.span2);
+
+    // ── FOTO EVIDENCE per group ──
+    // Ukuran gambar aktual di PDF (mm) mengikuti cm yang dipilih user saat
+    // crop (entry.widthCm/heightCm — termasuk "Default" 7.2x5.18cm), BUKAN
+    // dipaksa ke kotak grid seragam. Di-cap supaya tetap muat di lebar
+    // konten & tinggi wajar (pola sama seperti fegt.html).
+    function iePhotoDrawSize(entry, maxW, maxH) {
+      var wCm = entry.widthCm || DEFAULT_CROP_W_CM;
+      var hCm = entry.heightCm || DEFAULT_CROP_H_CM;
+      var w = wCm * 10, h = hCm * 10; // cm -> mm
+      if (w > maxW) { h = h * (maxW / w); w = maxW; }
+      if (maxH && h > maxH) { w = w * (maxH / h); h = maxH; }
+      return { w: w, h: h };
+    }
+    function drawEvidenceGroup(title, arr){
+      if (!arr.length) return;
+      var gap = 4, maxPhotoH = 65;
+      // Hitung kebutuhan tinggi "judul + baris foto pertama" sebagai 1 paket,
+      // supaya keduanya TIDAK terpisah halaman (kalau ini foto baru, bukan
+      // lanjutan). Kalau nanti masih ada baris foto berikutnya yang meluber,
+      // itu baru boleh lanjut wajar ke halaman baru TANPA mengulang judul —
+      // ditangani oleh pengecekan per-baris di dalam loop di bawah.
+      var labelH = 7;
+      var firstRowW = 0, firstRowH = 0, k0 = 0;
+      while (k0 < arr.length) {
+        var dim0 = iePhotoDrawSize(arr[k0], contentW, maxPhotoH);
+        var addW0 = dim0.w + (firstRowW ? gap : 0);
+        if (firstRowW && (firstRowW + addW0) > contentW) break;
+        firstRowW += addW0; firstRowH = Math.max(firstRowH, dim0.h); k0++;
+      }
+      var neededFirstBlock = labelH + firstRowH + 10;
+      var pageUsableH = ph - marginTop - marginBottom;
+      if (neededFirstBlock <= pageUsableH && (y + neededFirstBlock > ph - marginBottom)) {
+        doc.addPage(); drawBgOnce(); y = marginTop;
+      } else {
+        checkPage(10);
+      }
+      doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(20,30,25);
+      doc.text(title, marginX, y+4); y += labelH;
+      var idx = 0;
+      while (idx < arr.length) {
+        // Susun satu baris: foto dipasang berurutan pada ukuran aslinya
+        // (mengikuti pilihan crop), berhenti begitu lebar baris akan
+        // melebihi lebar konten (minimal 1 foto per baris).
+        var rowItems = [], rowW = 0, rowH = 0, k = idx;
+        while (k < arr.length) {
+          var dim = iePhotoDrawSize(arr[k], contentW, maxPhotoH);
+          var addW = dim.w + (rowItems.length ? gap : 0);
+          if (rowItems.length && (rowW + addW) > contentW) break;
+          rowItems.push({img: arr[k], dim: dim});
+          rowW += addW;
+          rowH = Math.max(rowH, dim.h);
+          k++;
+        }
+        // Baris foto LANJUTAN (idx>0, judul sudah tercetak di atas) yang
+        // kelebihan tinggi halaman -> lanjut ke halaman baru TANPA mengulang
+        // judul, foto lanjutannya otomatis muncul di halaman berikutnya.
+        if (y + rowH + 10 > ph - marginBottom) {
+          doc.addPage(); drawBgOnce(); y = marginTop;
+        }
+        var x = marginX + (contentW - rowW) / 2;
+        rowItems.forEach(function(it){
+          var img = it.img, dim = it.dim;
+          var dx = Math.max(marginX, Math.min(x + ((img.offsetX||0)*10), marginX + contentW - dim.w));
+          try { doc.addImage(img.dataUrl, 'JPEG', dx, y, dim.w, dim.h); } catch(e){}
+          doc.setDrawColor(200,200,200); doc.rect(dx, y, dim.w, dim.h);
+          if (img.caption) {
+            doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(90,90,90);
+            doc.text(doc.splitTextToSize(img.caption, dim.w), dx, y+dim.h+3.5);
+          }
+          x += dim.w + gap;
+        });
+        y += rowH + 9;
+        idx = k;
+      }
+      y += 3;
+    }
+    drawEvidenceGroup('Zero Calibration', calEvidence.zero);
+    drawEvidenceGroup('Span 1 Calibration', calEvidence.span1);
+    drawEvidenceGroup('Span 2 Calibration', calEvidence.span2);
+
+    // ── STEP 6 ──
+    sectionHeader('Step 6: Optical Energy Reading After Calibration', estTableBlockH(OPTICAL_ROWS.length));
+    doc.autoTable({ startY:y, margin:{left:marginX,right:marginX,top:marginTop,bottom:marginBottom}, willDrawPage:function(){drawBgOnce();}, head:[['Parameter','Measured Energy','Concentration']],
+      body: opticalTableBody(d.opticalAfter), styles:{fontSize:8.5,cellPadding:2.2}, headStyles:{fillColor:[244,217,166],textColor:[20,30,25]}, theme:'grid' });
+    y = doc.lastAutoTable.finalY + 3;
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(20,30,25);
+    doc.text('Overall System Energy: '+safe(d.opticalAfterOverall)+' %', marginX, y+4); y += 10;
+
+    // ── STEP 7 ──
+    sectionHeader('Step 7: Analyzer Reading (DAS) After Calibration', estTableBlockH(DAS_FIELDS.length));
+    doc.autoTable({ startY:y, margin:{left:marginX,right:marginX,top:marginTop,bottom:marginBottom}, willDrawPage:function(){drawBgOnce();}, head:[['Parameter','Nilai']],
+      body: DAS_FIELDS.map(function(f){ return [f.label+' ('+f.unit+')', safe(d.dasAfter[f.key])]; }),
+      styles:{fontSize:8.5,cellPadding:2.2}, headStyles:{fillColor:[243,233,201],textColor:[20,30,25]}, theme:'grid' });
+    y = doc.lastAutoTable.finalY + 8;
+
+    // ── STEP 8 ──
+    sectionHeader('Step 8: Actual Temperature Reading (°C)', estTableBlockH(TEMP_FIELDS.length));
+    doc.autoTable({ startY:y, margin:{left:marginX,right:marginX,top:marginTop,bottom:marginBottom}, willDrawPage:function(){drawBgOnce();}, head:[['Titik Ukur','Suhu (°C)']],
+      body: TEMP_FIELDS.map(function(f){ return [f.label, safe(d.temperature[f.key])]; }),
+      styles:{fontSize:8.5,cellPadding:2.2}, headStyles:{fillColor:[243,233,201],textColor:[20,30,25]}, theme:'grid' });
+    y = doc.lastAutoTable.finalY + 8;
+
+    // ── STEP 9/10/11 — hanya dicetak kalau relevan dengan frequency terpilih ──
+    // Kotak centang digambar sebagai checkbox visual (kotak + centang), bukan
+    // simbol teks ✓/— — mengikuti pola drawCheckboxBs reusable dari
+    // so2/opacity/beltscale.
+    function drawCheckboxBs(doc, x, y, w, h, checked){
+      var size = Math.min(w, h) * 0.55;
+      var bx = x + w/2 - size/2, by = y + h/2 - size/2;
+      doc.setLineWidth(0.4);
+      if (checked) {
+        doc.setDrawColor(30,140,74); doc.setFillColor(46,204,113);
+        doc.rect(bx, by, size, size, 'FD');
+        doc.setDrawColor(255,255,255); doc.setLineWidth(0.6);
+        doc.line(bx+size*0.18, by+size*0.52, bx+size*0.40, by+size*0.76);
+        doc.line(bx+size*0.40, by+size*0.76, bx+size*0.84, by+size*0.22);
+      } else {
+        doc.setDrawColor(150,160,155); doc.setFillColor(255,255,255);
+        doc.rect(bx, by, size, size, 'FD');
+      }
+    }
+    function inspectionTable(items){
+      return {
+        body: items.map(function(r){ return ['', r[1]]; }),
+        didDrawCell: function(data){
+          if (data.section==='body' && data.column.index===0) {
+            drawCheckboxBs(doc, data.cell.x, data.cell.y, data.cell.width, data.cell.height, !!items[data.row.index][0]);
+          }
+        }
+      };
+    }
+    // Checklist inspeksi memakai plan yang SAMA dengan form (getInspectionPlan)
+    // supaya isi PDF selalu sinkron dengan yang ditampilkan & dicentang user.
+    function inspCheckedVal(id){
+      var us = id.indexOf('_'), g = id.slice(0,us), k = id.slice(us+1);
+      var src = g==='insp1' ? d.inspection1 : g==='insp3' ? d.inspection3 : d.inspection2y;
+      return !!(src && src[k]);
+    }
+    var inspPlan = getInspectionPlan(d.meta.frequency);
+    if (inspPlan){
+      sectionHeader('Step 9: '+inspPlan.title, estTableBlockH(inspPlan.items.length));
+      var insp9 = inspectionTable(inspPlan.items.map(function(it){
+        return [inspCheckedVal(it.id), it.letter+'. '+it.text];
+      }));
+      doc.autoTable({ startY:y, margin:{left:marginX,right:marginX,top:marginTop,bottom:marginBottom}, willDrawPage:function(){drawBgOnce();}, head:[['Status','Item']],
+        body: insp9.body, didDrawCell: insp9.didDrawCell,
+        styles:{fontSize:8.5,cellPadding:2.2}, columnStyles:{0:{cellWidth:16,halign:'center'}}, headStyles:{fillColor:[222,232,226],textColor:[20,30,25]}, theme:'grid' });
+      y = doc.lastAutoTable.finalY + 8;
+      inspPlan.evidenceGroups.forEach(function(g){
+        drawEvidenceGroup(g.title + ' — Before', calEvidence[g.key].before);
+        drawEvidenceGroup(g.title + ' — After', calEvidence[g.key].after);
+      });
+    }
+
+    // Buang halaman terakhir yang "mengambang" kosong — bisa muncul kalau
+    // page-break internal jspdf-autotable membuka halaman baru tepat di
+    // akhir konten tanpa ada isi lagi setelahnya (y masih ~marginTop).
+    var lastPageNum = doc.internal.getNumberOfPages();
+    if (lastPageNum > 1 && y <= marginTop + 5) {
+      doc.deletePage(lastPageNum);
+      doc.setPage(doc.internal.getNumberOfPages());
+    }
+
+    if (typeof hideImgLoading === 'function') hideImgLoading();
+    var fn = (pdfNamePart(d.meta.workorder,30)||'NoWO')+'_'+(pdfNamePart(d.meta.asset,25)||'NoAsset')+'_'+(pdfNamePart(d.meta.descAsset,40)||'NoDesc')+'.pdf';
+    if (typeof showPdfPreview === 'function') { showPdfPreview(doc, fn); }
+    else { doc.save(fn); }
+  } catch (err) {
+    if (typeof hideImgLoading === 'function') hideImgLoading();
+    console.error(err);
+    alert('Gagal membuat PDF: '+err.message);
+  }
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   INIT
+   ══════════════════════════════════════════════════════════════ */
+setInterval(function(){ var el=document.getElementById('clock'); if(el) el.textContent=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); },1000);
+(function(){
+  var today=new Date();
+  var todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  var el=document.getElementById('metaTanggal'); if(el && !el.value) el.value=todayStr;
+})();
+// Autosave draft, prompt "lanjutkan draft?", dan load-from-history (?id=xxx)
+// sudah otomatis ditangani shared.js (autosaveCheckAndPrompt / dbLoad) selama
+// dbCollectData(), applyRecordToForm(), dan restoreDraftData() di atas ada.
+
+/* ── LOAD FROM HISTORY (URL ?id=xxx&print=1) ── */
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var id = params.get('id');
+  var doPrint = params.get('print') === '1';
+  if (params.get('embed') === '1') window._pdfEmbedMode = true;
+  var doAutosubmit = params.get('autosubmit') === '1';
+  if (!id || typeof dbLoad !== 'function') return;
+  dbLoad(id, function(rec){
+    setTimeout(function(){
+      applyRecordToForm(rec);
+      window._editingId = id;
+      if (typeof dbShowToast === 'function') dbShowToast('Data dimuat dari riwayat ✓');
+      if (doPrint && typeof exportPdf === 'function') setTimeout(exportPdf, 300);
+      if (doAutosubmit && typeof exportPdf === 'function') { window._raBuildPdf = exportPdf; raSubmitReportAuto(); }
+    }, 300);
+  });
+})();
+</script>
+</body>
+</html>

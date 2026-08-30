@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Input Data Asset — Outage Unit 7</title>
+<script src="shared.js"></script>
+<style>
+  :root {
+    --bg: #f0f4f8;
+    --bg2: #ffffff;
+    --border: #e2e8f0;
+    --steel: #1e3a5f;
+    --steel-light: #2d4a6a;
+    --accent: #0f766e;
+    --accent2: #0d9488;
+    --ok: #16a34a;
+    --fail: #dc2626;
+    --warn: #d97706;
+    --text-dark: #0f172a;
+    --text-mid: #475569;
+    --text-light: #94a3b8;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text-dark);
+    min-height: 100vh;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    background: linear-gradient(90deg, #1e3a5f 0%, #2d4a6a 60%, #1e3a5f 100%);
+    padding: 0 clamp(10px,3vw,32px);
+    display: flex;
+    align-items: center;
+    gap: clamp(6px,1.2vw,20px);
+    min-height: clamp(44px,5vh,54px);
+    border-bottom: 2px solid #0f766e44;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-back {
+    padding: clamp(4px,0.5vh,6px) clamp(8px,1vw,14px);
+    border: 1px solid #2a4a7a;
+    border-radius: 4px;
+    background: rgba(15,118,110,0.06);
+    color: #7ab8c8;
+    font-size: clamp(9px,1vw,11px);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .topbar-back:hover { color: #a8d4b8; border-color: #0f766e; background: rgba(15,118,110,0.12); }
+
+  .topbar-sep { width: 1px; height: 26px; background: #2a4a7a; flex-shrink: 0; }
+
+  .topbar-logo {
+    font-family: 'Arial Narrow', sans-serif;
+    font-size: clamp(12px,1.8vw,18px);
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #a8d4c8;
+    flex-shrink: 0;
+  }
+
+  .topbar-sub {
+    font-size: clamp(10px,1.2vw,13px);
+    color: #7ab8c8;
+    letter-spacing: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 1;
+  }
+
+  .topbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #0f766e;
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .topbar-time {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(9px,1.1vw,12px);
+    color: #7ab8c8;
+  }
+
+  /* ── WRAPPER ── */
+  .wrapper {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: clamp(12px,2vh,24px) clamp(10px,2.5vw,24px) 48px;
+  }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: clamp(14px,2vh,28px);
+    flex-wrap: wrap;
+  }
+
+  .page-header-sub {
+    font-size: clamp(9px,1vw,12px);
+    color: var(--text-light);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .page-header-title {
+    font-family: 'Arial Narrow', sans-serif;
+    font-size: clamp(20px,3.5vw,36px);
+    font-weight: 700;
+    color: var(--steel);
+    line-height: 1;
+    letter-spacing: 1px;
+  }
+
+  .page-header-title span { color: var(--accent); }
+
+  /* ── PANEL ── */
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: clamp(12px,2vw,22px) clamp(12px,2.5vw,26px);
+    margin-bottom: clamp(10px,1.5vh,20px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .section-label {
+    font-family: 'Arial Narrow', sans-serif;
+    font-size: clamp(10px,1.1vw,12px);
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-light);
+    margin-bottom: clamp(10px,1.5vh,18px);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .btn {
+    padding: clamp(6px,0.8vh,9px) clamp(10px,1.5vw,18px);
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: clamp(11px,1.2vw,13px);
+    font-weight: 600;
+    font-family: inherit;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+  .btn-secondary { background: var(--steel); color: #fff; }
+  .btn-secondary:hover { background: var(--steel-light); transform: translateY(-1px); }
+
+  .btn-success { background: var(--ok); color: #fff; }
+  .btn-success:hover { background: #15803d; transform: translateY(-1px); }
+
+  .btn-danger { background: #f1f5f9; color: var(--fail); border: 1.5px solid #fecaca; }
+  .btn-danger:hover { background: #fef2f2; border-color: var(--fail); }
+
+  .btn-outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+  .btn-outline:hover { background: var(--accent); color: #fff; }
+
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+
+  /* ── TABLE WRAPPER ── */
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: clamp(11px,1.2vw,13px);
+    min-width: 600px;
+  }
+
+  thead tr {
+    background: linear-gradient(90deg, #1e3a5f, #2d4a6a);
+  }
+
+  thead th {
+    padding: clamp(8px,1vh,12px) clamp(8px,1vw,14px);
+    text-align: left;
+    font-family: 'Arial Narrow', sans-serif;
+    font-size: clamp(9px,1vw,11px);
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #a8d4c8;
+    white-space: nowrap;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+  }
+
+  thead th:last-child { border-right: none; }
+
+  /* Kolom default — tidak bisa hapus */
+  thead th.col-fixed {
+    background: rgba(15,118,110,0.15);
+  }
+
+  /* Kolom dinamis — bisa hapus */
+  thead th.col-dynamic {
+    background: rgba(29,78,216,0.12);
+  }
+
+  thead th .th-inner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  thead th .col-name-input {
+    background: transparent;
+    border: none;
+    color: #e0f2fe;
+    font-size: clamp(9px,1vw,11px);
+    font-family: 'Arial Narrow', sans-serif;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    width: 100%;
+    min-width: 80px;
+    cursor: text;
+    outline: none;
+    padding: 2px 0;
+  }
+
+  thead th .col-name-input:focus {
+    border-bottom: 1px solid #0d9488;
+  }
+
+  thead th .btn-del-col {
+    background: rgba(220,38,38,0.25);
+    border: none;
+    color: #fca5a5;
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 18px;
+    text-align: center;
+    padding: 0;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+
+  thead th .btn-del-col:hover { background: rgba(220,38,38,0.55); color: #fff; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f8fafc; }
+  tbody tr.editing { background: #f0fdf4; }
+
+  tbody td {
+    padding: clamp(6px,0.8vh,10px) clamp(8px,1vw,14px);
+    vertical-align: middle;
+    border-right: 1px solid #f1f5f9;
+    color: var(--text-dark);
+  }
+
+  tbody td:last-child { border-right: none; }
+
+  /* Kolom No */
+  td.col-no {
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--text-light);
+    width: 40px;
+    font-weight: 600;
+  }
+
+  /* Cell input saat edit */
+  td .cell-display { min-height: 20px; }
+
+  td .cell-input {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1.5px solid var(--accent);
+    border-radius: 4px;
+    font-size: clamp(11px,1.2vw,13px);
+    font-family: inherit;
+    color: var(--text-dark);
+    background: #fff;
+    outline: none;
+  }
+
+  td .cell-input:focus { border-color: var(--accent2); box-shadow: 0 0 0 2px rgba(15,118,110,0.12); }
+
+  /* Kolom aksi */
+  td.col-action {
+    white-space: nowrap;
+    width: 100px;
+    text-align: center;
+  }
+
+  .action-btns { display: flex; gap: 5px; justify-content: center; align-items: center; }
+
+  /* Status badge */
+  .badge-new {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #dcfce7;
+    color: #15803d;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    font-family: 'Courier New', monospace;
+  }
+
+  .badge-saved {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #e0f2fe;
+    color: #0369a1;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    font-family: 'Courier New', monospace;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-light);
+    font-size: 13px;
+  }
+
+  .empty-state .icon { font-size: 36px; margin-bottom: 10px; }
+  .empty-state .msg { font-family: 'Courier New', monospace; font-size: 12px; margin-top: 4px; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e3a5f;
+    color: #fff;
+    padding: 11px 22px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 9999;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+    max-width: 90vw;
+    text-align: center;
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .modal-overlay.show { display: flex; }
+
+  .modal-box {
+    background: var(--bg2);
+    border-radius: 10px;
+    padding: 24px;
+    width: min(400px, 96vw);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+  }
+
+  .modal-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 14px;
+  }
+
+  .modal-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text-dark);
+    background: #fff;
+    outline: none;
+    margin-bottom: 16px;
+  }
+
+  .modal-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(15,118,110,0.1); }
+
+  .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* ── INFO STATS ── */
+  .stats-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .stat-chip {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .stat-chip.total { background: #f0f4f8; border-color: var(--border); color: var(--steel); }
+  .stat-chip.saved { background: #e0f2fe; border-color: #bae6fd; color: #0369a1; }
+  .stat-chip.unsaved { background: #fef9c3; border-color: #fde68a; color: #92400e; }
+
+  @media (max-width: 600px) {
+    .toolbar { gap: 6px; }
+    .btn { padding: 6px 10px; font-size: 11px; }
+  }
+
+  /* ── INPUT CARDS ROW ── */
+  .input-cards-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(10px,1.5vw,18px);
+    margin-bottom: clamp(10px,1.5vh,20px);
+  }
+
+  @media (max-width: 700px) {
+    .input-cards-row { grid-template-columns: 1fr; }
+  }
+
+  /* ── CARD: Input Excel ── */
+  .card-excel {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-top: 3px solid #0f766e;
+    border-radius: 10px;
+    padding: clamp(14px,2vw,22px);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card-manual {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-top: 3px solid #1e3a5f;
+    border-radius: 10px;
+    padding: clamp(14px,2vw,22px);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card-title {
+    font-family: 'Arial Narrow', sans-serif;
+    font-size: clamp(13px,1.4vw,15px);
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title.excel-title { color: var(--accent); }
+  .card-title.manual-title { color: var(--steel); }
+
+  /* ── DROP ZONE ── */
+  .drop-zone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: clamp(16px,2.5vh,28px) 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f8fafc;
+    position: relative;
+  }
+
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: #f0fdf9;
+  }
+
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .drop-zone-icon { font-size: 28px; margin-bottom: 6px; }
+
+  .drop-zone-text {
+    font-size: 12px;
+    color: var(--text-mid);
+    font-weight: 600;
+  }
+
+  .drop-zone-sub {
+    font-size: 11px;
+    color: var(--text-light);
+    margin-top: 3px;
+    font-family: 'Courier New', monospace;
+  }
+
+  /* ── EXCEL PREVIEW ── */
+  .excel-preview {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .excel-preview.visible { display: flex; }
+
+  .excel-preview-meta {
+    font-size: 11px;
+    color: var(--text-mid);
+    font-family: 'Courier New', monospace;
+    background: #f1f5f9;
+    border-radius: 5px;
+    padding: 6px 10px;
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .excel-preview-meta span { font-weight: 700; color: var(--steel); }
+
+  .col-mapping {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 140px;
+    overflow-y: auto;
+  }
+
+  .col-map-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: #f8fafc;
+  }
+
+  .col-map-item .col-src {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: var(--text-dark);
+    min-width: 100px;
+  }
+
+  .col-map-item .arrow { color: var(--text-light); }
+
+  .col-map-item .col-dest {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+  }
+
+  .col-map-item .dest-fixed {
+    background: rgba(15,118,110,0.1);
+    color: #0f766e;
+  }
+
+  .col-map-item .dest-new {
+    background: rgba(99,102,241,0.1);
+    color: #4f46e5;
+  }
+
+  .excel-preview-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* ── MANUAL FORM ── */
+  .manual-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  @media (max-width: 500px) {
+    .form-row { grid-template-columns: 1fr; }
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .form-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    font-family: 'Arial Narrow', sans-serif;
+  }
+
+  .form-label .required { color: var(--fail); margin-left: 2px; }
+
+  .form-input {
+    padding: 7px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    color: var(--text-dark);
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .form-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(15,118,110,0.1);
+  }
+
+  .form-input.field-required-error {
+    border-color: var(--fail);
+    box-shadow: 0 0 0 2px rgba(220,38,38,0.1);
+  }
+
+  .dynamic-fields-section {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dynamic-fields-section.has-fields { display: flex; }
+
+  .dynamic-fields-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #4f46e5;
+    font-family: 'Arial Narrow', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dynamic-fields-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e0e7ff;
+  }
+
+  .dynamic-fields-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  @media (max-width: 500px) {
+    .dynamic-fields-grid { grid-template-columns: 1fr; }
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 4px;
+  }
+
+  /* ── REFERENSI PANEL ── */
+  .ref-panel {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-top: 3px solid #7c3aed;
+    border-radius: 10px;
+    padding: clamp(12px,2vw,18px) clamp(12px,2.5vw,22px);
+    margin-bottom: clamp(10px,1.5vh,18px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .ref-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .ref-panel-title {
+    font-family: 'Arial Narrow', sans-serif;
+    font-size: clamp(11px,1.2vw,13px);
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #7c3aed;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ref-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .ref-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px 6px 14px;
+    border-radius: 20px;
+    background: #f5f3ff;
+    border: 1.5px solid #c4b5fd;
+    font-size: 12px;
+    font-weight: 600;
+    color: #5b21b6;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .ref-chip:hover {
+    background: #ede9fe;
+    border-color: #7c3aed;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(124,58,237,0.15);
+  }
+
+  .ref-chip .chip-label { pointer-events: none; }
+
+  .ref-chip .chip-del {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(124,58,237,0.15);
+    border: none;
+    color: #7c3aed;
+    font-size: 10px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    flex-shrink: 0;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .ref-chip .chip-del:hover {
+    background: #dc2626;
+    color: #fff;
+  }
+
+  .ref-empty {
+    font-size: 12px;
+    color: var(--text-light);
+    font-family: 'Courier New', monospace;
+    font-style: italic;
+  }
+
+  /* ── MODAL PASSWORD INPUT ── */
+  .modal-input-pw {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text-dark);
+    background: #fff;
+    outline: none;
+    margin-bottom: 8px;
+  }
+
+  .modal-input-pw:focus { border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124,58,237,0.1); }
+
+  .modal-input-pw.pw-error { border-color: var(--fail); box-shadow: 0 0 0 2px rgba(220,38,38,0.1); }
+
+  .modal-hint {
+    font-size: 11px;
+    color: var(--text-light);
+    margin-bottom: 14px;
+    font-family: 'Courier New', monospace;
+  }
+
+  .modal-hint.error-hint { color: var(--fail); font-weight: 600; }
+
+  .pw-toggle-wrap {
+    position: relative;
+    margin-bottom: 8px;
+  }
+
+  .pw-toggle-wrap .modal-input-pw { margin-bottom: 0; padding-right: 38px; }
+
+  .pw-toggle-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--text-light);
+    padding: 0;
+    line-height: 1;
+  }
+
+  /* ── TAB STRIP ── */
+  .tab-strip-wrap { display:flex; align-items:flex-end; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; border-bottom:2px solid var(--border); margin-bottom:0; padding-bottom:0; position:relative; }
+  .tab-strip-wrap::-webkit-scrollbar { height:3px; }
+  .tab-strip-wrap::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+  .tab-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 20px 12px; font-size:clamp(11px,1.2vw,13px); font-weight:600; font-family:inherit; cursor:pointer; border:1.5px solid transparent; border-bottom:none; border-top-left-radius:8px; border-top-right-radius:8px; white-space:nowrap; transition:all 0.18s; background:#e8eef5; color:var(--text-mid); margin-right:4px; position:relative; bottom:-2px; flex-shrink:0; }
+  .tab-btn:hover:not(.active) { background:#dde7f0; color:var(--steel); }
+  .tab-btn.active { background:var(--bg2); color:var(--steel); border-color:var(--border); border-bottom-color:var(--bg2); z-index:2; }
+  .tab-btn .tab-count { font-size:10px; font-family:'Courier New',monospace; font-weight:700; padding:1px 6px; border-radius:10px; min-width:20px; text-align:center; }
+  .tab-btn.active .tab-count { background:var(--accent); color:#fff; }
+  .tab-btn:not(.active) .tab-count { background:var(--text-light); color:#fff; }
+  .tab-btn .tab-icon { font-size:14px; }
+  .btn-add-tab { display:inline-flex; align-items:center; gap:6px; padding:8px 16px 10px; font-size:12px; font-weight:600; font-family:inherit; cursor:pointer; border:1.5px dashed var(--accent); border-bottom:none; border-top-left-radius:8px; border-top-right-radius:8px; background:rgba(15,118,110,0.04); color:var(--accent); white-space:nowrap; transition:all 0.18s; position:relative; bottom:-2px; flex-shrink:0; }
+  .btn-add-tab:hover { background:rgba(15,118,110,0.1); }
+  .tab-pane { display:none; background:var(--bg2); border:1.5px solid var(--border); border-top:none; border-radius:0 0 10px 10px; padding:clamp(14px,2vw,24px) clamp(12px,2.5vw,26px); box-shadow:var(--shadow-sm); margin-bottom:clamp(10px,1.5vh,20px); }
+  .tab-pane.active { display:block; }
+  .pane-header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+  .pane-title-group { display:flex; align-items:center; gap:12px; }
+  .pane-title { font-family:'Arial Narrow',sans-serif; font-size:clamp(14px,1.8vw,18px); font-weight:700; color:var(--steel); letter-spacing:0.5px; }
+  .pane-title-input { font-family:'Arial Narrow',sans-serif; font-size:clamp(14px,1.8vw,18px); font-weight:700; color:var(--steel); border:none; border-bottom:2px dashed var(--border); outline:none; background:transparent; padding:2px 4px; min-width:80px; cursor:text; transition:border-color 0.2s; }
+  .pane-title-input:focus { border-bottom-color:var(--accent); }
+  .btn-del-tab { padding:4px 10px; border-radius:5px; border:1.5px solid #fecaca; background:#fef2f2; color:var(--fail); font-size:11px; font-weight:600; font-family:inherit; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all 0.15s; }
+  .btn-del-tab:hover { background:var(--fail); color:#fff; border-color:var(--fail); }
+
+</style>
+<script>
+/* ══════════════════════════════════════════════
+   XLSX / CSV PARSER — inline, no CDN needed
+   Replaces SheetJS CDN to avoid Tracking Prevention
+   Supports: .csv, .xlsx (Office Open XML)
+══════════════════════════════════════════════ */
+var XLSX = (function() {
+
+  /* ── CSV parser ── */
+  function parseCSV(text) {
+    // Split on \r\n or \n
+    var lines = [];
+    var raw = text.split('\n');
+    for (var i = 0; i < raw.length; i++) {
+      var l = raw[i].replace(/\r$/, '');
+      if (l.trim()) lines.push(l);
+    }
+    if (!lines.length) return [];
+
+    function splitLine(line) {
+      var cols = [], cur = '', inQ = false;
+      for (var i = 0; i < line.length; i++) {
+        var c = line[i];
+        if (c === '"') {
+          if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+          else inQ = !inQ;
+        } else if (c === ',' && !inQ) {
+          cols.push(cur.trim()); cur = '';
+        } else {
+          cur += c;
+        }
+      }
+      cols.push(cur.trim());
+      return cols;
+    }
+
+    var headers = splitLine(lines[0]);
+    return lines.slice(1).map(function(l) {
+      var vals = splitLine(l);
+      var obj = {};
+      headers.forEach(function(h, i){ obj[h.trim()] = (vals[i] || '').trim(); });
+      return obj;
+    });
+  }
+
+  /* ── XLSX parser (Office Open XML / zip) ── */
+  function parseXLSX(arrayBuffer) {
+    var bytes = new Uint8Array(arrayBuffer);
+
+    function readU16(b, o) { return b[o] | (b[o+1]<<8); }
+    function readU32(b, o) { return (b[o]|(b[o+1]<<8)|(b[o+2]<<16)|(b[o+3]<<24))>>>0; }
+
+    function findEOCD(b) {
+      for (var i = b.length-22; i >= 0; i--)
+        if (b[i]===0x50&&b[i+1]===0x4b&&b[i+2]===0x05&&b[i+3]===0x06) return i;
+      return -1;
+    }
+
+    var eocd = findEOCD(bytes);
+    if (eocd < 0) throw new Error('Invalid XLSX');
+    var cdOffset = readU32(bytes, eocd+16);
+    var cdSize   = readU32(bytes, eocd+12);
+
+    var files = {};
+    var pos = cdOffset;
+    while (pos < cdOffset + cdSize) {
+      if (readU32(bytes,pos) !== 0x02014b50) break;
+      var fnLen = readU16(bytes, pos+28);
+      var exLen = readU16(bytes, pos+30);
+      var cmLen = readU16(bytes, pos+32);
+      var hdrOff= readU32(bytes, pos+42);
+      var fname = '';
+      for (var fi = 0; fi < fnLen; fi++) fname += String.fromCharCode(bytes[pos+46+fi]);
+      files[fname] = hdrOff;
+      pos += 46 + fnLen + exLen + cmLen;
+    }
+
+    function getEntry(name) {
+      var off = files[name];
+      if (off === undefined) return null;
+      var fnLen = readU16(bytes, off+26);
+      var exLen = readU16(bytes, off+28);
+      var comp  = readU16(bytes, off+8);
+      var cSize = readU32(bytes, off+18);
+      var uSize = readU32(bytes, off+22);
+      var dOff  = off + 30 + fnLen + exLen;
+      var raw   = bytes.subarray(dOff, dOff + cSize);
+      if (comp === 0) return raw;
+      if (comp === 8) {
+        try {
+          var ds = new DecompressionStream('deflate-raw');
+          // Synchronous read not possible; return raw and let XML fail gracefully
+          return raw;
+        } catch(e) { return raw; }
+      }
+      return raw;
+    }
+
+    function decode(u8) {
+      try { return new TextDecoder().decode(u8); }
+      catch(e) {
+        var s = '';
+        for (var i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]);
+        return s;
+      }
+    }
+
+    function parseXML(xml) {
+      return new DOMParser().parseFromString(xml, 'application/xml');
+    }
+
+    // Shared strings
+    var sharedStrings = [];
+    var ssRaw = getEntry('xl/sharedStrings.xml');
+    if (ssRaw) {
+      var ssXml = parseXML(decode(ssRaw));
+      ssXml.querySelectorAll('si').forEach(function(si){
+        var txt = '';
+        si.querySelectorAll('t').forEach(function(t){ txt += t.textContent; });
+        sharedStrings.push(txt);
+      });
+    }
+
+    // Sheet1
+    var sheetRaw = getEntry('xl/worksheets/sheet1.xml');
+    if (!sheetRaw) {
+      // Try to find sheet name from workbook rels
+      var relsRaw = getEntry('xl/_rels/workbook.xml.rels');
+      if (relsRaw) {
+        var relsXml = parseXML(decode(relsRaw));
+        var firstRel = relsXml.querySelector('Relationship');
+        if (firstRel) {
+          var target = firstRel.getAttribute('Target') || '';
+          sheetRaw = getEntry('xl/' + target.replace(/^\//, ''));
+        }
+      }
+    }
+    if (!sheetRaw) throw new Error('Sheet not found');
+
+    var sheetXml = parseXML(decode(sheetRaw));
+    var rowEls = sheetXml.querySelectorAll('row');
+    if (!rowEls.length) return [];
+
+    // Column letter to 0-based index
+    function colIdx(col) {
+      var n = 0;
+      for (var i = 0; i < col.length; i++) n = n*26 + (col.charCodeAt(i)-64);
+      return n-1;
+    }
+
+    // Parse rows into {colLetter: value} maps
+    var rowData = [];
+    rowEls.forEach(function(row) {
+      var cells = {};
+      row.querySelectorAll('c').forEach(function(c) {
+        var r = c.getAttribute('r') || '';
+        var col = r.replace(/[0-9]/g, '');
+        var t = c.getAttribute('t');
+        var v = c.querySelector('v');
+        var val = '';
+        if (v) {
+          if (t === 's') val = sharedStrings[parseInt(v.textContent)] || '';
+          else if (t === 'inlineStr') { var is = c.querySelector('t'); val = is ? is.textContent : ''; }
+          else val = v.textContent;
+        }
+        if (col) cells[col] = val;
+      });
+      rowData.push(cells);
+    });
+
+    if (!rowData.length) return [];
+
+    // Build header from first row
+    var headerRow = rowData[0];
+    var colLetters = Object.keys(headerRow).sort(function(a,b){
+      return colIdx(a) - colIdx(b);
+    });
+    var headers = {};
+    colLetters.forEach(function(col){ headers[col] = headerRow[col]; });
+
+    return rowData.slice(1).filter(function(r){ return Object.keys(r).length > 0; }).map(function(r) {
+      var obj = {};
+      colLetters.forEach(function(col) {
+        var h = headers[col] || ('Col_'+col);
+        obj[h] = r[col] || '';
+      });
+      return obj;
+    });
+  }
+
+  return {
+    read: function(arrayBuffer, opts) {
+      return { _buf: arrayBuffer };
+    },
+    utils: {
+      sheet_to_json: function(sheet, opts) {
+        var buf = sheet._buf;
+        var sig = new Uint8Array(buf, 0, 4);
+        var isPK = sig[0]===0x50 && sig[1]===0x4b;
+        if (isPK) {
+          try { return parseXLSX(buf); }
+          catch(e) {
+            console.warn('XLSX parse error, trying as CSV:', e.message);
+            return parseCSV(new TextDecoder().decode(buf));
+          }
+        }
+        return parseCSV(new TextDecoder().decode(buf));
+      }
+    }
+  };
+})();
+</script>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <button class="topbar-back" onclick="window.location.href='outage-index.html'">← Outage</button>
+  <button class="topbar-back" onclick="window.location.href='outage-history.html'" style="margin-left:2px">📋 History Input</button>
+  <div class="topbar-sep"></div>
+  <div class="topbar-logo">INPUT DATA</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-sub">Outage Unit 7 · Tabel Data Asset</div>
+  <div class="topbar-right">
+    <div class="live-dot"></div>
+    <div class="topbar-time" id="clockInput">--:--:--</div>
+  </div>
+</div>
+
+<!-- WRAPPER -->
+<div class="wrapper">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div>
+      <div class="page-header-sub">Outage Management · MOD-01</div>
+      <div class="page-header-title">Input Data <span>Asset</span></div>
+    </div>
+  </div>
+
+  <!-- INPUT CARDS -->
+  <div class="input-cards-row">
+
+    <!-- CARD 1: Input by Excel -->
+    <div class="card-excel">
+      <div class="card-title excel-title">📊 Input From Excel</div>
+
+      <!-- Drop Zone -->
+      <div class="drop-zone" id="excelDropZone">
+        <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv"
+          onchange="handleExcelFile(this.files[0])">
+        <div class="drop-zone-icon">📂</div>
+        <div class="drop-zone-text">Klik atau seret file ke sini</div>
+        <div class="drop-zone-sub">.xlsx · .xls · .csv</div>
+      </div>
+
+      <!-- Tab target selector -->
+      <div style="margin-top:10px;padding:10px;background:#f0f7ff;border:1px solid #c3d9f5;border-radius:8px;">
+        <div style="font-size:11px;font-weight:700;color:var(--primary);margin-bottom:6px;">
+          📁 Import ke Kategori / Tab:
+        </div>
+        <select id="importTargetTab" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;color:var(--text);background:#fff;outline:none;">
+          <option value="__active__">— Gunakan Tab Aktif Sekarang —</option>
+        </select>
+        <div style="font-size:10px;color:var(--text-light);margin-top:5px;">
+          Pilih tab tujuan, atau biarkan "Tab Aktif" untuk import ke tab yang sedang dibuka.
+        </div>
+      </div>
+
+      <!-- Preview (muncul setelah file dipilih) -->
+      <div class="excel-preview" id="excelPreview">
+        <div class="excel-preview-meta" id="excelMeta"></div>
+
+        <!-- Mapping kolom -->
+        <div style="font-size:11px;font-weight:700;color:var(--text-mid);letter-spacing:1px;text-transform:uppercase;font-family:'Arial Narrow',sans-serif;margin-bottom:2px">
+          Pemetaan Kolom
+        </div>
+        <div class="col-mapping" id="colMapping"></div>
+
+        <div class="excel-preview-actions">
+          <button class="btn btn-primary" onclick="importExcel()">⬇ Import ke Tabel</button>
+          <button class="btn btn-danger" onclick="resetExcel()">✕ Batal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD 2: Input Manual -->
+    <div class="card-manual">
+      <div class="card-title manual-title">✏️ Input Manual</div>
+      <p style="font-size:12px;color:var(--text-mid);line-height:1.6;">
+        Input data langsung melalui tabel di bawah.<br>
+        Klik <strong>＋ Tambah Baris</strong> untuk menambah baris baru.<br>
+        Klik <strong>＋ Tambah Kolom</strong> untuk menambah nomor WO, deskripsi asset, atau informasi lainnya.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- PANEL REFERENSI -->
+  <div class="ref-panel">
+    <div class="ref-panel-header">
+      <div class="ref-panel-title">🗂 Referensi Template Kolom</div>
+    </div>
+    <div class="ref-chips" id="refChips">
+      <span class="ref-empty" id="refEmpty">Belum ada referensi tersimpan.</span>
+    </div>
+  </div>
+
+  <!-- TAB STRIP -->
+  <div class="tab-strip-wrap" id="tabStrip">
+    <button class="btn-add-tab" onclick="openAddTabModal()" title="Tambah Input Utama baru">＋ Tambah Input</button>
+  </div>
+
+  <!-- TAB PANES -->
+  <div id="tabPanes"></div>
+
+</div>
+
+<!-- MODAL: Tambah Kolom -->
+<div class="modal-overlay" id="addColModal">
+  <div class="modal-box">
+    <div class="modal-title">➕ Tambah Kolom Baru</div>
+    <input type="text" class="modal-input" id="newColName"
+      placeholder="Nama kolom, contoh: Merk, Tahun Pasang, Kondisi..."
+      onkeydown="if(event.key==='Enter') confirmAddCol()">
+    <div class="modal-btns">
+      <button class="btn btn-danger" onclick="closeAddColModal()">Batal</button>
+      <button class="btn btn-primary" onclick="confirmAddCol()">Tambah</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Hapus Baris -->
+<div class="modal-overlay" id="delRowModal">
+  <div class="modal-box">
+    <div class="modal-title">🗑 Hapus Baris?</div>
+    <p class="modal-desc">Data baris ini akan dihapus permanen dari database. Lanjutkan?</p>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeDelRowModal()">Batal</button>
+      <button class="btn btn-danger" style="background:var(--fail);color:#fff;border:none" onclick="confirmDelRow()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Hapus Kolom -->
+<div class="modal-overlay" id="delColModal">
+  <div class="modal-box">
+    <div class="modal-title">🗑 Hapus Kolom?</div>
+    <p class="modal-desc">Kolom <strong id="delColName">—</strong> akan dihapus dari semua baris. Data di kolom ini akan hilang permanen setelah disimpan.</p>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeDelColModal()">Batal</button>
+      <button class="btn btn-danger" style="background:var(--fail);color:#fff;border:none" onclick="confirmDelCol()">Hapus Kolom</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Tambah Input Utama -->
+<div class="modal-overlay" id="addTabModal">
+  <div class="modal-box">
+    <div class="modal-title">➕ Tambah Input Utama Baru</div>
+    <p class="modal-desc">Masukkan nama kategori/jenis asset baru (contoh: Flow Meter, Pressure Gauge, dsb.)</p>
+    <input type="text" class="modal-input" id="newTabName"
+      placeholder="Nama input utama..."
+      onkeydown="if(event.key==='Enter') confirmAddTab()">
+    <div class="modal-btns">
+      <button class="btn btn-danger" onclick="closeAddTabModal()">Batal</button>
+      <button class="btn btn-primary" onclick="confirmAddTab()">Buat</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Hapus Input Utama -->
+<div class="modal-overlay" id="delTabModal">
+  <div class="modal-box">
+    <div class="modal-title">🗑 Hapus Input Utama?</div>
+    <p class="modal-desc">Semua data di tab <strong id="delTabName">—</strong> akan dihapus permanen dari database. Tindakan ini tidak dapat dibatalkan.</p>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeDelTabModal()">Batal</button>
+      <button class="btn btn-danger" style="background:var(--fail);color:#fff;border:none" onclick="confirmDelTab()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Simpan Referensi -->
+<div class="modal-overlay" id="saveRefModal">
+  <div class="modal-box">
+    <div class="modal-title">🗂 Simpan Referensi Template Kolom</div>
+    <p class="modal-desc">Simpan konfigurasi kolom tab aktif sebagai template. Masukkan nama dan sandi untuk mengamankan referensi ini.</p>
+    <input type="text" class="modal-input" id="refNameInput"
+      placeholder="Nama referensi, contoh: Template CV Standard..."
+      onkeydown="if(event.key==='Enter') document.getElementById('refPassInput').focus()">
+    <div style="position:relative">
+      <input type="password" class="modal-input" id="refPassInput"
+        placeholder="Buat kata sandi..."
+        onkeydown="if(event.key==='Enter') confirmSaveRef()" style="padding-right:36px">
+      <button onclick="togglePw('refPassInput',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;color:#94a3b8">👁</button>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-danger" onclick="closeSaveRefModal()">Batal</button>
+      <button class="btn btn-primary" onclick="confirmSaveRef()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Hapus Referensi (dengan sandi) -->
+<div class="modal-overlay" id="delRefModal">
+  <div class="modal-box">
+    <div class="modal-title">🗑 Hapus Referensi?</div>
+    <p class="modal-desc">Masukkan sandi untuk menghapus referensi <strong id="delRefName">—</strong>.</p>
+    <div style="position:relative">
+      <input type="password" class="modal-input" id="delRefPassInput"
+        placeholder="Buat kata sandi..."
+        onkeydown="if(event.key==='Enter') confirmDelRef()" style="padding-right:36px">
+      <button onclick="togglePw('delRefPassInput',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;color:#94a3b8">👁</button>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeDelRefModal()">Batal</button>
+      <button class="btn btn-danger" style="background:var(--fail);color:#fff;border:none" onclick="confirmDelRef()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="toast"></div>
+
+<!-- MODAL: Reset Referensi -->
+<div class="modal-overlay" id="resetRefModal">
+  <div class="modal-box">
+    <div class="modal-title">🔄 Reset Kolom Tambahan?</div>
+    <p class="modal-desc">Semua kolom tambahan pada tab <strong id="resetRefTabName">—</strong> akan dihapus. Kolom fix (Asset Tag, Deskripsi, Lokasi, PIC) tetap ada.</p>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeResetRefModal()">Batal</button>
+      <button class="btn btn-danger" style="background:var(--warn,#d97706);color:#fff;border:none" onclick="confirmResetRef()">Reset</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   SUPABASE CONFIG
+══════════════════════════════════════════════ */
+var SUPA_URL    = 'https://ruvvximnnacpvvoogbzs.supabase.co';
+var SUPA_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1dnZ4aW1ubmFjcHZ2b29nYnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDE1NDAsImV4cCI6MjA5NDYxNzU0MH0.GRu5n0Jl2fP0V8L_QLN2Tkmd0Aw0JbMRu25I7t-R7l8';
+var ASSET_TABLE = 'outage_assets';
+
+function supaFetch(method, path, body) {
+  var opts = {
+    method: method,
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(SUPA_URL + '/rest/v1/' + path, opts)
+    .then(function(r) {
+      if (!r.ok) return r.text().then(function(t){ throw new Error(t); });
+      return r.text().then(function(t){ return t ? JSON.parse(t) : []; });
+    });
+}
+
+/* ══════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════ */
+var FIXED_COLS = ['asset_tag','asset_desc','lokasi','pic'];
+var FIXED_LABELS = { 'asset_tag':'Asset Tag','asset_desc':'Asset Description','lokasi':'Lokasi','pic':'PIC' };
+var TAB_ICONS = { 'Control Valve':'🔧','Temperature':'🌡️','Level Switch':'📡' };
+function getTabIcon(n){ return TAB_ICONS[n]||'📋'; }
+
+var tabs = [];
+var activeTabId = null;
+var pendingDelRowIdx = null; var delRowTabId = null;
+var pendingDelCol = null; var pendingColTabId = null;
+var pendingDelTabId = null; var colModalTabId = null;
+
+/* ══════════════════════════════════════════════
+   CLOCK
+══════════════════════════════════════════════ */
+setInterval(function(){
+  var el = document.getElementById('clockInput');
+  if (el) el.textContent = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}, 1000);
+
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', function(){
+  initExcel();
+  initRefChips();
+  loadState();
+  // Populate import tab dropdown after state loaded
+  setTimeout(refreshImportTabDropdown, 100);
+});
+
+/* ══════════════════════════════════════════════
+   LOAD STATE
+══════════════════════════════════════════════ */
+function loadState() {
+  var stored = null;
+  try { stored = JSON.parse(localStorage.getItem('outage_tabs_v2')); } catch(e){}
+  if (!stored || !stored.length) {
+    tabs = [
+      { id:'tab_cv',   name:'Control Valve', rows:[], dynamicCols:[] },
+      { id:'tab_temp', name:'Temperature',   rows:[], dynamicCols:[] },
+      { id:'tab_ls',   name:'Level Switch',  rows:[], dynamicCols:[] }
+    ];
+  } else {
+    tabs = stored.map(function(t){ return { id:t.id, name:t.name, rows:[], dynamicCols:t.dynamicCols||[] }; });
+  }
+  activeTabId = tabs[0].id;
+  renderTabStrip();
+  renderAllPanes();
+
+  /* Cek apakah ada data edit dari history (via sessionStorage) */
+  try {
+    var editData = sessionStorage.getItem('outage_edit_row');
+    if (editData) {
+      sessionStorage.removeItem('outage_edit_row');
+      var row = JSON.parse(editData);
+      loadEditRow(row);
+    }
+  } catch(e){}
+}
+
+function loadEditRow(row) {
+  var cat = (row.input_category || '').trim() || 'Control Valve';
+  var tab = tabs.find(function(t){ return t.name === cat; });
+  if (!tab) {
+    /* Buat tab baru jika kategori belum ada */
+    var nid = 'tab_edit_' + Date.now();
+    tab = { id: nid, name: cat, rows: [], dynamicCols: [] };
+    tabs.push(tab);
+    saveState();
+    renderTabStrip();
+    var container = document.getElementById('tabPanes');
+    container.appendChild(buildPane(tab));
+  }
+  /* Merge kolom dinamis */
+  if (row.extra_data && typeof row.extra_data === 'object') {
+    Object.keys(row.extra_data).forEach(function(k){
+      if (tab.dynamicCols.indexOf(k) === -1) tab.dynamicCols.push(k);
+    });
+  }
+  tab.rows.push(Object.assign({}, row, { _status: 'editing' }));
+  switchTab(tab.id);
+  saveState();
+  var oldPane = document.getElementById('pane_' + tab.id);
+  var container = document.getElementById('tabPanes');
+  if (oldPane && container) {
+    var newPane = buildPane(tab);
+    container.replaceChild(newPane, oldPane);
+    var resetBtn = newPane.querySelector('.reset-ref-btn');
+    if (resetBtn) resetBtn.onclick = function(){ resetToDynCols(tab.id); };
+  }
+  showToast('Data dari History dimuat untuk diedit ✓');
+}
+
+function saveState() {
+  var m=tabs.map(function(t){ return {id:t.id,name:t.name,dynamicCols:t.dynamicCols}; });
+  try { localStorage.setItem('outage_tabs_v2',JSON.stringify(m)); } catch(e){}
+}
+function getTab(id){ return tabs.find(function(t){ return t.id===id; }); }
+
+/* ══════════════════════════════════════════════
+   RENDER TAB STRIP
+══════════════════════════════════════════════ */
+function renderTabStrip() {
+  var strip=document.getElementById('tabStrip');
+  var addBtn=strip.querySelector('.btn-add-tab');
+  strip.innerHTML='';
+  tabs.forEach(function(tab){
+    var btn=document.createElement('button');
+    btn.className='tab-btn'+(tab.id===activeTabId?' active':'');
+    btn.setAttribute('data-tabid',tab.id);
+    btn.onclick=function(){ switchTab(tab.id); };
+    btn.innerHTML='<span class="tab-icon">'+getTabIcon(tab.name)+'</span>'+escHtml(tab.name)+'<span class="tab-count">'+tab.rows.length+'</span>';
+    strip.appendChild(btn);
+  });
+  strip.appendChild(addBtn);
+}
+
+/* ══════════════════════════════════════════════
+   RENDER PANES
+══════════════════════════════════════════════ */
+function renderAllPanes() {
+  var c=document.getElementById('tabPanes'); c.innerHTML='';
+  tabs.forEach(function(tab){ c.appendChild(buildPane(tab)); });
+}
+
+function buildPane(tab) {
+  var pane=document.createElement('div');
+  pane.className='tab-pane'+(tab.id===activeTabId?' active':'');
+  pane.id='pane_'+tab.id;
+  var total=tab.rows.length;
+  var saved=tab.rows.filter(function(r){ return r._status==='saved'; }).length;
+  var unsaved=total-saved;
+  var isDefault=['tab_cv','tab_temp','tab_ls'].indexOf(tab.id)!==-1;
+  var tid = tab.id;
+  pane.innerHTML=
+    '<div class="pane-header">'+
+      '<div class="pane-title-group">'+
+        '<span class="tab-icon" style="font-size:20px">'+getTabIcon(tab.name)+'</span>'+
+        (isDefault
+          ? '<div class="pane-title">'+escHtml(tab.name)+'</div>'
+          : '<input class="pane-title-input" value="'+escAttr(tab.name)+'" data-tabid="'+tid+'" onblur="renameTab(this.dataset.tabid,this.value)" onkeydown="if(event.key===String.fromCharCode(13))this.blur()" title="Klik untuk ubah nama">'
+        )+
+      '</div>'+
+      '<button class="btn-del-tab" data-tabid="'+tid+'" onclick="openDelTabModal(this.dataset.tabid)">🗑 Hapus</button>'+
+    '</div>'+
+    '<div class="section-label">Tabel Data Asset</div>'+
+    '<div class="stats-row">'+
+      '<div class="stat-chip total">Total: <span id="statTotal_'+tid+'">'+total+'</span></div>'+
+      '<div class="stat-chip saved">Tersimpan: <span id="statSaved_'+tid+'">'+saved+'</span></div>'+
+      '<div class="stat-chip unsaved">Belum Simpan: <span id="statUnsaved_'+tid+'">'+unsaved+'</span></div>'+
+    '</div>'+
+    '<div class="toolbar">'+
+      '<button class="btn btn-primary" data-tabid="'+tid+'" onclick="addRow(this.dataset.tabid)">＋ Tambah Baris</button>'+
+      '<button class="btn btn-outline" data-tabid="'+tid+'" onclick="openAddColModal(this.dataset.tabid)">＋ Tambah Kolom</button>'+
+      '<button class="btn btn-outline" data-tabid="'+tid+'" onclick="openSaveRefModal(this.dataset.tabid)" style="border-color:#7c3aed;color:#7c3aed;">🗂 Simpan Referensi</button>'+
+      '<button class="btn btn-success" data-tabid="'+tid+'" onclick="saveAll(this.dataset.tabid)">💾 Simpan Semua Data</button>'+
+      '<button class="btn btn-secondary" data-tabid="'+tid+'" onclick="refreshTab(this.dataset.tabid)">↺ Refresh</button>'+
+      '<button class="btn reset-ref-btn" style="background:#fff3cd;color:#92400e;border:1.5px solid #fbbf24;font-weight:600">🔄 Reset Referensi</button>'+
+    '</div>'+
+    '<div class="table-scroll">'+
+      '<table id="table_'+tid+'"><thead><tr id="thead_'+tid+'"></tr></thead><tbody id="tbody_'+tid+'"></tbody></table>'+
+    '</div>';
+  setTimeout(function(){
+    renderHead(tab.id); renderBody(tab.id);
+    var resetBtn = pane.querySelector('.reset-ref-btn');
+    if(resetBtn) resetBtn.onclick = function(){ resetToDynCols(tab.id); };
+  }, 0);
+  return pane;
+}
+
+function refreshPane(tabId) {
+  var tab=getTab(tabId); if(!tab) return;
+  var total=tab.rows.length;
+  var saved=tab.rows.filter(function(r){ return r._status==='saved'; }).length;
+  var elT=document.getElementById('statTotal_'+tabId);
+  var elS=document.getElementById('statSaved_'+tabId);
+  var elU=document.getElementById('statUnsaved_'+tabId);
+  if(elT) elT.textContent=total;
+  if(elS) elS.textContent=saved;
+  if(elU) elU.textContent=total-saved;
+  renderHead(tabId); renderBody(tabId);
+}
+
+function switchTab(tabId) {
+  activeTabId=tabId;
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.toggle('active',b.getAttribute('data-tabid')===tabId); });
+  document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.toggle('active',p.id==='pane_'+tabId); });
+}
+
+/* ══════════════════════════════════════════════
+   RENDER HEAD & BODY
+══════════════════════════════════════════════ */
+function renderHead(tabId) {
+  var tab=getTab(tabId); if(!tab) return;
+  var tr=document.getElementById('thead_'+tabId); if(!tr) return;
+  tr.innerHTML='';
+  var thNo=document.createElement('th'); thNo.style.cssText='width:46px;text-align:center'; thNo.textContent='No.'; tr.appendChild(thNo);
+  FIXED_COLS.forEach(function(key){
+    var th=document.createElement('th'); th.className='col-fixed'; th.style.minWidth='120px';
+    th.innerHTML='<div class="th-inner"><span>'+FIXED_LABELS[key]+'</span></div>'; tr.appendChild(th);
+  });
+  tab.dynamicCols.forEach(function(key){
+    var th=document.createElement('th'); th.className='col-dynamic'; th.style.minWidth='120px';
+    th.innerHTML='<div class="th-inner"><input class="col-name-input" value="'+escHtml(key)+'" data-tabid="'+tabId+'" data-key="'+escAttr(key)+'" onblur="renameCol(this.dataset.tabid,this.dataset.key,this.value)" onkeydown="if(event.key===String.fromCharCode(13))this.blur()" title="Rename kolom"><button class="btn-del-col" data-tabid="'+tabId+'" data-key="'+escAttr(key)+'" onclick="openDelColModal(this.dataset.tabid,this.dataset.key)">×</button></div>'; tr.appendChild(th);
+  });
+  var thAct=document.createElement('th'); thAct.style.cssText='width:110px;text-align:center'; thAct.textContent='Aksi'; tr.appendChild(thAct);
+}
+
+function renderBody(tabId) {
+  var tab=getTab(tabId); if(!tab) return;
+  var tbody=document.getElementById('tbody_'+tabId); if(!tbody) return;
+  tbody.innerHTML='';
+  var cc=FIXED_COLS.length+tab.dynamicCols.length+2;
+  if(!tab.rows.length){
+    tbody.innerHTML='<tr><td colspan="'+cc+'"><div class="empty-state"><div class="icon">📭</div><div>Belum ada data asset.</div><div class="msg">Klik "＋ Tambah Baris" untuk mulai.</div></div></td></tr>'; return;
+  }
+  tab.rows.forEach(function(row,idx){
+    var tr=document.createElement('tr');
+    if(row._status==='editing'||row._status==='new') tr.classList.add('editing');
+    var tdNo=document.createElement('td'); tdNo.className='col-no';
+    tdNo.innerHTML=(idx+1)+'<br><span class="badge-'+(row._status==='saved'?'saved':'new')+'">'+(row._status==='saved'?'OK':'BARU')+'</span>'; tr.appendChild(tdNo);
+    FIXED_COLS.forEach(function(key){
+      var td=document.createElement('td');
+      if(row._status==='editing'||row._status==='new'){
+        td.innerHTML='<input class="cell-input" id="cell_'+tabId+'_'+idx+'_'+key+'" value="'+escAttr(row[key]||'')+'" placeholder="'+FIXED_LABELS[key]+'">';
+      } else {
+        td.innerHTML='<div class="cell-display">'+escHtml(row[key]||'<span style="color:#94a3b8">—</span>')+'</div>';
+      }
+      tr.appendChild(td);
+    });
+    tab.dynamicCols.forEach(function(key){
+      var td=document.createElement('td'); var extra=row.extra_data||{}; var val=extra[key]||'';
+      if(row._status==='editing'||row._status==='new'){
+        td.innerHTML='<input class="cell-input" id="cell_'+tabId+'_'+idx+'_dyn_'+escAttr(key)+'" value="'+escAttr(val)+'" placeholder="'+escAttr(key)+'">';
+      } else {
+        td.innerHTML='<div class="cell-display">'+escHtml(val||'<span style="color:#94a3b8">—</span>')+'</div>';
+      }
+      tr.appendChild(td);
+    });
+    var tdAct=document.createElement('td'); tdAct.className='col-action';
+    if(row._status==='editing'||row._status==='new'){
+      tdAct.innerHTML='<div class="action-btns"><button class="btn btn-success btn-sm" data-tabid="'+tabId+'" data-idx="'+idx+'" onclick="saveRow(this.dataset.tabid,+this.dataset.idx)">💾</button><button class="btn btn-danger btn-sm" data-tabid="'+tabId+'" data-idx="'+idx+'" onclick="cancelEdit(this.dataset.tabid,+this.dataset.idx)">✕</button></div>';
+    } else {
+      tdAct.innerHTML='<div class="action-btns"><button class="btn btn-outline btn-sm" data-tabid="'+tabId+'" data-idx="'+idx+'" onclick="editRow(this.dataset.tabid,+this.dataset.idx)">✏</button><button class="btn btn-danger btn-sm" data-tabid="'+tabId+'" data-idx="'+idx+'" onclick="openDelRowModal(this.dataset.tabid,+this.dataset.idx)">🗑</button></div>';
+    }
+    tr.appendChild(tdAct); tbody.appendChild(tr);
+  });
+}
+
+/* ══════════════════════════════════════════════
+   ROW ACTIONS
+══════════════════════════════════════════════ */
+function addRow(tabId) {
+  var tab=getTab(tabId); if(!tab) return;
+  tab.rows.push({_status:'new',id:null,asset_tag:'',asset_desc:'',lokasi:'',pic:'',extra_data:{},input_category:tab.name});
+  refreshPane(tabId); updateTabCount(tabId);
+  setTimeout(function(){ var tb=document.getElementById('tbody_'+tabId); if(tb&&tb.lastElementChild) tb.lastElementChild.scrollIntoView({behavior:'smooth',block:'center'}); },100);
+}
+function editRow(tabId,idx){ var tab=getTab(tabId); if(!tab) return; tab.rows[idx]._status='editing'; refreshPane(tabId); }
+function cancelEdit(tabId,idx){
+  var tab=getTab(tabId); if(!tab) return;
+  if(tab.rows[idx]._status==='new') tab.rows.splice(idx,1); else tab.rows[idx]._status='saved';
+  refreshPane(tabId); updateTabCount(tabId);
+}
+function collectRowFromDom(tabId,idx){
+  var tab=getTab(tabId); var row=tab.rows[idx]; var updated=Object.assign({},row);
+  FIXED_COLS.forEach(function(key){ var el=document.getElementById('cell_'+tabId+'_'+idx+'_'+key); if(el) updated[key]=el.value.trim(); });
+  var extra={};
+  tab.dynamicCols.forEach(function(key){ var el=document.getElementById('cell_'+tabId+'_'+idx+'_dyn_'+key); if(el) extra[key]=el.value.trim(); });
+  updated.extra_data=extra; updated.input_category=tab.name; return updated;
+}
+function saveRow(tabId,idx){
+  var tab=getTab(tabId); if(!tab) return;
+  var updated=collectRowFromDom(tabId,idx);
+  if(!updated.asset_tag&&!updated.asset_desc){ showToast('Asset Tag atau Description harus diisi!'); return; }
+  var payload={asset_tag:updated.asset_tag,asset_desc:updated.asset_desc,lokasi:updated.lokasi,pic:updated.pic,extra_data:updated.extra_data,input_category:updated.input_category,updated_at:new Date().toISOString()};
+  var isNew=!updated.id; if(isNew) payload.created_at=new Date().toISOString();
+  var promise=isNew?supaFetch('POST',ASSET_TABLE,payload):supaFetch('PATCH',ASSET_TABLE+'?id=eq.'+updated.id,payload);
+  promise.then(function(result){
+    if(isNew&&result&&result[0]) updated.id=result[0].id;
+    updated._status='saved'; tab.rows[idx]=updated; refreshPane(tabId); updateTabCount(tabId);
+    showToast('Baris '+(idx+1)+' tersimpan ✓');
+  }).catch(function(err){ showToast('Gagal simpan: '+(err.message||err)); });
+}
+function saveAll(tabId){
+  var tab=getTab(tabId); if(!tab) return;
+  var unsaved=tab.rows.filter(function(r){ return r._status!=='saved'; });
+  if(!unsaved.length){ showToast('Semua data sudah tersimpan ✓'); return; }
+  tab.rows.forEach(function(r,i){ if(r._status!=='saved') saveRow(tabId,i); });
+}
+function refreshTab(tabId){
+  showToast('Memuat ulang...'); var tab=getTab(tabId); if(!tab) return; tab.rows=[];
+  supaFetch('GET',ASSET_TABLE+'?select=*&input_category=eq.'+encodeURIComponent(tab.name)+'&order=created_at.asc&limit=500')
+    .then(function(data){
+      tab.rows=(data||[]).map(function(r){ return Object.assign({},r,{_status:'saved'}); });
+      tab.rows.forEach(function(r){ if(r.extra_data&&typeof r.extra_data==='object') Object.keys(r.extra_data).forEach(function(k){ if(tab.dynamicCols.indexOf(k)===-1) tab.dynamicCols.push(k); }); });
+      refreshPane(tabId); updateTabCount(tabId); showToast('Data dimuat ulang ✓');
+    }).catch(function(){ showToast('Gagal muat dari server'); });
+}
+
+/* ══════════════════════════════════════════════
+   TAB MANAGEMENT
+══════════════════════════════════════════════ */
+function openAddTabModal(){ document.getElementById('newTabName').value=''; document.getElementById('addTabModal').classList.add('show'); setTimeout(function(){ document.getElementById('newTabName').focus(); },100); }
+function closeAddTabModal(){ document.getElementById('addTabModal').classList.remove('show'); }
+function confirmAddTab(){
+  var name=document.getElementById('newTabName').value.trim();
+  if(!name){ showToast('Nama tidak boleh kosong'); return; }
+  if(tabs.find(function(t){ return t.name.toLowerCase()===name.toLowerCase(); })){ showToast('Sudah ada!'); return; }
+  var newId='tab_'+Date.now(); tabs.push({id:newId,name:name,rows:[],dynamicCols:[]}); saveState();
+  activeTabId=newId; renderTabStrip();
+  document.getElementById('tabPanes').appendChild(buildPane(getTab(newId)));
+  switchTab(newId); closeAddTabModal(); showToast('Input Utama "'+name+'" dibuat ✓');
+}
+function renameTab(tabId,newName){
+  newName=newName.trim(); if(!newName) return;
+  var tab=getTab(tabId); if(!tab||tab.name===newName) return;
+  tab.name=newName; saveState(); renderTabStrip(); showToast('Nama diubah ✓');
+}
+function openDelTabModal(tabId){ pendingDelTabId=tabId; var tab=getTab(tabId); document.getElementById('delTabName').textContent=tab?tab.name:'—'; document.getElementById('delTabModal').classList.add('show'); }
+function closeDelTabModal(){ pendingDelTabId=null; document.getElementById('delTabModal').classList.remove('show'); }
+function confirmDelTab(){
+  var tabId=pendingDelTabId; if(!tabId) return; closeDelTabModal();
+  var tab=getTab(tabId); if(!tab) return;
+  var ids=tab.rows.filter(function(r){ return r.id; }).map(function(r){ return r.id; });
+  var p=ids.length?supaFetch('DELETE',ASSET_TABLE+'?id=in.('+ids.join(',')+')'):Promise.resolve();
+  p.then(function(){
+    var i=tabs.findIndex(function(t){ return t.id===tabId; }); if(i!==-1) tabs.splice(i,1);
+    var pane=document.getElementById('pane_'+tabId); if(pane) pane.remove();
+    if(tabs.length){ activeTabId=tabs[0].id; switchTab(activeTabId); }
+    saveState(); renderTabStrip(); showToast('Input Utama dihapus ✓');
+  }).catch(function(err){ showToast('Gagal hapus: '+(err.message||err)); });
+  pendingDelTabId=null;
+}
+
+/* ══════════════════════════════════════════════
+   KOLOM DINAMIS
+══════════════════════════════════════════════ */
+function openAddColModal(tabId){ colModalTabId=tabId; document.getElementById('newColName').value=''; document.getElementById('addColModal').classList.add('show'); setTimeout(function(){ document.getElementById('newColName').focus(); },100); }
+function closeAddColModal(){ document.getElementById('addColModal').classList.remove('show'); }
+function confirmAddCol(){
+  var tabId=colModalTabId; var tab=getTab(tabId); if(!tab) return;
+  var name=document.getElementById('newColName').value.trim(); if(!name){ showToast('Nama kolom tidak boleh kosong'); return; }
+  if(FIXED_COLS.indexOf(name)!==-1||tab.dynamicCols.indexOf(name)!==-1){ showToast('Kolom sudah ada'); return; }
+  tab.dynamicCols.push(name); saveState(); refreshPane(tabId); closeAddColModal(); showToast('Kolom "'+name+'" ditambahkan ✓');
+}
+function renameCol(tabId,oldKey,newName){
+  newName=newName.trim(); if(!newName||newName===oldKey) return;
+  var tab=getTab(tabId); if(!tab) return; var i=tab.dynamicCols.indexOf(oldKey); if(i===-1) return;
+  tab.rows.forEach(function(r){ if(r.extra_data&&r.extra_data[oldKey]!==undefined){ r.extra_data[newName]=r.extra_data[oldKey]; delete r.extra_data[oldKey]; } });
+  tab.dynamicCols[i]=newName; saveState(); refreshPane(tabId); showToast('Kolom diubah ✓');
+}
+function openDelColModal(tabId,key){ pendingDelCol=key; pendingColTabId=tabId; document.getElementById('delColName').textContent=key; document.getElementById('delColModal').classList.add('show'); }
+function closeDelColModal(){ pendingDelCol=null; pendingColTabId=null; document.getElementById('delColModal').classList.remove('show'); }
+function confirmDelCol(){
+  var tabId=pendingColTabId; var key=pendingDelCol; if(!tabId||!key) return;
+  var tab=getTab(tabId); if(!tab) return;
+  var i=tab.dynamicCols.indexOf(key); if(i!==-1) tab.dynamicCols.splice(i,1);
+  tab.rows.forEach(function(r){ if(r.extra_data) delete r.extra_data[key]; });
+  saveState(); refreshPane(tabId); closeDelColModal(); showToast('Kolom "'+key+'" dihapus');
+}
+
+/* ══════════════════════════════════════════════
+   DELETE ROW
+══════════════════════════════════════════════ */
+function openDelRowModal(tabId,idx){ delRowTabId=tabId; pendingDelRowIdx=idx; document.getElementById('delRowModal').classList.add('show'); }
+function closeDelRowModal(){ delRowTabId=null; pendingDelRowIdx=null; document.getElementById('delRowModal').classList.remove('show'); }
+function confirmDelRow(){
+  var tabId=delRowTabId; var idx=pendingDelRowIdx; if(idx===null||!tabId) return;
+  var tab=getTab(tabId); if(!tab) return; var row=tab.rows[idx]; closeDelRowModal();
+  if(!row.id){ tab.rows.splice(idx,1); refreshPane(tabId); updateTabCount(tabId); showToast('Baris dihapus'); return; }
+  supaFetch('DELETE',ASSET_TABLE+'?id=eq.'+row.id)
+    .then(function(){ tab.rows.splice(idx,1); refreshPane(tabId); updateTabCount(tabId); showToast('Baris dihapus ✓'); })
+    .catch(function(err){ showToast('Gagal hapus: '+(err.message||err)); });
+}
+
+/* ══════════════════════════════════════════════
+   REFERENSI TEMPLATE
+══════════════════════════════════════════════ */
+var savedRefs = [];
+function initRefChips() {
+  try { savedRefs=JSON.parse(localStorage.getItem('outage_refs_v2'))||[]; } catch(e){ savedRefs=[]; }
+  renderRefChips();
+}
+function renderRefChips() {
+  var c=document.getElementById('refChips'); var e=document.getElementById('refEmpty');
+  if(!c) return;
+  var chips=c.querySelectorAll('.ref-chip');
+  chips.forEach(function(ch){ ch.remove(); });
+  if(savedRefs.length===0){ if(e) e.style.display=''; return; }
+  if(e) e.style.display='none';
+  savedRefs.forEach(function(ref,i){
+    var chip=document.createElement('div'); chip.className='ref-chip';
+    chip.innerHTML='<span class="ref-chip-name">'+escHtml(ref.name)+'</span><span class="ref-chip-cols">'+ref.cols.length+' kolom</span>'+
+      '<button class="ref-chip-apply" onclick="applyRef('+i+')">Terapkan</button>'+
+      '<button class="ref-chip-del" onclick="deleteRef('+i+')" title="Hapus">×</button>';
+    c.insertBefore(chip,e||null);
+  });
+}
+function openSaveRefModal(tabId){
+  colModalTabId=tabId||activeTabId;
+  document.getElementById('refNameInput').value='';
+  document.getElementById('saveRefModal').classList.add('show');
+  setTimeout(function(){ document.getElementById('refNameInput').focus(); },100);
+}
+function closeSaveRefModal(){ 
+  document.getElementById('saveRefModal').classList.remove('show');
+  document.getElementById('refPassInput').value='';
+  document.getElementById('refNameInput').value='';
+}
+function confirmSaveRef(){
+  var name=document.getElementById('refNameInput').value.trim();
+  var pass=document.getElementById('refPassInput').value.trim();
+  if(!name){ showToast('Nama referensi tidak boleh kosong'); return; }
+  if(!pass){ showToast('Sandi tidak boleh kosong'); return; }
+  var tab=getTab(colModalTabId||activeTabId);
+  var cols=tab?tab.dynamicCols.slice():[];
+  savedRefs.push({name:name,cols:cols,pass:pass});
+  try { localStorage.setItem('outage_refs_v2',JSON.stringify(savedRefs)); } catch(e){}
+  renderRefChips(); closeSaveRefModal(); showToast('Referensi "'+name+'" disimpan ✓');
+}
+function applyRef(i){
+  var ref=savedRefs[i]; if(!ref) return;
+  var tab=getTab(activeTabId); if(!tab) return;
+  ref.cols.forEach(function(col){ if(tab.dynamicCols.indexOf(col)===-1) tab.dynamicCols.push(col); });
+  saveState(); refreshPane(activeTabId); showToast('Referensi "'+ref.name+'" diterapkan ✓');
+}
+var pendingDelRefIdx = null;
+function deleteRef(i){
+  pendingDelRefIdx = i;
+  var ref = savedRefs[i];
+  document.getElementById('delRefName').textContent = ref ? ref.name : '—';
+  document.getElementById('delRefPassInput').value = '';
+  document.getElementById('delRefModal').classList.add('show');
+  setTimeout(function(){ document.getElementById('delRefPassInput').focus(); }, 100);
+}
+function closeDelRefModal(){
+  pendingDelRefIdx = null;
+  document.getElementById('delRefPassInput').value = '';
+  document.getElementById('delRefModal').classList.remove('show');
+}
+function confirmDelRef(){
+  var i = pendingDelRefIdx;
+  if(i === null) return;
+  var ref = savedRefs[i];
+  var entered = document.getElementById('delRefPassInput').value.trim();
+  if(!ref){ closeDelRefModal(); return; }
+  if(entered !== ref.pass){
+    showToast('❌ Sandi salah! Referensi tidak dihapus.');
+    document.getElementById('delRefPassInput').value='';
+    document.getElementById('delRefPassInput').focus();
+    return;
+  }
+  savedRefs.splice(i,1);
+  try { localStorage.setItem('outage_refs_v2',JSON.stringify(savedRefs)); } catch(e){}
+  renderRefChips(); closeDelRefModal(); showToast('Referensi dihapus ✓');
+}
+
+/* ══════════════════════════════════════════════
+   EXCEL IMPORT
+══════════════════════════════════════════════ */
+var excelData = [];
+function initExcel() {
+  var dz=document.getElementById('excelDropZone'); if(!dz) return;
+  dz.addEventListener('dragover',function(e){ e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave',function(){ dz.classList.remove('drag-over'); });
+  dz.addEventListener('drop',function(e){ e.preventDefault(); dz.classList.remove('drag-over'); if(e.dataTransfer.files[0]) handleExcelFile(e.dataTransfer.files[0]); });
+  dz.addEventListener('click',function(){ document.getElementById('excelFileInput').click(); });
+}
+function handleExcelFile(file) {
+  if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try {
+      var wb=XLSX.read(e.target.result,{type:'array'});
+      // wb._buf holds the raw ArrayBuffer; pass it directly as the "sheet"
+      var rows=XLSX.utils.sheet_to_json({_buf: e.target.result},{defval:''});
+      excelData=rows;
+      var meta=document.getElementById('excelMeta');
+      if(meta) meta.innerHTML='<span>File:</span> '+escHtml(file.name)+'<br><span>Baris:</span> '+rows.length+'<br><span>Kolom:</span> '+(rows.length?Object.keys(rows[0]).join(', '):'—');
+      var prev=document.getElementById('excelPreview'); if(prev) prev.classList.add('visible');
+      showToast('File dibaca: '+rows.length+' baris ✓');
+    } catch(err){ showToast('Gagal baca file: '+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function importExcel(){
+  // Cek pilihan tab target dari dropdown
+  var sel = document.getElementById('importTargetTab');
+  var targetId = sel ? sel.value : '__active__';
+  if (targetId === '__active__') targetId = activeTabId;
+
+  // Buat tab baru otomatis jika dipilih __new__
+  if (targetId === '__new__') {
+    var fname = (excelData.length && excelData[0].__filename) ? excelData[0].__filename : 'Import';
+    // Guess category from filename
+    var guessName = fname.replace(/\.[^.]+$/, '').replace(/_/g,' ');
+    var newName = prompt('Nama kategori/tab baru:', guessName) || guessName;
+    targetId = addNewTab(newName);
+  }
+
+  var tab = getTab(targetId);
+  if (!tab) { showToast('Pilih tab/kategori tujuan terlebih dahulu'); return; }
+  if(!excelData.length){ showToast('Tidak ada data Excel'); return; }
+  // Aktifkan tab tujuan jika berbeda
+  if (targetId !== activeTabId) { switchTab(targetId); }
+  var colMap={'asset tag':'asset_tag','asset_tag':'asset_tag','asset':'asset_tag','no':'_no','wo':'wo','work order':'wo','work order ref':'wo','asset description':'asset_desc','asset_desc':'asset_desc','description':'asset_desc','lokasi':'lokasi','location':'lokasi','pic':'pic','manufacturer':'extra_manufacturer','mnf':'extra_manufacturer','serial number':'extra_sn','sn':'extra_sn'};
+  excelData.forEach(function(row){
+    var newRow={_status:'new',id:null,asset_tag:'',asset_desc:'',lokasi:'',pic:'',extra_data:{},input_category:tab.name};
+    Object.keys(row).forEach(function(k){
+      var kl=k.toLowerCase().trim(); var mapped=colMap[kl];
+      if(mapped) newRow[mapped]=String(row[k]||'');
+      else if(FIXED_COLS.indexOf(kl)===-1){
+        newRow.extra_data[k]=String(row[k]||'');
+        if(tab.dynamicCols.indexOf(k)===-1) tab.dynamicCols.push(k);
+      }
+    });
+    tab.rows.push(newRow);
+  });
+  saveState(); refreshPane(activeTabId); updateTabCount(activeTabId);
+  resetExcel(); showToast(excelData.length+' baris diimpor dari Excel ✓');
+}
+function refreshImportTabDropdown() {
+  var sel = document.getElementById('importTargetTab');
+  if (!sel) return;
+  // Keep first option
+  while (sel.options.length > 1) sel.remove(1);
+  tabs.forEach(function(t) {
+    var opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.name + (t.rows.length ? ' (' + t.rows.length + ' baris)' : '');
+    sel.appendChild(opt);
+  });
+  // Also add option to create new tab
+  var newOpt = document.createElement('option');
+  newOpt.value = '__new__';
+  newOpt.textContent = '➕ Buat Tab Baru Otomatis...';
+  sel.appendChild(newOpt);
+}
+
+function resetExcel(){
+  excelData=[];
+  var prev=document.getElementById('excelPreview'); if(prev) prev.classList.remove('visible');
+  var fi=document.getElementById('excelFileInput'); if(fi) fi.value='';
+}
+
+/* ══════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════ */
+function updateTabCount(tabId){
+  var btn=document.querySelector('.tab-btn[data-tabid="'+tabId+'"]'); if(!btn) return;
+  var tab=getTab(tabId); if(!tab) return;
+  var el=btn.querySelector('.tab-count'); if(el) el.textContent=tab.rows.length;
+}
+var pendingResetTabId = null;
+function resetToDynCols(tabId){
+  pendingResetTabId = tabId;
+  var tab = getTab(tabId); if(!tab) return;
+  document.getElementById('resetRefTabName').textContent = tab.name;
+  document.getElementById('resetRefModal').classList.add('show');
+}
+function closeResetRefModal(){
+  pendingResetTabId = null;
+  document.getElementById('resetRefModal').classList.remove('show');
+}
+function confirmResetRef(){
+  var tabId = pendingResetTabId; if(!tabId) return;
+  var tab = getTab(tabId); if(!tab) return;
+  closeResetRefModal();
+  tab.dynamicCols = [];
+  tab.rows.forEach(function(r){ if(r.extra_data) r.extra_data = {}; });
+  saveState();
+  var container = document.getElementById('tabPanes');
+  var oldPane = document.getElementById('pane_'+tabId);
+  if(oldPane && container) {
+    var newPane = buildPane(tab);
+    container.replaceChild(newPane, oldPane);
+    /* Re-attach reset button listener */
+    var resetBtn = newPane.querySelector('.reset-ref-btn');
+    if(resetBtn) resetBtn.onclick = function(){ resetToDynCols(tabId); };
+  }
+  showToast('Kolom tambahan "'+tab.name+'" direset ✓');
+}
+function togglePw(id, btn){
+  var el = document.getElementById(id);
+  if(!el) return;
+  el.type = el.type === 'password' ? 'text' : 'password';
+  btn.textContent = el.type === 'password' ? '👁' : '🙈';
+}
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function escAttr(s){ return escHtml(s); }
+function showToast(msg){
+  var t=document.getElementById('toast'); if(!t) return;
+  t.textContent=msg; t.style.opacity='1';
+  clearTimeout(t._timeout); t._timeout=setTimeout(function(){ t.style.opacity='0'; },3000);
+}
+
+/* Close modal on overlay click */
+['addColModal','delRowModal','delColModal','addTabModal','delTabModal','saveRefModal','delRefModal','resetRefModal'].forEach(function(id){
+  var el=document.getElementById(id); if(el) el.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('show'); });
+});
+</script>
+</body>
+</html>

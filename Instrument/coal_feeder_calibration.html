@@ -1,0 +1,3264 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coal Feeder Calibration — Unit 7</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="shared.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="db-helper.js"></script>
+<script src="storage-helper.js"></script>
+<script src="approval-helper.js"></script>
+<link rel="stylesheet" href="shared.css">
+<style>
+:root{--bg:#eef5fb;--bg2:#dceaf6;--panel:rgba(255,255,255,0.78);--panel-border:rgba(150,180,210,0.65);--steel:#294c6f;--steel-light:#3f6f9f;--ok:#1d74c7;--text:#152638;--text2:#2c4660;--text3:#6f879c;--border:rgba(150,180,210,0.65);--shadow:0 4px 24px rgba(35,75,120,0.10);--shadow2:0 2px 8px rgba(35,75,120,0.08);}
+body{background-image:radial-gradient(ellipse at 20% 10%,rgba(170,205,235,0.45) 0%,transparent 55%),radial-gradient(ellipse at 85% 80%,rgba(135,185,225,0.30) 0%,transparent 50%),linear-gradient(180deg,#f8fbfe 0%,var(--bg) 100%);}
+.topbar{background:linear-gradient(90deg,#1c3550 0%,#294c6f 60%,#1c3550 100%);border-bottom-color:#1d74c744;}
+.topbar-logo{color:#b7d8f5}.topbar-sep{background:#3f668a}.topbar-sub,.topbar-back,.topbar-time{color:#8fb7dc}
+.topbar-back{border-color:#315d86;background:rgba(29,116,199,0.06)}.topbar-back:hover{color:#b7d8f5;border-color:#1d74c7;background:rgba(29,116,199,0.12)}
+.badge{background:#1d74c722;color:var(--ok);border-color:#1d74c744}
+
+/* ── input number centering in tables ── */
+.data-input{flex:1;padding:4px 6px;font-size:12px;border:1px solid var(--border);border-radius:6px 0 0 6px;background:#fff;color:#000;text-align:center;font-weight:700;box-sizing:border-box;font-family:'Courier New',monospace;min-width:0;height:32px;}
+.data-input:focus{outline:none;border-color:var(--ok);box-shadow:0 0 0 2px rgba(29,116,199,0.15);}
+.input-unit-wrap{display:flex;align-items:center;width:100%;min-width:0;}
+.unit-badge{display:inline-flex;align-items:center;justify-content:center;padding:4px 6px;font-size:10px;font-weight:600;color:var(--steel);background:var(--bg2);border:1px solid var(--border);border-left:none;border-radius:0 3px 3px 0;white-space:nowrap;min-width:28px;font-family:'Courier New',monospace;letter-spacing:0.2px;}
+.unit-badge.no-unit{color:var(--text3);font-weight:400;}
+
+/* ── section toggle ── */
+.section-toggle-bar{display:flex;gap:12px;align-items:center;background:rgba(255,255,255,0.82);border:1px solid var(--border);border-radius:10px;padding:12px 18px;margin-bottom:16px;flex-wrap:wrap;}
+.section-toggle-bar label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--steel);cursor:pointer;user-select:none;padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);background:#fff;transition:all .15s;}
+.section-toggle-bar label.active{background:var(--ok);color:#fff;border-color:var(--ok);}
+.section-toggle-bar input[type=checkbox]{width:16px;height:16px;cursor:pointer;}
+.section-toggle-bar .toggle-title{font-size:12px;color:var(--text3);margin-right:6px;font-weight:500;}
+
+/* ── demand table ── */
+.demand-table{width:100%;border-collapse:collapse;font-size:12px;}
+.demand-table th{background:#1e3a8a;color:#fff;padding:7px 10px;text-align:center;font-size:11px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.demand-table td{padding:6px 10px;border:1px solid #c8d8ea;vertical-align:middle;}
+.demand-table tr:nth-child(even) td{background:#f3f8ff;}
+.demand-table .row-label{font-weight:700;color:var(--steel);background:#eef5fb !important;text-align:center;font-size:11px;width:90px;}
+.demand-table .pct-cell{text-align:center;font-weight:700;color:#1d74c7;width:60px;}
+.demand-input{width:100%;padding:4px 6px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:#fff;color:#000;text-align:center;font-weight:700;font-family:'Courier New',monospace;box-sizing:border-box;}
+.demand-input:focus{outline:none;border-color:var(--ok);}
+
+@media print {
+  body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .topbar, .topbar-back, button, .section-label, .section-toggle-bar, .btn-row { display: none !important; }
+  .panel { box-shadow: none !important; border: 1px solid #ccc !important; margin-bottom: 12px !important; page-break-inside: avoid; }
+  .wrapper { padding: 0 !important; }
+  .data-input { border: none !important; background: transparent !important; font-weight: 600; }
+  .unit-badge { background: transparent !important; border: none !important; }
+  .manual-table { width: 100% !important; }
+  .manual-table th { background: #1e3a8a !important; color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .input-unit-wrap { display: flex !important; }
+  .demand-table th { background: #1e3a8a !important; color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .demand-table tr:nth-child(even) td { background: #f3f8ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .demand-table .row-label { background: #eef5fb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .demand-input { border: none !important; background: transparent !important; font-weight: 700; }
+  .print-hidden { display: none !important; }
+}
+
+/* ═══ FITUR REUSABLE: Crop 3-mode, Edit Gambar, PDF Preview ═══ */
+#cropModal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.85);flex-direction:column;align-items:center;justify-content:center;padding:12px}
+#cropModal.show{display:flex}
+/* ── MULTI-UPLOAD NOTIFICATION OVERLAY (Fitur N) ── */
+#puUploadOverlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:rgba(0,0,0,0.8);flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+#puUploadOverlay.show{display:flex}
+#puUploadOverlaySpinner{width:38px;height:38px;border:4px solid rgba(255,255,255,0.25);border-top-color:#2ecc71;border-radius:50%;animation:puSpin 0.8s linear infinite;margin-bottom:16px}
+#puUploadOverlayTitle{font-size:15px;font-weight:700;color:#fff}
+#puUploadOverlaySub{font-size:12px;color:#c9d6cf;margin-top:6px;max-width:280px}
+@keyframes puSpin{to{transform:rotate(360deg)}}
+.crop-dialog{background:#1a221e;border:1px solid #2a3a30;border-radius:10px;width:min(96vw,540px);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.crop-header{background:#243228;padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.crop-header-title{font-weight:700;font-size:13px;color:#e0f0e8;letter-spacing:0.5px}
+.crop-header-hint{font-size:10px;color:#8aab96}
+#cropWrap{position:relative;width:100%;height:min(55vw,320px);background:#111;overflow:hidden;user-select:none;-webkit-user-select:none}
+.crop-rotate-toolbar{position:absolute;top:8px;right:8px;display:flex;gap:6px;z-index:6}
+.crop-rotate-btn{width:34px;height:34px;border-radius:50%;border:none;background:rgba(0,0,0,0.6);color:#fff;font-size:17px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.35)}
+.crop-rotate-btn:active{background:rgba(0,0,0,0.85)}
+#cropImg{position:absolute;max-width:none;pointer-events:none;display:block}
+#cropBox{position:absolute;border:2px solid #2ecc71;box-shadow:0 0 0 9999px rgba(0,0,0,0.45);cursor:move;touch-action:none;min-width:40px;min-height:40px}
+.crop-handle{position:absolute;width:12px;height:12px;background:#2ecc71;border-radius:2px}
+.crop-handle.nw{top:-6px;left:-6px;cursor:nw-resize} .crop-handle.ne{top:-6px;right:-6px;cursor:ne-resize}
+.crop-handle.sw{bottom:-6px;left:-6px;cursor:sw-resize} .crop-handle.se{bottom:-6px;right:-6px;cursor:se-resize}
+.crop-handle.n{width:10px;height:10px;top:-5px;left:50%;transform:translateX(-50%);cursor:n-resize}
+.crop-handle.s{width:10px;height:10px;bottom:-5px;left:50%;transform:translateX(-50%);cursor:s-resize}
+.crop-handle.w{width:10px;height:10px;left:-5px;top:50%;transform:translateY(-50%);cursor:w-resize}
+.crop-handle.e{width:10px;height:10px;right:-5px;top:50%;transform:translateY(-50%);cursor:e-resize}
+.crop-footer{padding:10px 14px;background:#1a221e;border-top:1px solid #2a3a30}
+.crop-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.crop-btn{padding:7px 16px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600}
+.crop-btn-outline{background:transparent;border:1px solid #4a6a55;color:#aac8b5}
+.crop-btn-save{background:#2ecc71;color:#fff}
+.crop-size-panel{border-top:1px solid #2a3a30;padding-top:8px;margin-top:2px}
+
+/* ── Fitur reusable: geser posisi foto (nudge) ── */
+.img-nudge{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:4px}
+.img-nudge-controls{display:flex;align-items:center;justify-content:center;gap:3px}
+.img-nudge button{width:18px;height:18px;border-radius:4px;border:1px solid #ccc;background:#f2f2f2;color:#333;font-size:9px;cursor:pointer;padding:0;line-height:1}
+.img-nudge span{font-size:9px;color:#666;min-width:28px;text-align:center}
+
+/* ── 4000 HR PM Pulverizer Instrumentation ── */
+.cf4k-asset{border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;background:#fff}
+.cf4k-asset table.manual-table{border-collapse:collapse;width:100%}
+.cf4k-asset table.manual-table th,.cf4k-asset table.manual-table td{border:1px solid #c8d8ea}
+.cf4k-asset-title{font-size:12.5px;font-weight:700;color:var(--steel);margin-bottom:8px;letter-spacing:.2px}
+.cf4k-placeholder{font-size:12px;color:var(--text3);font-style:italic;padding:10px 2px}
+.cf4k-remark-input{width:100%;padding:5px 6px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:#fff;color:#111;box-sizing:border-box}
+.cf4k-evid-title{font-size:12px;font-weight:600;color:var(--steel);margin:10px 0 6px}
+.crop-size-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.crop-preset-btn,.crop-orient-btn,.crop-mode-btn{padding:5px 10px;border-radius:6px;border:1px solid #3a4f42;background:#222e26;color:#aac8b5;font-size:11px;font-weight:600;cursor:pointer}
+.crop-preset-btn.active,.crop-orient-btn.active,.crop-mode-btn.active{background:#2ecc71;color:#0e150f;border-color:#2ecc71}
+.crop-mode-btn{padding:6px 12px;font-size:12px}
+.crop-cm-field{display:flex;flex-direction:column;gap:2px}
+.crop-cm-field label{font-size:9px;color:#8aab96;font-weight:600}
+.crop-cm-field input{width:64px;padding:5px 6px;font-size:12px;border-radius:5px;border:1px solid #3a4f42;background:#0f1512;color:#e0f0e8}
+.crop-size-label{font-size:11px;color:#7fd9a4;font-weight:600;margin-left:4px}
+.crop-default-label{font-size:12px;color:#7fd9a4;font-weight:600;padding:4px 2px}
+/* ── EDIT GAMBAR (Insert Shape) ── */
+.editimg-dialog{width:98vw;height:96vh;max-width:1600px;max-height:1600px;display:flex;flex-direction:column}
+#editImgOuter{position:relative;flex:1 1 auto;min-height:0;background:#0c100d;overflow:auto;touch-action:none;display:flex;align-items:center;justify-content:center}
+#editImgWrap{position:relative;flex:none;touch-action:none}
+#editImg{position:absolute;left:0;top:0;user-select:none;-webkit-user-select:none;pointer-events:none;display:block}
+#editSvgOverlay{position:absolute;left:0;top:0;cursor:crosshair;touch-action:none}
+.edit-toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 14px;background:#1a221e;border-top:1px solid #2a3a30;flex:none}
+.edit-tool-btn{width:36px;height:36px;border-radius:7px;border:1px solid #3a4f42;background:#222e26;color:#aac8b5;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.edit-tool-btn.active{background:#2ecc71;color:#0e150f;border-color:#2ecc71}
+.edit-tool-btn.zoom-label{width:auto;padding:0 8px;font-size:12px;font-weight:700}
+.edit-toolbar-sep{width:1px;align-self:stretch;background:#2a3a30;margin:2px 2px}
+.edit-color-swatch{width:24px;height:24px;border-radius:50%;border:2px solid #3a4f42;cursor:pointer;padding:0}
+.edit-color-swatch.active{border-color:#fff;box-shadow:0 0 0 2px #2ecc71}
+.edit-thick-swatch{width:32px;height:36px;border-radius:7px;border:1px solid #3a4f42;background:#222e26;color:#aac8b5;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.edit-thick-swatch.active{background:#2ecc71;color:#0e150f;border-color:#2ecc71}
+/* ── PDF PREVIEW MODAL ── */
+.pdf-preview-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:rgba(0,0,0,0.85);flex-direction:column;align-items:center;justify-content:center;padding:12px}
+#pdfPreviewModal.show{z-index:10050}
+.pdf-preview-modal.show{display:flex}
+.pdf-preview-dialog{background:#1a221e;border:1px solid #2a3a30;border-radius:10px;width:min(96vw,900px);height:min(92vh,1100px);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);display:flex;flex-direction:column}
+.pdf-preview-header{background:#243228;padding:10px 46px 10px 16px;flex:0 0 auto;position:relative}
+.pdf-preview-title{font-weight:700;font-size:14px;color:#e0f0e8}
+.pdf-preview-hint{font-size:11px;color:#8aab96;margin-top:2px}
+.pdf-preview-close-x{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;border:1px solid #3a4f42;background:#1a221e;color:#e0f0e8;font-size:16px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.pdf-preview-close-x:active{background:#2a3a30}
+.pdf-preview-body{flex:1 1 auto;background:#333;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.pdf-canvas-container{display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px}
+.pdf-canvas-container canvas{max-width:100%;height:auto;box-shadow:0 2px 10px rgba(0,0,0,0.5);background:#fff}
+.pdf-canvas-loading{color:#8aab96;font-size:13px;padding:40px 0;text-align:center}
+.pdf-preview-footer{padding:12px 14px;background:#1a221e;border-top:1px solid #2a3a30;display:flex;gap:8px;justify-content:flex-end;flex:0 0 auto}
+.pdf-preview-footer .crop-btn{padding:12px 18px;font-size:14px;min-height:44px}
+
+</style>
+<script>
+function cfToggleSection(type) {
+  var chkMap = {feeder:'chk-feeder', demand:'chk-demand', '4000hr':'chk-4000hr'};
+  var secMap = {feeder:'section-feeder', demand:'section-demand', '4000hr':'section-4000hr'};
+  var lblMap = {feeder:'lbl-feeder', demand:'lbl-demand', '4000hr':'lbl-4000hr'};
+  var chk = document.getElementById(chkMap[type]);
+  var sec = document.getElementById(secMap[type]);
+  var lbl = document.getElementById(lblMap[type]);
+  if (!chk || !sec) return;
+  chk.checked = !chk.checked;
+  var on = chk.checked;
+  sec.style.display = on ? '' : 'none';
+  if (lbl) {
+    lbl.style.background  = on ? '#1d74c7' : '#fff';
+    lbl.style.color       = on ? '#fff' : '';
+    lbl.style.borderColor = on ? '#1d74c7' : '';
+  }
+}
+function cfUpdateToggleLabel(type, on) {
+  var lblMap = {feeder:'lbl-feeder', demand:'lbl-demand', '4000hr':'lbl-4000hr'};
+  var lbl = document.getElementById(lblMap[type]);
+  if (!lbl) return;
+  lbl.style.background  = on ? '#1d74c7' : '#fff';
+  lbl.style.color       = on ? '#fff'    : '';
+  lbl.style.borderColor = on ? '#1d74c7' : '';
+}
+</script>
+</head>
+<body>
+<div class="topbar">
+  <button class="topbar-back" onclick="window.location.href='index.html'">&#8592; Dashboard</button>
+  <button class="topbar-back" style="margin-left:8px" onclick="window.location.href='history.html'">RIWAYAT</button>
+  <div class="topbar-sep"></div>
+  <div class="topbar-logo">COAL FEEDER</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-sub">PLTU Paiton Unit 7 &nbsp;·&nbsp; Feeder No-Load and Test Weight Calibration</div>
+  <div class="topbar-right"><div class="live-dot"></div><div class="topbar-time" id="clockFeeder">--:--:--</div></div>
+</div>
+
+<div class="wrapper">
+
+  <!-- ── SECTION SELECTOR ── -->
+  <div style="display:flex;gap:10px;align-items:center;background:rgba(255,255,255,0.9);border:1.5px solid var(--border);border-radius:10px;padding:12px 18px;margin-bottom:14px;flex-wrap:wrap;">
+    <span style="font-size:12px;font-weight:600;color:var(--text3);margin-right:4px">&#9776; Pilih pekerjaan yang dilakukan:</span>
+    <div id="lbl-feeder" onclick="cfToggleSection('feeder')" style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;padding:7px 16px;border-radius:8px;border:2px solid var(--border);background:#fff;color:var(--steel);transition:all .15s;user-select:none;">
+      <input type="checkbox" id="chk-feeder" onclick="event.stopPropagation();cfToggleSection('feeder')" onchange="event.stopPropagation()" style="width:16px;height:16px;cursor:pointer;"> &#128200; Feeder Calibration
+    </div>
+    <div id="lbl-demand" onclick="cfToggleSection('demand')" style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;padding:7px 16px;border-radius:8px;border:2px solid var(--border);background:#fff;color:var(--steel);transition:all .15s;user-select:none;">
+      <input type="checkbox" id="chk-demand" onclick="event.stopPropagation();cfToggleSection('demand')" onchange="event.stopPropagation()" style="width:16px;height:16px;cursor:pointer;"> &#9889; Test Demand Signal
+    </div>
+    <div id="lbl-4000hr" onclick="cfToggleSection('4000hr')" style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;padding:7px 16px;border-radius:8px;border:2px solid var(--border);background:#fff;color:var(--steel);transition:all .15s;user-select:none;">
+      <input type="checkbox" id="chk-4000hr" onclick="event.stopPropagation();cfToggleSection('4000hr')" onchange="event.stopPropagation()" style="width:16px;height:16px;cursor:pointer;"> &#128295; 4000 HR PM Pulverizer Instrumentation
+    </div>
+  </div>
+
+  <!-- ── INFORMASI PEKERJAAN ── -->
+  <div class="panel">
+    <div class="section-label">Informasi Pekerjaan</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px">
+      <div class="meta-field"><label>Feeder No.</label><input type="text" id="cfFeederNo" value="UNIT 7A" placeholder="Feeder No..."></div>
+      <div class="meta-field"><label>Reference</label><input type="text" id="cfRef" value="PI-10-01-175-F01"></div>
+      <div class="meta-field"><label>Date</label><input type="date" id="cfDate"></div>
+      <div class="meta-field"><label>Reported By</label><input type="text" id="cfPIC" placeholder="Nama PIC..."></div>
+      <div class="meta-field"><label>Work Order</label><input type="text" id="cfWO" placeholder="Work Order..."></div>
+      <div class="meta-field"><label>Checked By - Technician</label>
+        <select id="cfCheckedBy">
+          <option value="Zaini Nur Hidayat">Zaini Nur Hidayat</option>
+          <option value="Isyana Ray Sasongko">Isyana Ray Sasongko</option>
+        </select>
+      </div>
+      <div class="meta-field" style="grid-column:1/-1"><label>Asset</label><textarea id="cfAssetList" rows="4" placeholder="Terisi otomatis dari centang asset di bawah..." style="width:100%;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea></div>
+      <div class="meta-field" style="grid-column:1/-1"><label>Asset Description</label><textarea id="cfAssetDescList" rows="4" placeholder="Terisi otomatis dari centang asset di bawah..." style="width:100%;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea></div>
+    </div>
+  </div>
+
+  <div id="section-feeder" style="display:none">
+  <!-- ── TABEL CAL 1 ── -->
+  <div class="panel">
+    <div class="section-label">FEEDER CALIBRATION DATA SHEET — 4 pieces of tape used</div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+
+      <!-- CAL 1 -->
+      <div style="font-size:13px;font-weight:700;color:var(--steel);margin:8px 0 6px;letter-spacing:0.5px">CAL 1 — Zero Calibration</div>
+      <table class="manual-table" id="cal1Table">
+        <thead><tr>
+          <th style="width:80px">Self Test</th>
+          <th>Description</th>
+          <th style="width:50px;text-align:center">TEST #1</th>
+          <th style="width:50px;text-align:center">TEST #2</th>
+          <th style="width:50px;text-align:center">TEST #3</th>
+          <th style="width:50px;text-align:center">Acceptance Level</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td style="text-align:center;font-weight:700;font-size:12px;color:var(--steel)">CAL 1</td>
+            <td style="font-size:12px">Deviation</td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal1_dev1" placeholder="0.000" value=""><span class="unit-badge">%</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal1_dev2" placeholder="0.000" value=""><span class="unit-badge">%</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal1_dev3" placeholder="0.000" value=""><span class="unit-badge">%</span></div></td>
+            <td style="text-align:center;font-size:12px;color:var(--text3);font-style:italic">±0.25%</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-size:12px;color:var(--text3)">P10.02</td>
+            <td style="font-size:12px">Pulses per Length</td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal1_ppl1" placeholder="0000.0000" value=""><span class="unit-badge">l/m</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal1_ppl2" placeholder="0000.0000" value=""><span class="unit-badge">l/m</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal1_ppl3" placeholder="0000.0000" value=""><span class="unit-badge">l/m</span></div></td>
+            <td style="text-align:center;font-size:12px;color:var(--text3);font-style:italic">n/a</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-size:12px;color:var(--text3)">P10.11</td>
+            <td style="font-size:12px">Belt circuit no</td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal1_bcn1" placeholder="00000" value=""><span class="unit-badge">imp</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal1_bcn2" placeholder="00000" value=""><span class="unit-badge">imp</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal1_bcn3" placeholder="00000" value=""><span class="unit-badge">imp</span></div></td>
+            <td style="text-align:center;font-size:12px;color:var(--text3);font-style:italic">±0.25%</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-size:12px;color:var(--text3)">P10.10</td>
+            <td style="font-size:12px">Basic Tare</td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal1_bt1" placeholder="00.00000" value=""><span class="unit-badge">kg/m</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal1_bt2" placeholder="00.00000" value=""><span class="unit-badge">kg/m</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal1_bt3" placeholder="00.00000" value=""><span class="unit-badge">kg/m</span></div></td>
+            <td style="text-align:center;font-size:12px;color:var(--text3);font-style:italic">n/a</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- CAL 2 -->
+      <div style="font-size:13px;font-weight:700;color:var(--steel);margin:16px 0 6px;letter-spacing:0.5px">CAL 2 — Span Calibration</div>
+      <table class="manual-table" id="cal2Table">
+        <thead><tr>
+          <th style="width:80px">Self Test</th>
+          <th>Description</th>
+          <th style="width:50px;text-align:center">TEST #1</th>
+          <th style="width:50px;text-align:center">TEST #2</th>
+          <th style="width:50px;text-align:center">TEST #3</th>
+          <th style="width:50px;text-align:center">Acceptance Level</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td style="text-align:center;font-weight:700;font-size:12px;color:var(--steel)">CAL 2</td>
+            <td style="font-size:12px">Deviation</td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal2_dev1" placeholder="0.000" value=""><span class="unit-badge">%</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal2_dev2" placeholder="0.000" value=""><span class="unit-badge">%</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal2_dev3" placeholder="0.000" value=""><span class="unit-badge">%</span></div></td>
+            <td style="text-align:center;font-size:12px;color:var(--text3);font-style:italic">±0.25%</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-size:12px;color:var(--text3)">P10.02</td>
+            <td style="font-size:12px">Pulses per Length</td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal2_ppl1" placeholder="0000.0000" value=""><span class="unit-badge">l/m</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal2_ppl2" placeholder="0000.0000" value=""><span class="unit-badge">l/m</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal2_ppl3" placeholder="0000.0000" value=""><span class="unit-badge">l/m</span></div></td>
+            <td style="text-align:center;font-size:12px;color:var(--text3);font-style:italic">n/a</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-size:12px;color:var(--text3)">P10.11</td>
+            <td style="font-size:12px">Belt circuit no</td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal2_bcn1" placeholder="00000" value=""><span class="unit-badge">imp</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal2_bcn2" placeholder="00000" value=""><span class="unit-badge">imp</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal2_bcn3" placeholder="00000" value=""><span class="unit-badge">imp</span></div></td>
+            <td style="text-align:center;font-size:12px;color:var(--text3);font-style:italic">±0.25%</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-size:12px;color:var(--text3)">P10.03</td>
+            <td style="font-size:12px">Range Correction TW</td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal2_rctw1" placeholder="0.00000" value=""><span class="unit-badge no-unit">—</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal2_rctw2" placeholder="0.00000" value=""><span class="unit-badge no-unit">—</span></div></td>
+            <td><div class="input-unit-wrap"><input class="data-input" id="cal2_rctw3" placeholder="0.00000" value=""><span class="unit-badge no-unit">—</span></div></td>
+            <td style="text-align:center;font-size:12px;color:var(--text3);font-style:italic">n/a</td>
+          </tr>
+        </tbody>
+      </table>
+
+
+    </div>
+  </div>
+
+  </div><!-- /section-feeder -->
+
+  <!-- ══ SECTION TEST DEMAND SIGNAL ══ -->
+  <div id="section-demand" class="panel" style="display:none">
+    <div class="section-label">TEST DEMAND SIGNAL — AC TECH MC1000 Inverter</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Demand Signal: A02 → AI3 &nbsp;·&nbsp; Belt Load: A01 &nbsp;·&nbsp; Ref: PI-10-01-175-F01</div>
+    <div style="overflow-x:auto">
+    <table class="demand-table" id="demandTable">
+      <thead>
+        <tr>
+          <th style="width:48px">% Ma</th>
+          <th style="width:58px">mA Source</th>
+          <th>AI3<br><small>(mA)</small></th>
+          <th>AO1<br><small>(mA)</small></th>
+          <th>AO2<br><small>(mA)</small></th>
+          <th>Actual Feed Rate<br>on Display (t/h)</th>
+          <th>Feed Rate<br>Demand/<br>Setpoint</th>
+          <th>Motor Speed<br>(rpm)</th>
+          <th>FREQ (Hz)<br>P527</th>
+          <th>LOAD (%)<br>P507</th>
+          <th>VOLT (VAC)<br>P506</th>
+          <th>CURRENT (A)<br>P508</th>
+          <th>Bel Load<br>(kg/m) A01</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="pct-cell">100%</td>
+          <td class="row-label">20 mA</td>
+          <td><input class="demand-input" id="td_ai3_100" placeholder="-"></td>
+          <td><input class="demand-input" id="td_ao1_100" placeholder="-"></td>
+          <td><input class="demand-input" id="td_ao2_100" placeholder="-"></td>
+          <td><input class="demand-input" id="td_fr_act_100" placeholder="-"></td>
+          <td><input class="demand-input" id="td_sp_100" placeholder="-"></td>
+          <td><input class="demand-input" id="td_rpm_100" placeholder="-"></td>
+          <td><input class="demand-input" id="td_freq_100" placeholder="-"></td>
+          <td><input class="demand-input" id="td_load_100" placeholder="-"></td>
+          <td><input class="demand-input" id="td_volt_100" placeholder="-"></td>
+          <td><input class="demand-input" id="td_curr_100" placeholder="-"></td>
+          <td><input class="demand-input" id="td_blt_100" placeholder="-"></td>
+        </tr>
+        <tr>
+          <td class="pct-cell">75%</td>
+          <td class="row-label">16 mA</td>
+          <td><input class="demand-input" id="td_ai3_75" placeholder="-"></td>
+          <td><input class="demand-input" id="td_ao1_75" placeholder="-"></td>
+          <td><input class="demand-input" id="td_ao2_75" placeholder="-"></td>
+          <td><input class="demand-input" id="td_fr_act_75" placeholder="-"></td>
+          <td><input class="demand-input" id="td_sp_75" placeholder="-"></td>
+          <td><input class="demand-input" id="td_rpm_75" placeholder="-"></td>
+          <td><input class="demand-input" id="td_freq_75" placeholder="-"></td>
+          <td><input class="demand-input" id="td_load_75" placeholder="-"></td>
+          <td><input class="demand-input" id="td_volt_75" placeholder="-"></td>
+          <td><input class="demand-input" id="td_curr_75" placeholder="-"></td>
+          <td><input class="demand-input" id="td_blt_75" placeholder="-"></td>
+        </tr>
+        <tr>
+          <td class="pct-cell">50%</td>
+          <td class="row-label">12 mA</td>
+          <td><input class="demand-input" id="td_ai3_50" placeholder="-"></td>
+          <td><input class="demand-input" id="td_ao1_50" placeholder="-"></td>
+          <td><input class="demand-input" id="td_ao2_50" placeholder="-"></td>
+          <td><input class="demand-input" id="td_fr_act_50" placeholder="-"></td>
+          <td><input class="demand-input" id="td_sp_50" placeholder="-"></td>
+          <td><input class="demand-input" id="td_rpm_50" placeholder="-"></td>
+          <td><input class="demand-input" id="td_freq_50" placeholder="-"></td>
+          <td><input class="demand-input" id="td_load_50" placeholder="-"></td>
+          <td><input class="demand-input" id="td_volt_50" placeholder="-"></td>
+          <td><input class="demand-input" id="td_curr_50" placeholder="-"></td>
+          <td><input class="demand-input" id="td_blt_50" placeholder="-"></td>
+        </tr>
+        <tr>
+          <td class="pct-cell">25%</td>
+          <td class="row-label">8 mA</td>
+          <td><input class="demand-input" id="td_ai3_25" placeholder="-"></td>
+          <td><input class="demand-input" id="td_ao1_25" placeholder="-"></td>
+          <td><input class="demand-input" id="td_ao2_25" placeholder="-"></td>
+          <td><input class="demand-input" id="td_fr_act_25" placeholder="-"></td>
+          <td><input class="demand-input" id="td_sp_25" placeholder="-"></td>
+          <td><input class="demand-input" id="td_rpm_25" placeholder="-"></td>
+          <td><input class="demand-input" id="td_freq_25" placeholder="-"></td>
+          <td><input class="demand-input" id="td_load_25" placeholder="-"></td>
+          <td><input class="demand-input" id="td_volt_25" placeholder="-"></td>
+          <td><input class="demand-input" id="td_curr_25" placeholder="-"></td>
+          <td><input class="demand-input" id="td_blt_25" placeholder="-"></td>
+        </tr>
+        <tr>
+          <td class="pct-cell">0%</td>
+          <td class="row-label">4 mA</td>
+          <td><input class="demand-input" id="td_ai3_0" placeholder="-"></td>
+          <td><input class="demand-input" id="td_ao1_0" placeholder="-"></td>
+          <td><input class="demand-input" id="td_ao2_0" placeholder="-"></td>
+          <td><input class="demand-input" id="td_fr_act_0" placeholder="-"></td>
+          <td><input class="demand-input" id="td_sp_0" placeholder="-"></td>
+          <td><input class="demand-input" id="td_rpm_0" placeholder="-"></td>
+          <td><input class="demand-input" id="td_freq_0" placeholder="-"></td>
+          <td><input class="demand-input" id="td_load_0" placeholder="-"></td>
+          <td><input class="demand-input" id="td_volt_0" placeholder="-"></td>
+          <td><input class="demand-input" id="td_curr_0" placeholder="-"></td>
+          <td><input class="demand-input" id="td_blt_0" placeholder="-"></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div><!-- /section-demand -->
+
+  <div id="section-4000hr" style="display:none">
+    <div id="cf4kContainer"></div>
+  </div><!-- /section-4000hr -->
+
+  <!-- ── CATATAN & EVIDENCE PHOTO ── -->
+  <div class="panel">
+    <div class="section-label">Catatan &amp; Evidence Photo</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--steel);margin-bottom:10px">&#128247; Evidence Photo</div>
+        <textarea id="cfNote" rows="2" placeholder="Catatan..." style="width:100%;padding:8px;font-size:13px;border:1px solid var(--border);border-radius:3px;background:#fff;color:#111;resize:vertical;margin-bottom:10px"></textarea>
+        <div id="cfImgDrop" style="position:relative;border:2px dashed var(--border);border-radius:4px;padding:16px;text-align:center;cursor:pointer;background:var(--bg2,#dceaf6)" onclick="toggleSourceChoices('cfSource')" ondragover="event.preventDefault()" ondrop="cfHandleDrop(event)">
+          <input type="file" id="cfImgInput" accept="image/*,.heic,.heif" multiple style="display:none" onchange="cfHandleFiles(this.files)">
+          <div style="font-size:24px;margin-bottom:6px">&#128444;&#65039;</div>
+          <div style="font-size:12px;color:var(--text3)">Klik untuk pilih sumber atau drag file untuk upload</div>
+          <div id="cfSource" style="display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.98);border:1px solid rgba(0,0,0,0.12);border-radius:8px;box-shadow:0 12px 28px rgba(0,0,0,0.12);padding:10px;gap:8px;z-index:10">
+            <button type="button" onclick="event.stopPropagation();openFileInputSource('cfImgInput','storage')" style="padding:8px 12px;border:1px solid rgba(0,0,0,.08);border-radius:6px;background:#fff;color:#111;font-size:12px;cursor:pointer;min-width:100px">Penyimpanan</button>
+            <button type="button" onclick="event.stopPropagation();openFileInputSource('cfImgInput','camera')" style="padding:8px 12px;border:1px solid rgba(0,0,0,.08);border-radius:6px;background:#fff;color:#111;font-size:12px;cursor:pointer;min-width:100px">Kamera</button>
+          </div>
+        </div>
+        <div id="cfImgPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+        <div id="cfSizeInfo" style="font-size:10px;color:var(--text3);margin-top:4px;font-family:'Courier New',monospace">0 KB / 1024 KB</div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- ── ACTION BUTTONS ── -->
+  <div class="btn-row" style="margin-top:20px">
+    <button class="btn btn-pdf" onclick="cfDownloadPdf()">&#11015; Download PDF Report</button>
+    <button class="btn" style="background:#2563eb;color:#fff;border-color:#2563eb" onclick="dbSave('coal_feeder')">&#128190; Simpan ke Database</button>
+    <button class="btn" style="background:#16a085;color:#fff;border-color:#16a085" onclick="window._raBuildPdf=cfDownloadPdf; raSubmitReport()">🔒 Submit Laporan</button>
+    <button class="btn btn-danger" onclick="cfReset()">&#10005; Reset</button>
+  </div>
+</div>
+
+<div id="cropModal">
+    <div class="crop-dialog">
+        <div class="crop-header">
+            <div class="crop-header-title">✂️ Crop Gambar</div>
+            <div class="crop-header-hint">Drag pojok/sisi untuk resize • Drag tengah untuk pindah</div>
+        </div>
+        <div id="cropWrap">
+            <img id="cropImg" src="">
+            <div class="crop-rotate-toolbar">
+                <button type="button" class="crop-rotate-btn" onclick="rotateCropImage(-1)" title="Putar gambar 90° ke kiri">&#8634;</button>
+                <button type="button" class="crop-rotate-btn" onclick="rotateCropImage(1)" title="Putar gambar 90° ke kanan">&#8635;</button>
+            </div>
+            <div id="cropBox">
+                <div class="crop-handle nw"></div><div class="crop-handle ne"></div>
+                <div class="crop-handle sw"></div><div class="crop-handle se"></div>
+                <div class="crop-handle n"></div><div class="crop-handle s"></div>
+                <div class="crop-handle w"></div><div class="crop-handle e"></div>
+            </div>
+        </div>
+        <div class="crop-footer">
+            <div class="crop-size-panel">
+                <div class="crop-size-row" id="cropModeRow">
+                    <button type="button" class="crop-mode-btn" id="cropModeDefault" onclick="setCropMode('default')">⭐ Default</button>
+                    <button type="button" class="crop-mode-btn" id="cropModePreset" onclick="setCropMode('preset')">▦ Preset</button>
+                    <button type="button" class="crop-mode-btn" id="cropModeManual" onclick="setCropMode('manual')">✋ Manual</button>
+                </div>
+                <div class="crop-default-label" id="cropDefaultLabel" style="display:none">Ukuran cetak: 7.2 × 5.18 cm — gambar penuh (tidak dipotong)</div>
+                <div id="cropPresetControls" style="display:none">
+                    <div class="crop-size-row" id="cropPresetRow"></div>
+                    <div class="crop-size-row" style="margin-top:8px">
+                        <button type="button" class="crop-orient-btn" id="cropOrientPotrait" onclick="setCropOrientation('portrait')">⬍ Potrait</button>
+                        <button type="button" class="crop-orient-btn" id="cropOrientLandscape" onclick="setCropOrientation('landscape')">⬌ Lanskap</button>
+                    </div>
+                    <div class="crop-size-row" style="margin-top:8px">
+                        <button type="button" class="crop-preset-btn" id="cropPresetSquare" onclick="applySquarePreset()" title="Rasio 1:1 berdiri sendiri, tidak ikut Potrait/Lanskap">◻ 1:1</button>
+                    </div>
+                </div>
+                <div class="crop-size-row" id="cropCmRow" style="margin-top:8px;display:none">
+                    <div class="crop-cm-field"><label>Panjang (cm)</label><input type="number" id="cropWcm" min="0.5" max="16.4" step="0.1" value="5" oninput="onCustomCmChange('w')" onblur="onCustomCmCommit('w')"></div>
+                    <div class="crop-cm-field"><label>Lebar (cm)</label><input type="number" id="cropHcm" min="0.5" max="25" step="0.1" value="5" oninput="onCustomCmChange('h')" onblur="onCustomCmCommit('h')"></div>
+                    <div class="crop-size-label" id="cropSizeLabel">Bebas (ukuran default saat cetak)</div>
+                </div>
+            </div>
+            <div class="crop-btns">
+                <button class="crop-btn crop-btn-outline" onclick="openImageEditor()">🖍️ Edit Gambar</button>
+                <button class="crop-btn crop-btn-outline" onclick="cropReset()">↺ Reset</button>
+                <button class="crop-btn crop-btn-outline" onclick="skipCrop()">Lewati</button>
+                <button class="crop-btn crop-btn-save" onclick="cropAndSave()">✓ Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MULTI-UPLOAD NOTIFICATION OVERLAY (Fitur N) -->
+<div id="puUploadOverlay" onclick="puHideUploadOverlay()">
+    <div id="puUploadOverlaySpinner"></div>
+    <div id="puUploadOverlayTitle"></div>
+    <div id="puUploadOverlaySub"></div>
+</div>
+
+<!-- ═══ EDIT GAMBAR (Insert Shape: Teks/Panah/Garis/Kotak/Oval) ═══ -->
+<div id="editImgModal" class="pdf-preview-modal">
+    <div class="crop-dialog editimg-dialog">
+        <div class="pdf-preview-header">
+            <button type="button" class="pdf-preview-close-x" onclick="closeImageEditor(true)" aria-label="Tutup">✕</button>
+            <div class="pdf-preview-title">🖍️ Edit Gambar</div>
+            <div class="pdf-preview-hint">Tambah teks/panah/garis/kotak/oval • ✋ geser tampilan • 🔍 zoom</div>
+        </div>
+        <div id="editImgOuter">
+            <div id="editImgWrap">
+                <img id="editImg" src="" alt="">
+                <svg id="editSvgOverlay" xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
+        </div>
+        <div class="edit-toolbar" id="editToolbar">
+            <button type="button" class="edit-tool-btn active" data-tool="select" onclick="setEditTool('select')" title="Pilih / Pindah">↖</button>
+            <button type="button" class="edit-tool-btn" data-tool="text" onclick="setEditTool('text')" title="Tambah Teks">🅰</button>
+            <button type="button" class="edit-tool-btn" data-tool="arrow" onclick="setEditTool('arrow')" title="Panah">↗</button>
+            <button type="button" class="edit-tool-btn" data-tool="line" onclick="setEditTool('line')" title="Garis">╱</button>
+            <button type="button" class="edit-tool-btn" data-tool="rect" onclick="setEditTool('rect')" title="Kotak">▭</button>
+            <button type="button" class="edit-tool-btn" data-tool="oval" onclick="setEditTool('oval')" title="Oval">◯</button>
+            <button type="button" class="edit-tool-btn" data-tool="pan" onclick="setEditTool('pan')" title="Geser Tampilan">✋</button>
+            <span class="edit-toolbar-sep"></span>
+            <button type="button" class="edit-color-swatch active" data-color="#e53935" style="background:#e53935" onclick="setEditColor('#e53935',this)" title="Merah"></button>
+            <button type="button" class="edit-color-swatch" data-color="#1a1a1a" style="background:#1a1a1a" onclick="setEditColor('#1a1a1a',this)" title="Hitam"></button>
+            <button type="button" class="edit-color-swatch" data-color="#1e88e5" style="background:#1e88e5" onclick="setEditColor('#1e88e5',this)" title="Biru"></button>
+            <button type="button" class="edit-color-swatch" data-color="#fdd835" style="background:#fdd835" onclick="setEditColor('#fdd835',this)" title="Kuning"></button>
+            <span class="edit-toolbar-sep"></span>
+            <button type="button" class="edit-thick-swatch" data-thick="S" onclick="setEditThickness('S',this)" title="Garis Tipis">▁</button>
+            <button type="button" class="edit-thick-swatch active" data-thick="M" onclick="setEditThickness('M',this)" title="Garis Sedang">▃</button>
+            <button type="button" class="edit-thick-swatch" data-thick="L" onclick="setEditThickness('L',this)" title="Garis Tebal">▅</button>
+            <button type="button" class="edit-thick-swatch" data-thick="XL" onclick="setEditThickness('XL',this)" title="Garis Sangat Tebal">▇</button>
+            <span class="edit-toolbar-sep"></span>
+            <button type="button" class="edit-tool-btn" onclick="ieZoomOut()" title="Perkecil Tampilan">➖</button>
+            <button type="button" class="edit-tool-btn zoom-label" id="editZoomLabel" onclick="ieZoomReset()" title="Reset Zoom">100%</button>
+            <button type="button" class="edit-tool-btn" onclick="ieZoomIn()" title="Perbesar Tampilan">➕</button>
+            <span class="edit-toolbar-sep"></span>
+            <button type="button" class="edit-tool-btn" id="editTextSmallerBtn" onclick="ieResizeSelectedText(-1)" title="Perkecil Teks" style="display:none">A−</button>
+            <button type="button" class="edit-tool-btn" id="editTextBiggerBtn" onclick="ieResizeSelectedText(1)" title="Perbesar Teks" style="display:none">A+</button>
+            <button type="button" class="edit-tool-btn" id="editTextEditBtn" onclick="editSelectedText()" title="Edit Teks" style="display:none">✏️</button>
+            <button type="button" class="edit-tool-btn" id="editDeleteBtn" onclick="deleteSelectedShape()" title="Hapus" style="display:none">🗑️</button>
+        </div>
+        <div class="pdf-preview-footer">
+            <button class="crop-btn crop-btn-outline" onclick="closeImageEditor(true)">Batal</button>
+            <button class="crop-btn crop-btn-save" onclick="applyImageEdits()">✓ Selesai</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+var cropModalState = document.getElementById('cropModal');
+cropModalState._pending = null;
+cropModalState._ratioLocked = false;
+cropModalState._cropWcm = null;
+cropModalState._cropHcm = null;
+cropModalState._orientation = 'portrait';
+cropModalState._activePresetIdx = -1;
+cropModalState._lastRatioPresetIdx = -1; // ingat preset rasio (bukan 1:1) terakhir dipakai
+cropModalState._mode = 'default';
+cropModalState._presetRatio = 1;
+
+var DEFAULT_CROP_W_CM = 7.2, DEFAULT_CROP_H_CM = 5.18;
+var PRESET_DEFAULT_LONG_CM = 6;
+// Panjang (cropWcm) = dimensi HORIZONTAL saat dicetak di PDF -> dibatasi ketat
+// oleh lebar kertas A4 (marginX=20mm di sini): 210mm - 20mm*2 - buffer 6mm = 164mm.
+var MANUAL_MAX_W_CM = 16.4;
+// Lebar (cropHcm) = dimensi VERTIKAL saat dicetak -> lebih longgar karena kalau
+// kelebihan cuma pindah halaman: 297mm - marginTop(20) - marginBottom(20) - buffer 7mm = 250mm.
+var MANUAL_MAX_H_CM = 25;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   EDIT GAMBAR — Insert Shape (Teks / Panah / Garis / Kotak / Oval)
+   Dipanggil dari dalam Crop Modal ("🖍️ Edit Gambar"). Bekerja di atas
+   gambar ASLI (sebelum crop), lalu hasil flatten (gambar + anotasi jadi
+   satu) dikembalikan ke #cropImg supaya alur crop selanjutnya normal.
+   Koordinat shape disimpan dalam ruang piksel ASLI gambar (naturalW/H)
+   supaya scaling ke layar & flatten ke canvas konsisten.
+   ══════════════════════════════════════════════════════════════════════════ */
+var NS_SVG = 'http://www.w3.org/2000/svg';
+var imgEditState = {
+    tool: 'select', color: '#e53935', thickness: 'M', zoom: 1, baseScale: 1, shapes: [], selectedId: null,
+    naturalW: 0, naturalH: 0, nextId: 1, drawing: null, sourceUrl: null
+};
+var IE_THICKNESS_FACTORS = { S: 0.0022, M: 0.0045, L: 0.0075, XL: 0.012 };
+var IE_ZOOM_MIN = 1, IE_ZOOM_MAX = 4, IE_ZOOM_STEP = 0.5;
+
+function ieMinSize(){ return Math.max(20, imgEditState.naturalW * 0.02); }
+function ieHandleR(){ return Math.max(9, imgEditState.naturalW * 0.009); }
+function ieHandleHitR(){
+    var scale = (imgEditState.baseScale || 1) * (imgEditState.zoom || 1);
+    var minTouchPx = 22;
+    return Math.max(ieHandleR(), minTouchPx / scale);
+}
+function ieStrokeWFor(shape){
+    var key = (shape && shape.strokeSize) || imgEditState.thickness || 'M';
+    var f = IE_THICKNESS_FACTORS[key] || IE_THICKNESS_FACTORS.M;
+    return Math.max(2, imgEditState.naturalW * f);
+}
+function ieFontDefault(){ return Math.max(18, imgEditState.naturalW * 0.035); }
+function ieColorId(c){ return 'ie_' + c.replace('#',''); }
+function ieTextBoxSize(shape){
+    return { w: Math.max(20, (shape.text.length||1) * shape.fontSize * 0.55), h: shape.fontSize*1.2 };
+}
+
+function openImageEditor(){
+    var cropImg = document.getElementById('cropImg');
+    if (!cropImg || !cropImg.src) { alert('Gambar belum siap untuk diedit.'); return; }
+    imgEditState.shapes = []; imgEditState.selectedId = null; imgEditState.nextId = 1;
+    imgEditState.tool = 'select'; imgEditState.color = '#e53935'; imgEditState.thickness = 'M'; imgEditState.zoom = 1;
+    setEditTool('select');
+    var swatches = document.querySelectorAll('.edit-color-swatch');
+    swatches.forEach(function(s){ s.classList.toggle('active', s.getAttribute('data-color') === imgEditState.color); });
+    var tswatches = document.querySelectorAll('.edit-thick-swatch');
+    tswatches.forEach(function(s){ s.classList.toggle('active', s.getAttribute('data-thick') === imgEditState.thickness); });
+    ieUpdateZoomLabel();
+    var editImg = document.getElementById('editImg');
+    editImg.onload = function(){
+        imgEditState.naturalW = editImg.naturalWidth;
+        imgEditState.naturalH = editImg.naturalHeight;
+        fitEditImageToWrap();
+        renderAllShapes();
+    };
+    imgEditState.sourceUrl = cropImg.src;
+    editImg.src = cropImg.src;
+    document.getElementById('editImgModal').classList.add('show');
+}
+
+function fitEditImageToWrap(){
+    var outer = document.getElementById('editImgOuter');
+    var wrap = document.getElementById('editImgWrap');
+    var img = document.getElementById('editImg');
+    var svg = document.getElementById('editSvgOverlay');
+    var ow = outer.clientWidth, oh = outer.clientHeight;
+    var nw = imgEditState.naturalW, nh = imgEditState.naturalH;
+    if (!nw || !nh || !ow || !oh) return;
+    var baseScale = Math.min(ow/nw, oh/nh);
+    imgEditState.baseScale = baseScale;
+    var scale = baseScale * (imgEditState.zoom || 1);
+    var dw = nw*scale, dh = nh*scale;
+    wrap.style.width = dw+'px'; wrap.style.height = dh+'px';
+    img.style.width = dw+'px'; img.style.height = dh+'px';
+    svg.style.width = dw+'px'; svg.style.height = dh+'px';
+    svg.setAttribute('viewBox', '0 0 '+nw+' '+nh);
+    outer.style.justifyContent = (dw <= ow + 1) ? 'center' : 'flex-start';
+    outer.style.alignItems = (dh <= oh + 1) ? 'center' : 'flex-start';
+    if (dw > ow) outer.scrollLeft = Math.max(0, (dw-ow)/2);
+    if (dh > oh) outer.scrollTop = Math.max(0, (dh-oh)/2);
+}
+function ieUpdateZoomLabel(){
+    var lbl = document.getElementById('editZoomLabel');
+    if (lbl) lbl.textContent = Math.round((imgEditState.zoom||1)*100) + '%';
+}
+function ieSetZoom(z){
+    imgEditState.zoom = Math.max(IE_ZOOM_MIN, Math.min(IE_ZOOM_MAX, z));
+    ieUpdateZoomLabel();
+    fitEditImageToWrap();
+}
+function ieZoomIn(){ ieSetZoom((imgEditState.zoom||1) + IE_ZOOM_STEP); }
+function ieZoomOut(){ ieSetZoom((imgEditState.zoom||1) - IE_ZOOM_STEP); }
+function ieZoomReset(){ ieSetZoom(1); }
+window.addEventListener('resize', function(){
+    if (document.getElementById('editImgModal').classList.contains('show')) fitEditImageToWrap();
+});
+
+function closeImageEditor(discard){
+    document.getElementById('editImgModal').classList.remove('show');
+    if (discard) { imgEditState.shapes = []; imgEditState.selectedId = null; }
+}
+
+function setEditTool(tool){
+    imgEditState.tool = tool;
+    deselectShape();
+    document.querySelectorAll('.edit-tool-btn[data-tool]').forEach(function(b){
+        b.classList.toggle('active', b.getAttribute('data-tool') === tool);
+    });
+    var svg = document.getElementById('editSvgOverlay');
+    svg.style.cursor = (tool === 'select') ? 'default' : (tool === 'pan' ? 'grab' : 'crosshair');
+}
+
+/* Kembali ke tool 'select' setelah shape baru dibuat, TANPA menghapus seleksi
+   shape yang baru saja dibuat (supaya langsung bisa digeser/resize). */
+function ieBackToSelectKeepSelection(){
+    imgEditState.tool = 'select';
+    document.querySelectorAll('.edit-tool-btn[data-tool]').forEach(function(b){
+        b.classList.toggle('active', b.getAttribute('data-tool') === 'select');
+    });
+    var svg = document.getElementById('editSvgOverlay');
+    svg.style.cursor = 'default';
+}
+
+function setEditColor(color, btnEl){
+    imgEditState.color = color;
+    document.querySelectorAll('.edit-color-swatch').forEach(function(s){ s.classList.remove('active'); });
+    if (btnEl) btnEl.classList.add('active');
+    var sel = getShapeById(imgEditState.selectedId);
+    if (sel) { sel.color = color; renderAllShapes(); }
+}
+
+function setEditThickness(key, btnEl){
+    imgEditState.thickness = key;
+    document.querySelectorAll('.edit-thick-swatch').forEach(function(s){ s.classList.remove('active'); });
+    if (btnEl) btnEl.classList.add('active');
+    var sel = getShapeById(imgEditState.selectedId);
+    if (sel && sel.type !== 'text') { sel.strokeSize = key; renderAllShapes(); }
+}
+
+function getShapeById(id){
+    for (var i=0;i<imgEditState.shapes.length;i++) if (imgEditState.shapes[i].id === id) return imgEditState.shapes[i];
+    return null;
+}
+function addShape(shape){
+    shape.id = imgEditState.nextId++;
+    imgEditState.shapes.push(shape);
+    return shape;
+}
+function ieSetSelButtonsDisplay(shape){
+    var isText = !!(shape && shape.type === 'text');
+    var db = document.getElementById('editDeleteBtn'); if (db) db.style.display = shape ? 'flex' : 'none';
+    var tb = document.getElementById('editTextEditBtn'); if (tb) tb.style.display = isText ? 'flex' : 'none';
+    var sb = document.getElementById('editTextSmallerBtn'); if (sb) sb.style.display = isText ? 'flex' : 'none';
+    var bb = document.getElementById('editTextBiggerBtn'); if (bb) bb.style.display = isText ? 'flex' : 'none';
+}
+function deselectShape(){
+    imgEditState.selectedId = null;
+    ieSetSelButtonsDisplay(null);
+    renderAllShapes();
+}
+function setSelectedShape(id){
+    imgEditState.selectedId = id;
+    var shape = getShapeById(id);
+    ieSetSelButtonsDisplay(shape);
+    if (shape) {
+        document.querySelectorAll('.edit-color-swatch').forEach(function(s){ s.classList.toggle('active', s.getAttribute('data-color')===shape.color); });
+        if (shape.strokeSize) document.querySelectorAll('.edit-thick-swatch').forEach(function(s){ s.classList.toggle('active', s.getAttribute('data-thick')===shape.strokeSize); });
+    }
+    renderAllShapes();
+}
+function deleteSelectedShape(){
+    if (!imgEditState.selectedId) return;
+    imgEditState.shapes = imgEditState.shapes.filter(function(s){ return s.id !== imgEditState.selectedId; });
+    deselectShape();
+}
+function editSelectedText(){
+    var s = getShapeById(imgEditState.selectedId);
+    if (!s || s.type !== 'text') return;
+    var val = prompt('Edit teks:', s.text);
+    ieForceHideKeyboard();
+    if (val === null) return;
+    s.text = val || ' ';
+    renderAllShapes();
+}
+/* Fix: setelah window.prompt() ditutup di Android Chrome, soft keyboard kadang
+   "menempel" (tidak ikut turun) karena tidak ada <input> asli di halaman yang
+   kehilangan fokus. Trik: fokuskan sebentar lalu blur input tersembunyi supaya
+   Android benar-benar mendeteksi ada elemen form yang di-blur dan menutup IME. */
+function ieForceHideKeyboard(){
+    if (document.activeElement && document.activeElement !== document.body && document.activeElement.blur) {
+        document.activeElement.blur();
+    }
+    var dummy = document.getElementById('ieKeyboardDismiss');
+    if (!dummy) {
+        dummy = document.createElement('input');
+        dummy.id = 'ieKeyboardDismiss';
+        dummy.setAttribute('type', 'text');
+        dummy.style.position = 'fixed';
+        dummy.style.top = '-1000px';
+        dummy.style.left = '0';
+        dummy.style.width = '1px';
+        dummy.style.height = '1px';
+        dummy.style.opacity = '0';
+        document.body.appendChild(dummy);
+    }
+    // readonly saat focus supaya Android TIDAK memunculkan keyboard baru di
+    // input dummy ini — cuma dipakai untuk memicu event blur yang sungguhan.
+    dummy.setAttribute('readonly', 'readonly');
+    dummy.focus();
+    setTimeout(function(){ dummy.blur(); dummy.removeAttribute('readonly'); }, 0);
+}
+function ieResizeSelectedText(dir){
+    var s = getShapeById(imgEditState.selectedId);
+    if (!s || s.type !== 'text') return;
+    var step = Math.max(2, imgEditState.naturalW*0.006);
+    s.fontSize = Math.max(10, (s.fontSize||ieFontDefault()) + dir*step);
+    renderAllShapes();
+}
+
+function getSvgPoint(evt){
+    var svg = document.getElementById('editSvgOverlay');
+    var rect = svg.getBoundingClientRect();
+    var t = evt.touches ? (evt.touches[0] || evt.changedTouches[0]) : evt;
+    var x = (t.clientX - rect.left) * (imgEditState.naturalW / rect.width);
+    var y = (t.clientY - rect.top) * (imgEditState.naturalH / rect.height);
+    return { x: x, y: y };
+}
+
+/* Pakai Pointer Events (bukan touchstart/mousedown terpisah) supaya drag di HP
+   (Chrome/Safari Android & iOS) lebih andal — menghindari konflik event
+   sentuh vs mouse sintetis yang kadang bikin drag "putus" di tengah jalan. */
+function ieAddDocListeners(onMove, onUp){
+    document.addEventListener('pointermove', onMove, {passive:false});
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+}
+function ieRemoveDocListeners(onMove, onUp){
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onUp);
+}
+
+/* ── Mulai gambar shape baru (drag dari kosong) ── */
+function onEditSvgPointerDown(e){
+    var tool = imgEditState.tool;
+    if (tool === 'pan') {
+        if (e.cancelable) e.preventDefault();
+        var outer = document.getElementById('editImgOuter');
+        var t0 = e.touches ? e.touches[0] : e;
+        var startX = t0.clientX, startY = t0.clientY;
+        var startL = outer.scrollLeft, startT = outer.scrollTop;
+        var svgEl = document.getElementById('editSvgOverlay'); svgEl.style.cursor = 'grabbing';
+        function onMove(mv){
+            if (mv.cancelable) mv.preventDefault();
+            var t = mv.touches ? mv.touches[0] : mv;
+            outer.scrollLeft = startL - (t.clientX - startX);
+            outer.scrollTop = startT - (t.clientY - startY);
+        }
+        function onUp(){ ieRemoveDocListeners(onMove, onUp); svgEl.style.cursor = 'grab'; }
+        ieAddDocListeners(onMove, onUp);
+        return;
+    }
+    if (tool === 'select') { if (e.target.id === 'editSvgOverlay') deselectShape(); return; }
+    if (e.cancelable) e.preventDefault();
+    var pt = getSvgPoint(e);
+    if (tool === 'text') {
+        var txt = prompt('Masukkan teks:');
+        ieForceHideKeyboard();
+        if (txt && txt.trim()) {
+            var shapeT = addShape({type:'text', x:pt.x, y:pt.y, text:txt.trim(), color:imgEditState.color, fontSize: ieFontDefault()});
+            setSelectedShape(shapeT.id);
+        }
+        ieBackToSelectKeepSelection();
+        return;
+    }
+    imgEditState.drawing = {type:tool, x1:pt.x, y1:pt.y, x2:pt.x, y2:pt.y, color:imgEditState.color, strokeSize:imgEditState.thickness};
+    renderAllShapes();
+    function onMove(mv){
+        if (mv.cancelable) mv.preventDefault();
+        var p = getSvgPoint(mv);
+        imgEditState.drawing.x2 = p.x; imgEditState.drawing.y2 = p.y;
+        renderAllShapes();
+    }
+    function onUp(){
+        ieRemoveDocListeners(onMove, onUp);
+        var d = imgEditState.drawing; imgEditState.drawing = null;
+        var dist = Math.hypot(d.x2-d.x1, d.y2-d.y1);
+        if (dist > Math.max(8, imgEditState.naturalW*0.008)) {
+            var shape;
+            if (d.type === 'rect' || d.type === 'oval') {
+                shape = addShape({type:d.type, x:Math.min(d.x1,d.x2), y:Math.min(d.y1,d.y2), w:Math.abs(d.x2-d.x1), h:Math.abs(d.y2-d.y1), color:d.color, strokeSize:d.strokeSize, rotation:0});
+            } else {
+                shape = addShape({type:d.type, x1:d.x1, y1:d.y1, x2:d.x2, y2:d.y2, color:d.color, strokeSize:d.strokeSize});
+            }
+            setSelectedShape(shape.id);
+            ieBackToSelectKeepSelection();
+        } else { renderAllShapes(); }
+    }
+    ieAddDocListeners(onMove, onUp);
+}
+
+/* ── Pindahkan shape yang ada (drag body) ── */
+function startDragShape(id, ev){
+    setSelectedShape(id);
+    var shape = getShapeById(id);
+    if (!shape) return;
+    var startPt = getSvgPoint(ev);
+    var orig = JSON.parse(JSON.stringify(shape));
+    function onMove(mv){
+        if (mv.cancelable) mv.preventDefault();
+        var p = getSvgPoint(mv);
+        var dx = p.x - startPt.x, dy = p.y - startPt.y;
+        if (shape.type === 'line' || shape.type === 'arrow') {
+            shape.x1 = orig.x1+dx; shape.y1 = orig.y1+dy; shape.x2 = orig.x2+dx; shape.y2 = orig.y2+dy;
+        } else {
+            shape.x = orig.x+dx; shape.y = orig.y+dy;
+        }
+        renderAllShapes();
+    }
+    function onUp(){ ieRemoveDocListeners(onMove, onUp); }
+    ieAddDocListeners(onMove, onUp);
+}
+
+/* ── Handle resize/endpoint drag ── */
+function startHandleDrag(onDragMove){
+    function onMove(mv){ if (mv.cancelable) mv.preventDefault(); onDragMove(getSvgPoint(mv)); renderAllShapes(); }
+    function onUp(){ ieRemoveDocListeners(onMove, onUp); }
+    ieAddDocListeners(onMove, onUp);
+}
+
+function ieMakeHandle(svg, cx, cy, cursor, onDragMove){
+    var c = document.createElementNS(NS_SVG, 'circle');
+    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', ieHandleR());
+    c.setAttribute('fill', '#2ecc71'); c.setAttribute('stroke', '#fff'); c.setAttribute('stroke-width', Math.max(1,ieHandleR()*0.2));
+    c.style.cursor = cursor; c.style.touchAction = 'none'; c.style.pointerEvents = 'none';
+    svg.appendChild(c);
+    // Hit-area transparan yang lebih besar, ditumpuk di atas titik visual,
+    // supaya gampang dipencet di HP tanpa mengubah ukuran titik yang terlihat.
+    var hit = document.createElementNS(NS_SVG, 'circle');
+    hit.setAttribute('cx', cx); hit.setAttribute('cy', cy); hit.setAttribute('r', ieHandleHitR());
+    hit.setAttribute('fill', 'transparent');
+    hit.style.cursor = cursor; hit.style.touchAction = 'none'; hit.style.pointerEvents = 'all';
+    hit.addEventListener('pointerdown', function(e){ e.stopPropagation(); if (e.cancelable) e.preventDefault(); startHandleDrag(onDragMove); });
+    svg.appendChild(hit);
+}
+
+/* ── Bangun 1 elemen visual shape (dipakai utk overlay interaktif & flatten) ── */
+function ieBuildShapeVisual(shape){
+    var el;
+    if (shape.type === 'rect') {
+        el = document.createElementNS(NS_SVG, 'rect');
+        el.setAttribute('x', shape.x); el.setAttribute('y', shape.y);
+        el.setAttribute('width', shape.w); el.setAttribute('height', shape.h);
+        el.setAttribute('fill', 'none'); el.setAttribute('stroke', shape.color); el.setAttribute('stroke-width', ieStrokeWFor(shape));
+    } else if (shape.type === 'oval') {
+        el = document.createElementNS(NS_SVG, 'ellipse');
+        el.setAttribute('cx', shape.x+shape.w/2); el.setAttribute('cy', shape.y+shape.h/2);
+        el.setAttribute('rx', shape.w/2); el.setAttribute('ry', shape.h/2);
+        el.setAttribute('fill', 'none'); el.setAttribute('stroke', shape.color); el.setAttribute('stroke-width', ieStrokeWFor(shape));
+    } else if (shape.type === 'line' || shape.type === 'arrow') {
+        el = document.createElementNS(NS_SVG, 'line');
+        el.setAttribute('x1', shape.x1); el.setAttribute('y1', shape.y1);
+        el.setAttribute('x2', shape.x2); el.setAttribute('y2', shape.y2);
+        el.setAttribute('stroke', shape.color); el.setAttribute('stroke-width', ieStrokeWFor(shape)); el.setAttribute('stroke-linecap', 'round');
+        if (shape.type === 'arrow') el.setAttribute('marker-end', 'url(#'+ieColorId(shape.color)+')');
+    } else if (shape.type === 'text') {
+        el = document.createElementNS(NS_SVG, 'text');
+        el.setAttribute('x', shape.x); el.setAttribute('y', shape.y + shape.fontSize);
+        el.setAttribute('fill', shape.color); el.setAttribute('font-size', shape.fontSize);
+        el.setAttribute('font-family', 'Arial, sans-serif'); el.setAttribute('font-weight', '700');
+        el.textContent = shape.text;
+    }
+    return el;
+}
+
+function ieBuildDefs(svg){
+    var defs = document.createElementNS(NS_SVG, 'defs');
+    ['#e53935','#1a1a1a','#1e88e5','#fdd835'].forEach(function(c){
+        var marker = document.createElementNS(NS_SVG, 'marker');
+        marker.setAttribute('id', ieColorId(c)); marker.setAttribute('markerWidth', '10'); marker.setAttribute('markerHeight', '10');
+        marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5'); marker.setAttribute('orient', 'auto');
+        var path = document.createElementNS(NS_SVG, 'path');
+        path.setAttribute('d', 'M0,0 L10,5 L0,10 Z'); path.setAttribute('fill', c);
+        marker.appendChild(path); defs.appendChild(marker);
+    });
+    svg.appendChild(defs);
+}
+
+/* ── Rotasi titik (px,py) mengelilingi pusat (cx,cy) sejauh `deg` derajat ── */
+function ieRotatePoint(px, py, cx, cy, deg){
+    var rad = deg * Math.PI/180;
+    var cos = Math.cos(rad), sin = Math.sin(rad);
+    var dx = px-cx, dy = py-cy;
+    return { x: cx + dx*cos - dy*sin, y: cy + dx*sin + dy*cos };
+}
+
+/* ── Render ulang seluruh overlay interaktif (shapes + preview + handle seleksi) ── */
+function renderAllShapes(){
+    var svg = document.getElementById('editSvgOverlay');
+    if (!svg) return;
+    svg.innerHTML = '';
+    ieBuildDefs(svg);
+    imgEditState.shapes.forEach(function(shape){
+        var g = document.createElementNS(NS_SVG, 'g');
+        var visual = ieBuildShapeVisual(shape);
+        if (!visual) return;
+        g.appendChild(visual);
+        // Hit-area lebih lebar supaya mudah disentuh (untuk garis/panah tipis,
+        // dan bagian dalam kotak/oval yang defaultnya fill:none tidak bisa disentuh)
+        if (shape.type === 'line' || shape.type === 'arrow') {
+            var hit = document.createElementNS(NS_SVG, 'line');
+            hit.setAttribute('x1', shape.x1); hit.setAttribute('y1', shape.y1);
+            hit.setAttribute('x2', shape.x2); hit.setAttribute('y2', shape.y2);
+            hit.setAttribute('stroke', 'transparent'); hit.setAttribute('stroke-width', Math.max(24, imgEditState.naturalW*0.02));
+            g.insertBefore(hit, visual);
+        } else if (shape.type === 'rect' || shape.type === 'oval') {
+            var fhit = document.createElementNS(NS_SVG, shape.type === 'rect' ? 'rect' : 'ellipse');
+            if (shape.type === 'rect') {
+                fhit.setAttribute('x', shape.x); fhit.setAttribute('y', shape.y);
+                fhit.setAttribute('width', shape.w); fhit.setAttribute('height', shape.h);
+            } else {
+                fhit.setAttribute('cx', shape.x+shape.w/2); fhit.setAttribute('cy', shape.y+shape.h/2);
+                fhit.setAttribute('rx', shape.w/2); fhit.setAttribute('ry', shape.h/2);
+            }
+            fhit.setAttribute('fill', 'transparent');
+            g.insertBefore(fhit, visual);
+        } else if (shape.type === 'text') {
+            // <text> secara default cuma bisa "diklik" tepat di garis huruf. Tambahkan
+            // hit-area kotak penuh (transparan) supaya teks mudah digeser/dipilih di HP.
+            var tb = ieTextBoxSize(shape);
+            var padX = tb.w*0.08, padY = tb.h*0.15;
+            var thit = document.createElementNS(NS_SVG, 'rect');
+            thit.setAttribute('x', shape.x - padX); thit.setAttribute('y', shape.y - padY);
+            thit.setAttribute('width', tb.w + padX*2); thit.setAttribute('height', tb.h + padY*2);
+            thit.setAttribute('fill', 'transparent');
+            g.insertBefore(thit, visual);
+        }
+        g.style.cursor = 'move';
+        if ((shape.type === 'rect' || shape.type === 'oval') && shape.rotation) {
+            var rcx = shape.x + shape.w/2, rcy = shape.y + shape.h/2;
+            g.setAttribute('transform', 'rotate(' + shape.rotation + ' ' + rcx + ' ' + rcy + ')');
+        }
+        var start = (function(shapeId){ return function(ev){
+            if (imgEditState.tool !== 'select') return;
+            ev.stopPropagation(); if (ev.cancelable) ev.preventDefault();
+            startDragShape(shapeId, ev);
+        }; })(shape.id);
+        g.addEventListener('pointerdown', start);
+        svg.appendChild(g);
+
+        if (shape.id === imgEditState.selectedId) {
+            if (shape.type === 'rect' || shape.type === 'oval') {
+                var rot = shape.rotation || 0;
+                var cx = shape.x + shape.w/2, cy = shape.y + shape.h/2;
+                var box = document.createElementNS(NS_SVG, 'rect');
+                box.setAttribute('x', shape.x); box.setAttribute('y', shape.y);
+                box.setAttribute('width', shape.w); box.setAttribute('height', shape.h);
+                box.setAttribute('fill', 'none'); box.setAttribute('stroke', '#2ecc71');
+                box.setAttribute('stroke-width', Math.max(1, imgEditState.naturalW*0.0015));
+                box.setAttribute('stroke-dasharray', '6,4'); box.setAttribute('pointer-events', 'none');
+                if (rot) box.setAttribute('transform', 'rotate(' + rot + ' ' + cx + ' ' + cy + ')');
+                svg.appendChild(box);
+                // Handle resize di pojok kanan-bawah — posisinya dihitung ulang sesuai
+                // rotasi saat ini, dan resize dihitung di ruang LOKAL (belum dirotasi)
+                // supaya tetap membesar/mengecil mengikuti arah kotaknya sendiri.
+                var cornerLocal = {x: shape.x+shape.w, y: shape.y+shape.h};
+                var cornerWorld = rot ? ieRotatePoint(cornerLocal.x, cornerLocal.y, cx, cy, rot) : cornerLocal;
+                ieMakeHandle(svg, cornerWorld.x, cornerWorld.y, 'nwse-resize', function(p){
+                    var local = rot ? ieRotatePoint(p.x, p.y, cx, cy, -rot) : p;
+                    shape.w = Math.max(ieMinSize(), local.x-shape.x); shape.h = Math.max(ieMinSize(), local.y-shape.y);
+                });
+                // Handle rotasi — bulatan di atas tengah kotak, tarik memutar sekeliling pusat.
+                var rotDist = Math.max(24, imgEditState.naturalW*0.03);
+                var rotHandleLocal = {x: cx, y: shape.y - rotDist};
+                var rotHandleWorld = rot ? ieRotatePoint(rotHandleLocal.x, rotHandleLocal.y, cx, cy, rot) : rotHandleLocal;
+                var rotLine = document.createElementNS(NS_SVG, 'line');
+                rotLine.setAttribute('x1', cx); rotLine.setAttribute('y1', shape.y);
+                rotLine.setAttribute('x2', rotHandleLocal.x); rotLine.setAttribute('y2', rotHandleLocal.y);
+                rotLine.setAttribute('stroke', '#2ecc71'); rotLine.setAttribute('stroke-width', Math.max(1, imgEditState.naturalW*0.0015));
+                rotLine.setAttribute('pointer-events', 'none');
+                if (rot) rotLine.setAttribute('transform', 'rotate(' + rot + ' ' + cx + ' ' + cy + ')');
+                svg.appendChild(rotLine);
+                ieMakeHandle(svg, rotHandleWorld.x, rotHandleWorld.y, 'grab', function(p){
+                    var deg = Math.atan2(p.x-cx, -(p.y-cy)) * 180/Math.PI;
+                    shape.rotation = Math.round(deg);
+                });
+            } else if (shape.type === 'line' || shape.type === 'arrow') {
+                ieMakeHandle(svg, shape.x1, shape.y1, 'move', function(p){ shape.x1=p.x; shape.y1=p.y; });
+                ieMakeHandle(svg, shape.x2, shape.y2, 'move', function(p){ shape.x2=p.x; shape.y2=p.y; });
+            } else if (shape.type === 'text') {
+                var tbSel = ieTextBoxSize(shape);
+                var box2 = document.createElementNS(NS_SVG, 'rect');
+                box2.setAttribute('x', shape.x); box2.setAttribute('y', shape.y);
+                box2.setAttribute('width', tbSel.w); box2.setAttribute('height', tbSel.h);
+                box2.setAttribute('fill', 'none'); box2.setAttribute('stroke', '#2ecc71');
+                box2.setAttribute('stroke-width', Math.max(1, imgEditState.naturalW*0.0015));
+                box2.setAttribute('stroke-dasharray', '6,4'); box2.setAttribute('pointer-events', 'none');
+                svg.appendChild(box2);
+                ieMakeHandle(svg, shape.x+tbSel.w, shape.y+tbSel.h, 'nwse-resize', function(p){
+                    var newH = Math.max(10, p.y-shape.y);
+                    shape.fontSize = newH/1.2;
+                });
+            }
+        }
+    });
+    if (imgEditState.drawing) {
+        var dvisual = ieBuildShapeVisual(
+            (imgEditState.drawing.type==='rect'||imgEditState.drawing.type==='oval')
+            ? {type:imgEditState.drawing.type, x:Math.min(imgEditState.drawing.x1,imgEditState.drawing.x2), y:Math.min(imgEditState.drawing.y1,imgEditState.drawing.y2), w:Math.abs(imgEditState.drawing.x2-imgEditState.drawing.x1), h:Math.abs(imgEditState.drawing.y2-imgEditState.drawing.y1), color:imgEditState.drawing.color, strokeSize:imgEditState.drawing.strokeSize}
+            : imgEditState.drawing
+        );
+        if (dvisual) { dvisual.setAttribute('opacity','0.75'); svg.appendChild(dvisual); }
+    }
+}
+
+(function initEditSvgEvents(){
+    var svg = document.getElementById('editSvgOverlay');
+    if (!svg) return;
+    svg.addEventListener('pointerdown', onEditSvgPointerDown);
+})();
+
+/* ── Terapkan semua anotasi: gabung ke gambar asli, kembalikan ke #cropImg ── */
+function applyImageEdits(){
+    if (!imgEditState.shapes.length) { closeImageEditor(false); return; }
+    var nw = imgEditState.naturalW, nh = imgEditState.naturalH;
+    var flatSvg = document.createElementNS(NS_SVG, 'svg');
+    flatSvg.setAttribute('xmlns', NS_SVG);
+    flatSvg.setAttribute('width', nw); flatSvg.setAttribute('height', nh);
+    flatSvg.setAttribute('viewBox', '0 0 '+nw+' '+nh);
+    ieBuildDefs(flatSvg);
+    imgEditState.shapes.forEach(function(shape){
+        var v = ieBuildShapeVisual(shape);
+        if (!v) return;
+        if ((shape.type === 'rect' || shape.type === 'oval') && shape.rotation) {
+            var cx = shape.x + shape.w/2, cy = shape.y + shape.h/2;
+            v.setAttribute('transform', 'rotate(' + shape.rotation + ' ' + cx + ' ' + cy + ')');
+        }
+        flatSvg.appendChild(v);
+    });
+    var svgStr = new XMLSerializer().serializeToString(flatSvg);
+    var svgImg = new Image();
+    svgImg.onload = function(){
+        var canvas = document.createElement('canvas');
+        canvas.width = nw; canvas.height = nh;
+        var ctx = canvas.getContext('2d');
+        var srcImg = new Image();
+        srcImg.onload = function(){
+            ctx.drawImage(srcImg, 0, 0, nw, nh);
+            ctx.drawImage(svgImg, 0, 0, nw, nh);
+            var outUrl = canvas.toDataURL('image/jpeg', 0.92);
+            var cropImg = document.getElementById('cropImg');
+            cropImg.onload = function(){
+                var wrap = document.getElementById('cropWrap');
+                var ww = wrap.clientWidth, wh = wrap.clientHeight;
+                var scale = Math.min(ww/cropImg.naturalWidth, wh/cropImg.naturalHeight);
+                var dw = cropImg.naturalWidth*scale, dh = cropImg.naturalHeight*scale;
+                cropImg.style.width = dw+'px'; cropImg.style.height = dh+'px';
+                cropImg.style.left = ((ww-dw)/2)+'px'; cropImg.style.top = ((wh-dh)/2)+'px';
+                if (cropModalState._mode === 'default') fitCropBoxToFullImage();
+                else if (cropModalState._ratioLocked) reshapeCropBoxToRatio();
+            };
+            cropImg.src = outUrl;
+            closeImageEditor(false);
+        };
+        srcImg.src = imgEditState.sourceUrl;
+    };
+    svgImg.onerror = function(){ alert('Gagal menerapkan anotasi pada gambar. Coba lagi.'); };
+    svgImg.src = 'data:image/svg+xml;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+}
+
+var CROP_PRESETS = [
+    {label:'3:2', w:3, h:2}, {label:'4:3', w:4, h:3},
+    {label:'5:4', w:5, h:4}, {label:'16:9', w:16, h:9}, {label:'A4', w:210, h:297}, {label:'Letter', w:216, h:279}
+];
+
+// Kenali kembali preset rasio (3:2, 4:3, dst / bujur sangkar 1:1) dari ukuran cm
+// yang tersimpan di foto, supaya waktu buka ulang foto lama dari data tersimpan
+// (mis. dari Riwayat), mode Preset & tombol rasionya otomatis kepilih lagi --
+// sebelumnya selalu jatuh ke Manual/Custom karena tidak pernah dicek sama sekali.
+function matchCropPreset(w, h) {
+    if (!w || !h) return null;
+    if (Math.abs(w - h) < 0.15) return {idx:'square'};
+    var ratio = Math.max(w, h) / Math.min(w, h);
+    for (var i = 0; i < CROP_PRESETS.length; i++) {
+        var p = CROP_PRESETS[i];
+        var pRatio = Math.max(p.w, p.h) / Math.min(p.w, p.h);
+        if (Math.abs(ratio - pRatio) < 0.018) return {idx:i};
+    }
+    return null;
+}
+
+function renderPresetButtons() {
+    var row = document.getElementById('cropPresetRow');
+    if (!row) return;
+    row.innerHTML = '';
+    CROP_PRESETS.forEach(function(p, i) {
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'crop-preset-btn'; btn.id = 'cropPreset-'+i;
+        btn.textContent = p.label; btn.onclick = function () { applyPreset(i); };
+        row.appendChild(btn);
+    });
+}
+function highlightPreset(activeIdx) {
+    CROP_PRESETS.forEach(function (p, idx) {
+        var btn = document.getElementById('cropPreset-'+idx);
+        if (btn) btn.classList.toggle('active', idx === activeIdx);
+    });
+    // 1:1 berdiri sendiri di luar daftar rasio — begitu salah satu preset
+    // rasio (yang ikut Potrait/Lanskap) dipilih, tombol 1:1 ikut nonaktif.
+    var sq = document.getElementById('cropPresetSquare');
+    if (sq) sq.classList.toggle('active', activeIdx === 'square');
+}
+// Preset 1:1 sengaja dipisah dari CROP_PRESETS supaya TIDAK ikut terpengaruh
+// toggle Potrait/Lanskap (bujur sangkar tidak punya orientasi).
+function applySquarePreset() {
+    cropModalState._activePresetIdx = 'square';
+    var side = Math.min(PRESET_DEFAULT_LONG_CM, MANUAL_MAX_W_CM, MANUAL_MAX_H_CM);
+    cropModalState._presetRatio = 1;
+    fitCropBoxToFullImage(); // selalu mulai dari full image dulu sebelum diperkecil ke 1:1
+    setLockedSize(side, side);
+    highlightPreset('square');
+    // 1:1 tidak punya orientasi (panjang = lebar) — lepas highlight
+    // Potrait/Lanskap supaya keduanya tidak nyangkut "aktif" padahal box-nya
+    // sudah bukan preset rasio itu lagi, dan klik Potrait/Lanskap berikutnya
+    // kelihatan jelas sebagai state BARU sehingga presetnya kereset dengan bersih.
+    var pB=document.getElementById('cropOrientPotrait'), lB=document.getElementById('cropOrientLandscape');
+    if (pB) pB.classList.remove('active');
+    if (lB) lB.classList.remove('active');
+}
+// Batas maksimal per-field (Panjang/Lebar) berlaku sama untuk Preset & Manual,
+// tidak tergantung orientasi Potrait/Lanskap -- yang menentukan aman/tidaknya
+// adalah field-nya (posisi di kertas), bukan konsep rasionya.
+function getMaxForField(field) {
+    return field === 'w' ? MANUAL_MAX_W_CM : MANUAL_MAX_H_CM;
+}
+function clampCmValue(v, maxV) {
+    v = parseFloat(v);
+    if (!isFinite(v) || v<=0) v=0.5;
+    if (v>maxV) v=maxV;
+    if (v<0.5) v=0.5;
+    return Math.round(v*10)/10;
+}
+function setCropMode(mode) {
+    cropModalState._mode = mode;
+    ['Default','Preset','Manual'].forEach(function(m){
+        var b = document.getElementById('cropMode'+m);
+        if (b) b.classList.toggle('active', mode === m.toLowerCase());
+    });
+    var presetControls = document.getElementById('cropPresetControls');
+    var cmRow = document.getElementById('cropCmRow');
+    var defaultLabel = document.getElementById('cropDefaultLabel');
+    // Selalu mulai dari kotak crop yang menutupi seluruh gambar dulu setiap
+    // pindah tab (Default/Preset/Manual), supaya user tidak perlu geser2
+    // manual kalau kotak sebelumnya kekecilan/di posisi lain.
+    fitCropBoxToFullImage();
+    if (mode === 'default') {
+        presetControls.style.display='none'; cmRow.style.display='none'; defaultLabel.style.display='block';
+        highlightPreset(-1); applyDefaultSize();
+    } else if (mode === 'preset') {
+        presetControls.style.display='block'; cmRow.style.display='flex'; defaultLabel.style.display='none';
+        if (cropModalState._activePresetIdx === 'square') applySquarePreset();
+        else applyPreset((cropModalState._activePresetIdx === -1 || cropModalState._activePresetIdx == null) ? 0 : cropModalState._activePresetIdx);
+    } else {
+        presetControls.style.display='none'; cmRow.style.display='flex'; defaultLabel.style.display='none';
+        highlightPreset(-1);
+        setFreeSize(cropModalState._cropWcm||5, cropModalState._cropHcm||5);
+    }
+}
+function applyDefaultSize() {
+    // Default: box crop menutupi SELURUH gambar (tidak memotong apapun).
+    // Ukuran cetak PDF tetap mengikuti DEFAULT_CROP_W_CM x DEFAULT_CROP_H_CM,
+    // terlepas dari rasio asli gambarnya.
+    cropModalState._ratioLocked = false;
+    cropModalState._cropWcm = DEFAULT_CROP_W_CM; cropModalState._cropHcm = DEFAULT_CROP_H_CM;
+    updateSizeLabel(); fitCropBoxToFullImage();
+}
+function fitCropBoxToFullImage() {
+    var box = document.getElementById('cropBox');
+    var img = document.getElementById('cropImg');
+    if (!box || !img) return;
+    var iL = parseInt(img.style.left) || 0, iT = parseInt(img.style.top) || 0;
+    var iW = img.offsetWidth, iH = img.offsetHeight;
+    if (!iW || !iH) return;
+    box.style.left = iL + 'px'; box.style.top = iT + 'px';
+    box.style.width = iW + 'px'; box.style.height = iH + 'px';
+}
+function applyPreset(i) {
+    var p = CROP_PRESETS[i];
+    var ratioValue = Math.max(p.w,p.h) / Math.min(p.w,p.h);
+    cropModalState._activePresetIdx = i;
+    cropModalState._lastRatioPresetIdx = i;
+    var longSide = PRESET_DEFAULT_LONG_CM;
+    var shortSide = Math.round((longSide/ratioValue)*10)/10;
+    var w,h;
+    if (cropModalState._orientation === 'landscape') { w=longSide; h=shortSide; } else { h=longSide; w=shortSide; }
+    cropModalState._presetRatio = w/h;
+    setLockedSize(w,h); highlightPreset(i);
+}
+function setCropOrientation(orientation) {
+    cropModalState._orientation = orientation;
+    document.getElementById('cropOrientPotrait').classList.toggle('active', orientation==='portrait');
+    document.getElementById('cropOrientLandscape').classList.toggle('active', orientation==='landscape');
+    // Potrait/Lanskap adalah milik preset RASIO, bukan 1:1. Kalau sebelumnya
+    // lagi di preset 1:1, klik Potrait/Lanskap TIDAK langsung memaksakan
+    // salah satu rasio — box cukup dikembalikan ke ukuran PENUH gambar dan
+    // status 1:1 dilepas, biar user sendiri yang pilih rasio berikutnya dari
+    // kondisi full image itu (memaksa rasio tertentu di sini bikin box
+    // kelihatan "mengecil tiba-tiba" alih-alih benar-benar kembali full).
+    if (cropModalState._activePresetIdx === 'square') {
+        fitCropBoxToFullImage();
+        cropModalState._activePresetIdx = -1;
+        cropModalState._ratioLocked = false;
+        cropModalState._cropWcm = null;
+        cropModalState._cropHcm = null;
+        highlightPreset(-1);
+        var wEl=document.getElementById('cropWcm'), hEl=document.getElementById('cropHcm'), lblEl=document.getElementById('cropSizeLabel');
+        if (wEl) wEl.value = ''; if (hEl) hEl.value = '';
+        if (lblEl) lblEl.textContent = 'Pilih salah satu rasio di bawah';
+        return;
+    }
+    // Selalu mulai dari kotak crop full image dulu sebelum di-reshape ke
+    // rasio baru sesuai orientasi — supaya kotak tidak "nyangkut" di
+    // ukuran/posisi lama waktu pindah Lanskap↔Potrait.
+    fitCropBoxToFullImage();
+    var w = cropModalState._cropWcm||1, h = cropModalState._cropHcm||1;
+    var longVal=Math.max(w,h), shortVal=Math.min(w,h), neww, newh;
+    if (orientation==='landscape') { neww=longVal; newh=shortVal; } else { newh=longVal; neww=shortVal; }
+    cropModalState._presetRatio = neww/newh;
+    setLockedSize(neww, newh);
+}
+// Selama user masih MENGETIK (oninput): update preview kotak crop kalau
+// angkanya sudah valid, tapi JANGAN menimpa balik nilai input -- dulu di sini
+// langsung clamp+tulis-ulang tiap ketikan, akibatnya begitu field dikosongkan
+// (mau ganti angka) langsung "dipaksa" balik ke angka lain sebelum sempat
+// mengetik angka barunya. Validasi/pembulatan final baru terjadi di
+// onCustomCmCommit() saat field kehilangan fokus (blur).
+function onCustomCmChange(field) {
+    if (cropModalState._mode === 'preset') { onPresetFieldChange(field, false); return; }
+    if (cropModalState._mode === 'manual') {
+        var wRaw = parseFloat(document.getElementById('cropWcm').value);
+        var hRaw = parseFloat(document.getElementById('cropHcm').value);
+        var w = (isFinite(wRaw) && wRaw > 0) ? wRaw : cropModalState._cropWcm;
+        var h = (isFinite(hRaw) && hRaw > 0) ? hRaw : cropModalState._cropHcm;
+        setFreeSize(w, h, true); // skipInputSync=true -> jangan timpa input yang lagi diketik
+    }
+}
+// Dipanggil saat field kehilangan fokus (blur) -- baru di sini nilai
+// di-clamp ke batas min/max, dibulatkan, dan ditulis ulang ke input.
+function onCustomCmCommit(field) {
+    if (cropModalState._mode === 'preset') { onPresetFieldChange(field, true); return; }
+    if (cropModalState._mode === 'manual') {
+        var w = clampCmValue(document.getElementById('cropWcm').value, getMaxForField('w'));
+        var h = clampCmValue(document.getElementById('cropHcm').value, getMaxForField('h'));
+        document.getElementById('cropWcm').value = w; document.getElementById('cropHcm').value = h;
+        setFreeSize(w, h, true);
+    }
+}
+function onPresetFieldChange(field, commit) {
+    var ratio = cropModalState._presetRatio || 1;
+    var wEl=document.getElementById('cropWcm'), hEl=document.getElementById('cropHcm');
+    var raw = parseFloat((field==='w'?wEl:hEl).value);
+    if (!isFinite(raw) || raw<=0) {
+        // Field masih kosong/lagi diketik ulang -> jangan paksa apa-apa dulu
+        // (biar bisa dihapus bebas), kecuali ini commit (blur), baru dianggap
+        // 0.5 sebagai fallback paling minim.
+        if (!commit) return;
+        raw = 0.5;
+    }
+    var w,h;
+    if (field==='w') { w=raw; h=w/ratio; } else { h=raw; w=h*ratio; }
+    var maxW=getMaxForField('w'), maxH=getMaxForField('h');
+    var scale = Math.min(1, maxW/w, maxH/h); w*=scale; h*=scale;
+    if (w<0.5) { w=0.5; h=w/ratio; }
+    if (h<0.5) { h=0.5; w=h*ratio; }
+    w=Math.round(w*10)/10; h=Math.round(h*10)/10;
+    cropModalState._ratioLocked=true; cropModalState._cropWcm=w; cropModalState._cropHcm=h;
+    if (commit) { wEl.value=w; hEl.value=h; }
+    updateSizeLabel(); reshapeCropBoxToRatio();
+}
+function setLockedSize(w,h,skipInputSync) {
+    w=clampCmValue(w,getMaxForField('w')); h=clampCmValue(h,getMaxForField('h'));
+    cropModalState._ratioLocked=true; cropModalState._cropWcm=w; cropModalState._cropHcm=h;
+    if (!skipInputSync) { document.getElementById('cropWcm').value=w; document.getElementById('cropHcm').value=h; }
+    updateSizeLabel(); reshapeCropBoxToRatio();
+}
+function setFreeSize(w,h,skipInputSync) {
+    w=clampCmValue(w,getMaxForField('w')); h=clampCmValue(h,getMaxForField('h'));
+    cropModalState._ratioLocked=false; cropModalState._cropWcm=w; cropModalState._cropHcm=h;
+    if (!skipInputSync) { document.getElementById('cropWcm').value=w; document.getElementById('cropHcm').value=h; }
+    updateSizeLabel();
+}
+function updateSizeLabel() {
+    var lbl = document.getElementById('cropSizeLabel'); if (!lbl) return;
+    var w=cropModalState._cropWcm, h=cropModalState._cropHcm;
+    lbl.textContent = cropModalState._mode==='preset'
+        ? 'Ukuran cetak: '+w+' cm × '+h+' cm (rasio terkunci)'
+        : 'Ukuran cetak: '+w+' cm × '+h+' cm (bebas, maks Panjang '+MANUAL_MAX_W_CM+'cm × Lebar '+MANUAL_MAX_H_CM+'cm)';
+}
+function clampNum(val, min, max) { return Math.max(min, Math.min(max, val)); }
+
+function reshapeCropBoxToRatio() {
+    var box = document.getElementById('cropBox');
+    var img = document.getElementById('cropImg');
+    if (!box || !img || !cropModalState._cropWcm || !cropModalState._cropHcm) return;
+    var ratio = cropModalState._cropWcm / cropModalState._cropHcm;
+    var iL=parseInt(img.style.left)||0, iT=parseInt(img.style.top)||0;
+    var iW=img.offsetWidth, iH=img.offsetHeight;
+    var bL=parseInt(box.style.left)||0, bT=parseInt(box.style.top)||0;
+    var bW=box.offsetWidth, bH=box.offsetHeight;
+    var cx=bL+bW/2, cy=bT+bH/2;
+    var newW=bW, newH=bW/ratio;
+    if (newH>bH*1.6||newH<bH*0.6) { newH=bH; newW=bH*ratio; }
+    newW = Math.min(newW, iW); newH = Math.min(newH, iH);
+    if (newW/newH > ratio) newW = newH*ratio; else newH = newW/ratio;
+    var nl = clampNum(cx-newW/2, iL, iL+iW-newW);
+    var nt = clampNum(cy-newH/2, iT, iT+iH-newH);
+    box.style.left=nl+'px'; box.style.top=nt+'px'; box.style.width=newW+'px'; box.style.height=newH+'px';
+}
+
+/* imgOpenCropper: SAMA SIGNATURE dengan versi lama shared.js supaya semua
+   pemanggil existing (ldHandleFiles/clHandleFiles/ldReEdit/clReEdit/inline
+   onclick) tetap jalan tanpa diubah. */
+function imgOpenCropper(dataUrl, name, type, imgArr, side, modulePrefix, replaceIdx) {
+    cropModalState._pending = {dataUrl:dataUrl, name:name, type:type, imgArr:imgArr, side:side, modulePrefix:modulePrefix, replaceIdx:(replaceIdx!==undefined?replaceIdx:-1)};
+    var existing = (replaceIdx>=0 && imgArr[replaceIdx]) ? imgArr[replaceIdx] : null;
+    var preferredSize = (existing && existing.widthCm && existing.heightCm) ? {w:existing.widthCm, h:existing.heightCm} : null;
+    cropModalState._orientation = 'portrait';
+    cropModalState._activePresetIdx = -1;
+    if (preferredSize) {
+        document.getElementById('cropWcm').value = preferredSize.w;
+        document.getElementById('cropHcm').value = preferredSize.h;
+        if (preferredSize.w === DEFAULT_CROP_W_CM && preferredSize.h === DEFAULT_CROP_H_CM) {
+            setCropMode('default');
+        } else {
+            var _match = matchCropPreset(preferredSize.w, preferredSize.h);
+            if (_match) {
+                cropModalState._orientation = (preferredSize.w >= preferredSize.h) ? 'landscape' : 'portrait';
+                cropModalState._activePresetIdx = _match.idx;
+                setCropMode('preset');
+                setLockedSize(preferredSize.w, preferredSize.h, true);
+                cropModalState._presetRatio = preferredSize.w / preferredSize.h;
+            } else {
+                setCropMode('manual'); setFreeSize(preferredSize.w, preferredSize.h);
+            }
+        }
+    } else {
+        document.getElementById('cropWcm').value = 5; document.getElementById('cropHcm').value = 5;
+        setCropMode('default');
+    }
+    var img = document.getElementById('cropImg');
+    img.onload = function() {
+        var wrap = document.getElementById('cropWrap');
+        var ww = wrap.clientWidth, wh = wrap.clientHeight;
+        var scale = Math.min(ww/img.naturalWidth, wh/img.naturalHeight);
+        var dw = img.naturalWidth*scale, dh = img.naturalHeight*scale;
+        img.style.width = dw+'px'; img.style.height = dh+'px';
+        img.style.left = ((ww-dw)/2)+'px'; img.style.top = ((wh-dh)/2)+'px';
+        var box = document.getElementById('cropBox');
+        var bw = Math.min(dw,dh)*0.8, bh = bw;
+        box.style.width = bw+'px'; box.style.height = bh+'px';
+        box.style.left = ((ww-bw)/2)+'px'; box.style.top = ((wh-bh)/2)+'px';
+        if (cropModalState._mode === 'default') fitCropBoxToFullImage();
+        else if (cropModalState._ratioLocked) reshapeCropBoxToRatio();
+    };
+    img.src = dataUrl;
+    cropModalState.classList.add('show');
+}
+function closeCropModal() {
+    cropModalState.classList.remove('show');
+    cropModalState._pending = null;
+}
+
+/* ── Fitur R: Rotasi gambar 90° kiri/kanan di dalam modal crop ──
+   dir: -1 = putar ke kiri (counter-clockwise), 1 = putar ke kanan (clockwise).
+   Gambar SUMBER (bukan cuma crop box) diputar lewat canvas, lalu hasilnya
+   dipasang balik ke #cropImg -- otomatis memicu ulang event onload yang sudah
+   ada, yang menyesuaikan ukuran/posisi gambar & crop box (termasuk mode
+   Preset/Manual dengan rasio terkunci). cropAndSave() menggambar dari elemen
+   #cropImg langsung, jadi hasil akhir crop otomatis ikut gambar yang sudah
+   diputar. Crop modal ini dipakai bersama oleh KEDUA galeri di file ini
+   (cfImages & cf4kEvidence), jadi cukup satu implementasi. */
+function rotateCropImage(dir) {
+    var img = document.getElementById('cropImg');
+    if (!img || !img.naturalWidth || !img.naturalHeight) return;
+    var canvas = document.createElement('canvas');
+    canvas.width = img.naturalHeight;
+    canvas.height = img.naturalWidth;
+    var ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width/2, canvas.height/2);
+    ctx.rotate(dir * 90 * Math.PI/180);
+    ctx.drawImage(img, -img.naturalWidth/2, -img.naturalHeight/2);
+    var rotatedUrl = canvas.toDataURL('image/jpeg', 0.95);
+    img.src = rotatedUrl; // memicu ulang img.onload -> refit gambar & crop box
+    if (cropModalState._pending) cropModalState._pending.dataUrl = rotatedUrl;
+}
+function cropReset() {
+    var img = document.getElementById('cropImg');
+    var p = cropModalState._pending;
+    if (img && img.src && p) imgOpenCropper(img.src, p.name, p.type, p.imgArr, p.side, p.modulePrefix, p.replaceIdx);
+}
+function skipCrop() { closeCropModal(); }
+
+function cropAndSave() {
+    var img = document.getElementById('cropImg');
+    var box = document.getElementById('cropBox');
+    var p = cropModalState._pending;
+    if (!p) { alert('Target upload tidak ditemukan. Coba upload ulang.'); closeCropModal(); return; }
+
+    var iLeft=parseInt(img.style.left)||0, iTop=parseInt(img.style.top)||0;
+    var iW=img.offsetWidth, iH=img.offsetHeight;
+    if (!img.naturalWidth || !img.naturalHeight || !iW || !iH) { alert('Gambar belum siap diproses. Coba tunggu sebentar lalu simpan lagi.'); return; }
+    var bLeft=parseInt(box.style.left)||0, bTop=parseInt(box.style.top)||0;
+    var bW=box.offsetWidth, bH=box.offsetHeight;
+    var scale = img.naturalWidth / iW;
+    var sx=Math.max(0,(bLeft-iLeft)*scale), sy=Math.max(0,(bTop-iTop)*scale);
+    var sw=Math.min(img.naturalWidth-sx, bW*scale), sh=Math.min(img.naturalHeight-sy, bH*scale);
+
+    var canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(sw)); canvas.height = Math.max(1, Math.round(sh));
+    canvas.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+    var imgArr = p.imgArr;
+    var existing = (p.replaceIdx >= 0 && imgArr[p.replaceIdx]) ? imgArr[p.replaceIdx] : null;
+    var caption = existing ? (existing.caption||'') : '';
+    var offsetX = existing ? (existing.offsetX||0) : 0;
+
+    var MAX = 1*1024*1024;
+    var otherTotal = imgArr.reduce(function(a,im,i){ return a+((existing && i===p.replaceIdx) ? 0 : (im.dataUrl?im.dataUrl.length*0.75:0)); }, 0);
+    var dataUrl;
+    for (var q=0.9; q>=0.25; q-=0.1) {
+        dataUrl = canvas.toDataURL('image/jpeg', q);
+        var newSize = dataUrl.length*0.75;
+        if (otherTotal+newSize <= MAX) break;
+        if (q<=0.25) {
+            var factor = Math.sqrt(MAX/(otherTotal+newSize));
+            var c2 = document.createElement('canvas');
+            c2.width = Math.max(50, Math.floor(canvas.width*factor));
+            c2.height = Math.max(50, Math.floor(canvas.height*factor));
+            c2.getContext('2d').drawImage(canvas,0,0,c2.width,c2.height);
+            dataUrl = c2.toDataURL('image/jpeg', 0.7);
+            break;
+        }
+    }
+
+    var entry = {name:(p.name||'photo.jpg').replace(/\.[^.]+$/,'.jpg'), dataUrl: dataUrl, type:'image/jpeg', caption: caption};
+    if (offsetX) entry.offsetX = offsetX;
+    if (cropModalState._cropWcm && cropModalState._cropHcm) { entry.widthCm = cropModalState._cropWcm; entry.heightCm = cropModalState._cropHcm; }
+    // Foto yang di-edit ulang (replaceIdx>=0) ditaruh KEMBALI di posisi yang sama,
+    // bukan dihapus lalu ditambahkan di akhir array — supaya urutan galeri (dan
+    // keterangan yang mengikuti indexnya saat render) tidak berubah/tertukar.
+    if (existing) {
+      imgArr.splice(p.replaceIdx, 1, entry);
+    } else {
+      imgArr.push(entry);
+    }
+    // Foto lama yang diganti (crop-ulang) dihapus dari Drive lewat fileId
+    // pasti, bukan lewat cocokkan nama -- supaya tidak salah hapus file foto
+    // lain yang kebetulan nama device-nya sama. (Perbaikan dangling-else:
+    // dulu "else" di sini nempel ke kondisi driveFileId, bukan ke
+    // "existing", jadi foto yang di-crop-ulang tapi belum punya driveFileId
+    // ke-splice DAN ke-push sekaligus -> dobel di galeri.)
+    if (existing && existing.driveFileId) deleteFotoDariGDrive(existing.driveFileId);
+    uploadFotoKeGDrive(entry.dataUrl, entry.name, window.CURRENT_MODUL, p.side || '', entry);
+
+    closeCropModal();
+    // panggil render callback modul terkait (sama seperti imgCompressAndStore lama di shared.js)
+    // Panggil render callback modul terkait secara dinamis: {prefix}RenderPreviews(side)
+    var renderFnName = p.modulePrefix + 'RenderPreviews';
+    if (typeof window[renderFnName] === 'function') window[renderFnName](p.side);
+}
+
+/* ── Geser posisi gambar (nudge) — generik untuk array manapun ── */
+function nudgeImageInArray(imgArr, imgIdx, delta, rerenderFn) {
+    var img = imgArr[imgIdx];
+    if (!img) return;
+    var next = Math.round(((img.offsetX||0)+delta)*10)/10;
+    var LIMIT = 5;
+    if (next>LIMIT) next=LIMIT; if (next<-LIMIT) next=-LIMIT;
+    img.offsetX = next;
+    if (typeof rerenderFn === 'function') rerenderFn();
+}
+
+/* ── Fitur N: Upload Multi-Gambar — Skip-Crop Otomatis + Overlay Notifikasi ──
+   Dipakai bareng oleh *HandleFiles saat file yang dipilih user > 1: modal crop
+   di-skip otomatis, tiap gambar disimpan PENUH (tanpa dipotong) dengan ukuran
+   cetak default (DEFAULT_CROP_W_CM x DEFAULT_CROP_H_CM), sama seperti kalau
+   user manual pilih mode Default lalu Simpan. */
+var puUploadOverlayTimer = null;
+function puShowUploadOverlay(mode) {
+    var ov = document.getElementById('puUploadOverlay');
+    var spinner = document.getElementById('puUploadOverlaySpinner');
+    var title = document.getElementById('puUploadOverlayTitle');
+    var sub = document.getElementById('puUploadOverlaySub');
+    if (!ov) return;
+    if (puUploadOverlayTimer) { clearTimeout(puUploadOverlayTimer); puUploadOverlayTimer = null; }
+    if (mode === 'loading') {
+        spinner.style.display = '';
+        title.textContent = 'Sedang mengupload gambar';
+        sub.textContent = 'Upload banyak gambar mungkin membutuhkan waktu';
+        ov.classList.add('show');
+    } else if (mode === 'done') {
+        spinner.style.display = 'none';
+        title.textContent = 'Silahkan crop gambar secara manual per item';
+        sub.textContent = 'Ketuk di mana saja untuk menutup';
+        ov.classList.add('show');
+        puUploadOverlayTimer = setTimeout(puHideUploadOverlay, 3000);
+    }
+}
+function puHideUploadOverlay() {
+    var ov = document.getElementById('puUploadOverlay');
+    if (ov) ov.classList.remove('show');
+    if (puUploadOverlayTimer) { clearTimeout(puUploadOverlayTimer); puUploadOverlayTimer = null; }
+}
+
+function puCompressFullImage(dataUrl, imgArr, cb) {
+    var img = new Image();
+    img.onload = function() {
+        var canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        var MAX = 1*1024*1024;
+        var out;
+        for (var q=0.9; q>=0.25; q-=0.1) {
+            out = canvas.toDataURL('image/jpeg', q);
+            var currentTotal = imgArr.reduce(function(a,im){ return a+(im.dataUrl?im.dataUrl.length*0.75:0); }, 0);
+            var newSize = out.length*0.75;
+            if (currentTotal+newSize <= MAX) break;
+            if (q<=0.25) {
+                var factor = Math.sqrt(MAX/(currentTotal+newSize));
+                var c2 = document.createElement('canvas');
+                c2.width = Math.max(50, Math.floor(canvas.width*factor));
+                c2.height = Math.max(50, Math.floor(canvas.height*factor));
+                c2.getContext('2d').drawImage(canvas,0,0,c2.width,c2.height);
+                out = c2.toDataURL('image/jpeg', 0.7);
+                break;
+            }
+        }
+        cb(out);
+    };
+    img.onerror = function(){ cb(null); };
+    img.src = dataUrl;
+}
+
+function puHandleMultiUpload(fileArr, imgArr, side, modulePrefix) {
+    puShowUploadOverlay('loading');
+    var pending = fileArr.length;
+    var renderFnName = modulePrefix + 'RenderPreviews';
+    var doRender = function(){ if (typeof window[renderFnName] === 'function') window[renderFnName](side); };
+    var finishOne = function() { pending--; if (pending <= 0) puShowUploadOverlay('done'); };
+    fileArr.forEach(function(file) {
+        if (!isImageFile(file)) {
+            var r = new FileReader();
+            r.onload = function(ev){
+                imgArr.push({name:file.name,dataUrl:ev.target.result,type:file.type||'application/octet-stream',caption:''});
+                doRender();
+                finishOne();
+            };
+            r.onerror = finishOne;
+            r.readAsDataURL(file);
+            return;
+        }
+        fileToJpegDataUrl(file, function(rawDataUrl){
+            if (!rawDataUrl) { finishOne(); return; }
+            puCompressFullImage(rawDataUrl, imgArr, function(finalDataUrl){
+                if (!finalDataUrl) { finishOne(); return; }
+                var entry = {name:file.name.replace(/\.[^.]+$/,'.jpg'), dataUrl:finalDataUrl, type:'image/jpeg', caption:'', widthCm: DEFAULT_CROP_W_CM, heightCm: DEFAULT_CROP_H_CM};
+                imgArr.push(entry);
+                doRender();
+                if (typeof uploadFotoKeGDrive === 'function') uploadFotoKeGDrive(entry.dataUrl, entry.name, modulePrefix, side || '', entry);
+                finishOne();
+            });
+        });
+    });
+}
+
+/* ── Drag & resize kotak crop (mousedown+touchstart) ── */
+function initCropDrag() {
+    var box = document.getElementById('cropBox');
+    box.addEventListener('mousedown', onCropDragStart, false);
+    box.addEventListener('touchstart', onCropDragStart, {passive: false});
+}
+function onCropDragStart(e) {
+    e.preventDefault(); e.stopPropagation();
+    var box = document.getElementById('cropBox');
+    var t = e.touches ? e.touches[0] : e;
+    var startX=t.clientX, startY=t.clientY;
+    var startL=parseInt(box.style.left)||0, startT=parseInt(box.style.top)||0;
+    var startW=box.offsetWidth, startH=box.offsetHeight;
+    var rect=box.getBoundingClientRect();
+    var rx=t.clientX-rect.left, ry=t.clientY-rect.top, edge=22;
+    var edgeX = rx<edge?'l':rx>startW-edge?'r':'';
+    var edgeY = ry<edge?'t':ry>startH-edge?'b':'';
+    var mode = (edgeX||edgeY) ? edgeX+edgeY : 'move';
+    function onMove(ev) {
+        ev.preventDefault();
+        var mv = ev.touches?ev.touches[0]:ev;
+        var dx=mv.clientX-startX, dy=mv.clientY-startY;
+        var img=document.getElementById('cropImg');
+        var iL=parseInt(img.style.left)||0, iT=parseInt(img.style.top)||0;
+        var iW=img.offsetWidth, iH=img.offsetHeight;
+        if (mode==='move') {
+            box.style.left = clampNum(startL+dx, iL, iL+iW-startW)+'px';
+            box.style.top = clampNum(startT+dy, iT, iT+iH-startH)+'px';
+            return;
+        }
+        if (cropModalState._ratioLocked && cropModalState._cropWcm && cropModalState._cropHcm) {
+            var ratio = cropModalState._cropWcm / cropModalState._cropHcm;
+            var growRight=mode.indexOf('r')>=0, growLeftEdge=mode.indexOf('l')>=0;
+            var growBottom=mode.indexOf('b')>=0, growTopEdge=mode.indexOf('t')>=0;
+            var isCorner = mode.length===2;
+            var anchorX = growLeftEdge ? (startL+startW) : startL;
+            var anchorY = growTopEdge ? (startT+startH) : startT;
+            var dxSigned = growRight?dx:(growLeftEdge?-dx:0);
+            var dySigned = growBottom?dy:(growTopEdge?-dy:0);
+            var newW,newH;
+            if (isCorner) {
+                if (Math.abs(dxSigned)>=Math.abs(dySigned)) { newW=startW+dxSigned; newH=newW/ratio; }
+                else { newH=startH+dySigned; newW=newH*ratio; }
+            } else if (growLeftEdge||growRight) { newW=startW+dxSigned; newH=newW/ratio; }
+            else { newH=startH+dySigned; newW=newH*ratio; }
+            if (newW<40) { newW=40; newH=newW/ratio; }
+            if (newH<40) { newH=40; newW=newH*ratio; }
+            var maxW = growLeftEdge?(anchorX-iL):(iL+iW-anchorX);
+            var maxH = growTopEdge?(anchorY-iT):(iT+iH-anchorY);
+            var scaleDown = Math.min(1, maxW>0?maxW/newW:1, maxH>0?maxH/newH:1);
+            newW*=scaleDown; newH*=scaleDown;
+            var nl,nt;
+            if (isCorner||growLeftEdge||growRight) nl = growLeftEdge?(anchorX-newW):anchorX; else nl = startL+(startW-newW)/2;
+            if (isCorner||growTopEdge||growBottom) nt = growTopEdge?(anchorY-newH):anchorY; else nt = startT+(startH-newH)/2;
+            box.style.left=nl+'px'; box.style.top=nt+'px'; box.style.width=newW+'px'; box.style.height=newH+'px';
+        } else {
+            var growRight2=mode.indexOf('r')>=0, growLeftEdge2=mode.indexOf('l')>=0;
+            var growBottom2=mode.indexOf('b')>=0, growTopEdge2=mode.indexOf('t')>=0;
+            var nl2=startL, nt2=startT, nw2=startW, nh2=startH;
+            if (growRight2) nw2 = clampNum(startW+dx, 40, iL+iW-startL);
+            if (growLeftEdge2) { nw2 = clampNum(startW-dx, 40, startL+startW-iL); nl2 = startL+startW-nw2; }
+            if (growBottom2) nh2 = clampNum(startH+dy, 40, iT+iH-startT);
+            if (growTopEdge2) { nh2 = clampNum(startH-dy, 40, startT+startH-iT); nt2 = startT+startH-nh2; }
+            box.style.left=nl2+'px'; box.style.top=nt2+'px'; box.style.width=nw2+'px'; box.style.height=nh2+'px';
+        }
+    }
+    function onUp() {
+        document.removeEventListener('mousemove',onMove); document.removeEventListener('touchmove',onMove);
+        document.removeEventListener('mouseup',onUp); document.removeEventListener('touchend',onUp);
+    }
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('touchmove',onMove,{passive:false});
+    document.addEventListener('mouseup',onUp);
+    document.addEventListener('touchend',onUp);
+}
+
+/* ── PDF PREVIEW (PDF.js canvas — aman untuk Chrome Android) ── */
+var pdfPreviewState = { doc: null, filename: '', blobUrl: '' };
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+function showPdfPreview(doc, filename) {
+    if (typeof window._raPdfCapture === 'function') { var _raCb = window._raPdfCapture; window._raPdfCapture = null; _raCb(doc, filename); return; }
+    // Jaga-jaga: tutup dulu overlay/modal lain yang mungkin masih nyangkut terbuka
+    // (edit gambar, popup sumber upload, notifikasi upload) supaya tidak ada yang
+    // menghalangi tombol di preview PDF ini.
+    try { if (typeof closeImageEditor === 'function') { var eim = document.getElementById('editImgModal'); if (eim && eim.classList.contains('show')) closeImageEditor(true); } } catch(e){}
+    try { if (typeof puHideUploadOverlay === 'function') puHideUploadOverlay(); } catch(e){}
+    document.querySelectorAll('[id^="cf4kSource_"], [id^="evidSource_"], [id^="opSource"]').forEach(function(el){ el.style.display = 'none'; });
+    if (pdfPreviewState.blobUrl) { URL.revokeObjectURL(pdfPreviewState.blobUrl); pdfPreviewState.blobUrl=''; }
+    pdfPreviewState.doc = doc; pdfPreviewState.filename = filename;
+    var modal = document.getElementById('pdfPreviewModal');
+    if (window._pdfEmbedMode) { var pf=document.querySelector('.pdf-preview-footer'); if (pf) pf.style.display='none'; }
+    var container = document.getElementById('pdfPreviewFrame');
+    container.innerHTML = '<div class="pdf-canvas-loading">⏳ Menyiapkan preview...</div>';
+    modal.classList.add('show');
+    if (typeof pdfjsLib === 'undefined') {
+        container.innerHTML = '<div class="pdf-canvas-loading">Preview tidak tersedia di browser ini.<br>Silakan langsung download untuk melihat hasilnya.</div>';
+        return;
+    }
+    var arrayBuffer = doc.output('arraybuffer');
+    pdfjsLib.getDocument({data: arrayBuffer}).promise.then(function(pdf) {
+        container.innerHTML = '';
+        function renderPage(pageNum) {
+            pdf.getPage(pageNum).then(function(page) {
+                var viewport = page.getViewport({scale: 1.8});
+                var canvas = document.createElement('canvas');
+                canvas.width = viewport.width; canvas.height = viewport.height;
+                container.appendChild(canvas);
+                page.render({canvasContext: canvas.getContext('2d'), viewport: viewport}).promise.then(function() {
+                    if (pageNum < pdf.numPages) renderPage(pageNum+1);
+                });
+            });
+        }
+        renderPage(1);
+    }).catch(function(err) {
+        console.error(err);
+        container.innerHTML = '<div class="pdf-canvas-loading">Gagal menampilkan preview.<br>Silakan langsung download untuk melihat hasilnya.</div>';
+    });
+}
+function confirmDownloadPdf() { if (pdfPreviewState.doc) pdfPreviewState.doc.save(pdfPreviewState.filename); }
+function closePdfPreview() {
+    document.getElementById('pdfPreviewModal').classList.remove('show');
+    document.getElementById('pdfPreviewFrame').innerHTML = '';
+    if (pdfPreviewState.blobUrl) { URL.revokeObjectURL(pdfPreviewState.blobUrl); pdfPreviewState.blobUrl=''; }
+    pdfPreviewState.doc = null;
+}
+
+// ── SECTION TOGGLE (pola dari maintenance_report_form) ──────────────
+function cfToggleSection(type) {
+  var chkMap  = {feeder:'chk-feeder', demand:'chk-demand', '4000hr':'chk-4000hr'};
+  var secMap  = {feeder:'section-feeder', demand:'section-demand', '4000hr':'section-4000hr'};
+  var lblMap  = {feeder:'lbl-feeder', demand:'lbl-demand', '4000hr':'lbl-4000hr'};
+  var chk = document.getElementById(chkMap[type]);
+  var sec = document.getElementById(secMap[type]);
+  var lbl = document.getElementById(lblMap[type]);
+  if (!chk || !sec) return;
+  chk.checked = !chk.checked;
+  var on = chk.checked;
+  sec.style.display = on ? '' : 'none';
+  if (lbl) {
+    lbl.style.background   = on ? '#1d74c7' : '#fff';
+    lbl.style.color        = on ? '#fff'    : 'var(--steel)';
+    lbl.style.borderColor  = on ? '#1d74c7' : 'var(--border)';
+  }
+}
+/* Helper: update tampilan label toggle sesuai state on/off,
+   tanpa flip checked (dipakai saat restore dari riwayat/draft). */
+function cfUpdateToggleLabel(type, on) {
+  var lblMap = {feeder:'lbl-feeder', demand:'lbl-demand', '4000hr':'lbl-4000hr'};
+  var lbl = document.getElementById(lblMap[type]);
+  if (!lbl) return;
+  lbl.style.background  = on ? '#1d74c7' : '#fff';
+  lbl.style.color       = on ? '#fff'    : 'var(--steel)';
+  lbl.style.borderColor = on ? '#1d74c7' : 'var(--border)';
+}
+function toggleSections() {}     // stub (tidak dipakai lagi)
+function updatePrintLabels() {}  // stub
+
+// ── FIELD DEFINITIONS ─────────────────────────────────────────────────────────
+var CF_CAL1_ROWS = [
+  {id:'cal1_dev',  selfTest:'CAL 1',  desc:'Deviation',           unit:'%',     acceptance:'\u00b10.25%', placeholder:'0.000'},
+  {id:'cal1_ppl',  selfTest:'P10.02', desc:'Pulses per Length',   unit:'l/m',   acceptance:'n/a',         placeholder:'0000.0000'},
+  {id:'cal1_bcn',  selfTest:'P10.11', desc:'Belt circuit no',     unit:'imp',   acceptance:'\u00b10.25%', placeholder:'00000'},
+  {id:'cal1_bt',   selfTest:'P10.10', desc:'Basic Tare',          unit:'kg/m',  acceptance:'n/a',         placeholder:'00.00000'}
+];
+var CF_CAL2_ROWS = [
+  {id:'cal2_dev',  selfTest:'CAL 2',  desc:'Deviation',           unit:'%',     acceptance:'\u00b10.25%', placeholder:'0.000'},
+  {id:'cal2_ppl',  selfTest:'P10.02', desc:'Pulses per Length',   unit:'l/m',   acceptance:'n/a',         placeholder:'0000.0000'},
+  {id:'cal2_bcn',  selfTest:'P10.11', desc:'Belt circuit no',     unit:'imp',   acceptance:'\u00b10.25%', placeholder:'00000'},
+  {id:'cal2_rctw', selfTest:'P10.03', desc:'Range Correction TW', unit:'',      acceptance:'n/a',         placeholder:'0.00000'}
+];
+
+var cfImages = [];
+
+// ── 4000 HR PM PULVERIZER INSTRUMENTATION ──────────────────────────────────
+var CF4K_SOLENOID_STEPS = [
+  {work:'Verification Leak Solenoid Valve', remarkPlaceholder:'Good/Leak'},
+  {work:'Check Resistance Solenoid Coil', remarkPlaceholder:'R = ....... Ohm', fillIn:true},
+  {work:'Proximity switch Open Feedback', remarkPlaceholder:'Good/Damaged'},
+  {work:'Proximity switch Close Feedback', remarkPlaceholder:'Good/Damaged'}
+];
+var CF4K_HADCAD_STEPS = [
+  {work:'Stroke Test CAD & HAD'},
+  {work:'Calibrate & Cleaning Positioner'},
+  {work:'Check Actuator Mounting & Switch Mounting Position'},
+  {work:'Check IA Supply Regulating Device & Pipe Connection and Replace The Filter Element'},
+  {work:'Check Limit Switch Feedback Position'}
+];
+var CF4K_HAGCAG_STEPS = [
+  {work:'Cleaning Filter Main Purging Air Flow Regulator & Check Output Air Pressure', remarkPlaceholder:'Pressure : ...... Kpa', fillIn:true},
+  {work:'Check Instrumentation Cable & Conduit', remarkPlaceholder:'Good'},
+  {work:'Check, Clean & Lubricate Actuator Stem', remarkPlaceholder:'Clean'},
+  {work:'Check Limit Switch Open Feedback'},
+  {work:'Check Limit Switch Close Feedback'}
+];
+var CF4K_FY590_STEPS = [
+  {work:'Cable & Conduit Solenoid Valve Inspection', remarkPlaceholder:'Good'},
+  {work:'Cleaning Filter Main Purging Air Flow Regulator & Check Output Air Pressure', remarkPlaceholder:'Pressure = ....', fillIn:true}
+];
+var CF4K_LSH_STEPS = [
+  {work:'Check Instrumentation Cable & Conduit', remarkPlaceholder:'Good/Damaged'},
+  {work:'Cleaning Level Switch', remarkPlaceholder:'Clean/Dirty'},
+  {work:'Check Terminal Contac NO.', remarkPlaceholder:'R = ..... Ohm', fillIn:true},
+  {work:'Check Terminal Contac NC.', remarkPlaceholder:'R = ..... Ohm', fillIn:true},
+  {work:'Check Flapper running Normal'}
+];
+var CF4K_ZS502_STEPS = [
+  {work:'Check Bearing coal on Belt', remarkPlaceholder:'Good/Jammed/Sized'},
+  {work:'Check Contact NO Switch Feedback PLC', remarkPlaceholder:'R = ....... Ohm', fillIn:true},
+  {work:'Check Contact NC Switch Feedback PLC', remarkPlaceholder:'R = ........ Ohm', fillIn:true},
+  {work:'Check Voltage Common Contact PLC', remarkPlaceholder:'V = ....... Volt', fillIn:true},
+  {work:'Check Contact NO Feedback Local Panel', remarkPlaceholder:'R = ....... Ohm', fillIn:true},
+  {work:'Check Voltage Common Contact Local Panel', remarkPlaceholder:'V = ....... Volt', fillIn:true},
+  {work:'Cleaning', remarkPlaceholder:'Clean/Dirty'}
+];
+var CF4K_CLEANHMI_STEPS = [
+  {work:'Cleaning local panel Feeder', remarkPlaceholder:'Clean'},
+  {work:'Cleaning HMI', remarkPlaceholder:'Clean'}
+];
+var CF4K_CLEANOUT_STEPS = [
+  {work:'Check Contact NO Switch Feedback', remarkPlaceholder:'R = ....... Ohm', fillIn:true},
+  {work:'Check Contact NC Switch Feedback', remarkPlaceholder:'R = ........ Ohm', fillIn:true},
+  {work:'Check Voltage Common Contact', remarkPlaceholder:'V = ....... Volt', fillIn:true},
+  {work:'Cleaning', remarkPlaceholder:'Clean/Dirty'}
+];
+
+var CF4K_GROUPS = [
+  { key:'pyrite', title:'Pyrite System', assets:[
+    {slug:'fy330',    code:'7BA-FY-330',   desc:'PYRITE HOPPER 7 INLET SHUT OFF VALVE SOLENOID CONTROL VALVE', steps:CF4K_SOLENOID_STEPS},
+    {slug:'fy300',    code:'7BA-FY-300',   desc:'JET PUMP 7A SERVICE WATER INLET SHV SOLENOID CONTROL VALVE', steps:CF4K_SOLENOID_STEPS},
+    {slug:'fy320',    code:'7BA-FY-320',   desc:'PYRITE HOPPER 7 OUTLET SHUT OF SOLENOID CONTROL VALVE', steps:CF4K_SOLENOID_STEPS},
+    {slug:'fy325',    code:'7BA-FY-325',   desc:'PYRITE HOPPER 7 FLUSHING WATER SUPPLY ISV SOLENOID CONTROL VALVE', steps:CF4K_SOLENOID_STEPS},
+    {slug:'lsh300',   code:'7BA-LSH-300',  desc:'PYRITE HOPPER 7 LEVEL SWITCH HIGH', steps:CF4K_LSH_STEPS}
+  ]},
+  { key:'floor', title:'Feeder Floor Area', assets:[
+    {slug:'zs502',    code:'7BF-ZS-502',   desc:'COAL FEEDER 7 CONVEYOR COAL ON BELT SWITCH', steps:CF4K_ZS502_STEPS},
+    {slug:'cleanout', code:'7BF-FDR-501',desc:'CLEAN OUT', steps:CF4K_CLEANOUT_STEPS},
+    {slug:'cleanhmi', code:'',             desc:'CLEANING LOCAL PANEL AND HMI', steps:CF4K_CLEANHMI_STEPS},
+    {slug:'pdsh590',  code:'7BF-PDT-590', desc:'PULVERIZER 7 BOWL PRESS DIFF SWITCH HIGH', steps:[
+        {work:'PURGING DP SENSING LINE'}
+    ]},
+    {slug:'isd662a',  code:'7BF-ISD-662A', desc:'PULVERIZER 7A HOT PRIMARY AIR GATE', steps:CF4K_HAGCAG_STEPS},
+    {slug:'fcd663',   code:'7BF-FCD-663',  desc:'PULVERIZER 7 HOT PRIMARY AIR FLOW CONTROL DAMPER', steps:CF4K_HADCAD_STEPS},
+    {slug:'isd664',   code:'7BF-ISD-664',  desc:'PULVERIZER 7 COLD PRIMARY AIR GATE', steps:CF4K_HAGCAG_STEPS},
+    {slug:'fcd665',   code:'7BF-FCD-665',  desc:'PULVERIZER 7 COLD PRIMARY AIR FLOW CONTROL DAMPER', steps:CF4K_HADCAD_STEPS},
+    {slug:'fy590',    code:'7BF-FY-590',   desc:'PULVERIZER 7 OUTLET GATE AND PURGE AIR SOLENOID VALVE', steps:CF4K_FY590_STEPS},
+    {slug:'isd510',   code:'7BF-ISD-510',  desc:'PULVERIZER 7 OUTLET TO CORNER 1 ISOL DAMPER', steps:[
+      {work:'Cable & Conduit Inspection 7BF-ZSC-510', remarkPlaceholder:'Good'},
+      {work:'Cable & Conduit Inspection 7BF-ZSO-510', remarkPlaceholder:'Good'}
+    ]},
+    {slug:'isd511',   code:'7BF-ISD-511',  desc:'PULVERIZER 7 OUTLET TO CORNER 2 ISOL DAMPER', steps:[
+      {work:'Cable & Conduit Inspection 7BF-ZSC-511', remarkPlaceholder:'Good'},
+      {work:'Cable & Conduit Inspection 7BF-ZSO-511', remarkPlaceholder:'Good'}
+    ]},
+    {slug:'isd512',   code:'7BF-ISD-512',  desc:'PULVERIZER 7 OUTLET TO CORNER 3 ISOL DAMPER', steps:[
+      {work:'Cable & Conduit Inspection 7BF-ZSC-512', remarkPlaceholder:'Good'},
+      {work:'Cable & Conduit Inspection 7BF-ZSO-512', remarkPlaceholder:'Good'}
+    ]},
+    {slug:'isd513',   code:'7BF-ISD-513',  desc:'PULVERIZER 7 OUTLET TO CORNER 4 ISOL DAMPER', steps:[
+      {work:'Cable & Conduit Inspection 7BF-ZSC-513', remarkPlaceholder:'Good'},
+      {work:'Cable & Conduit Inspection 7BF-ZSO-513', remarkPlaceholder:'Good'}
+    ]},
+    {slug:'feedercal',code:'',             desc:'FEEDER CALIBRATION DATA SHEET \u2014 4 pieces of tape used', type:'feedercal', steps:null}
+  ]}
+];
+var cf4kEvidence = {}; // keyed by "<groupKey>_<assetSlug>" → array foto
+
+// Bangun ulang tabel CAL 1 / CAL 2 (dipakai juga di section Feeder Calibration)
+// dengan prefix id berbeda supaya tidak bentrok dengan tabel aslinya.
+function cf4kCalTableHtml(rows, calLabel, calTitle, prefix) {
+  var html = '<div style="font-size:13px;font-weight:700;color:var(--steel);margin:8px 0 6px;letter-spacing:0.5px">'+calLabel+' \u2014 '+calTitle+'</div>';
+  html += '<table class="manual-table" id="'+prefix+'Table"><thead><tr>'+
+    '<th style="width:80px">Self Test</th><th>Description</th>'+
+    '<th style="width:50px;text-align:center">TEST #1</th><th style="width:50px;text-align:center">TEST #2</th><th style="width:50px;text-align:center">TEST #3</th>'+
+    '<th style="width:50px;text-align:center">Acceptance Level</th></tr></thead><tbody>';
+  rows.forEach(function(row, idx){
+    var suffix = row.id.split('_')[1];
+    var base = prefix+'_'+suffix;
+    var unitBadge = row.unit ? '<span class="unit-badge">'+row.unit+'</span>' : '<span class="unit-badge no-unit">\u2014</span>';
+    var ph = row.placeholder || '0.000';
+    var selfTestStyle = idx===0 ? 'text-align:center;font-weight:700;font-size:12px;color:var(--steel)' : 'text-align:center;font-size:12px;color:var(--text3)';
+    html += '<tr>'+
+      '<td style="'+selfTestStyle+'">'+row.selfTest+'</td>'+
+      '<td style="font-size:12px">'+row.desc+'</td>'+
+      '<td><div class="input-unit-wrap"><input class="data-input" id="'+base+'1" placeholder="'+ph+'" value="">'+unitBadge+'</div></td>'+
+      '<td><div class="input-unit-wrap"><input class="data-input" id="'+base+'2" placeholder="'+ph+'" value="">'+unitBadge+'</div></td>'+
+      '<td><div class="input-unit-wrap"><input class="data-input" id="'+base+'3" placeholder="'+ph+'" value="">'+unitBadge+'</div></td>'+
+      '<td style="text-align:center;font-size:12px;color:var(--text3);font-style:italic">'+row.acceptance+'</td>'+
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function render4kAssets() {
+  var wrap = document.getElementById('cf4kContainer');
+  if (!wrap) return;
+  var html = '';
+  html += '<div class="panel"><div class="section-label" style="border:none;padding:0">4000 HR PM Pulverizer Instrumentation</div></div>';
+  CF4K_GROUPS.forEach(function(group){
+    html += '<div class="panel"><div class="section-label">'+group.title+'</div>';
+    group.assets.forEach(function(asset){
+      var key = group.key+'_'+asset.slug;
+      var titleTxt = asset.code ? (asset.code+' \u2014 '+asset.desc) : asset.desc;
+      html += '<div class="cf4k-asset">';
+      html += '<div class="cf4k-asset-title" style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap">'+
+        '<label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:700;flex:1 1 auto;min-width:200px">'+
+          '<input type="checkbox" id="cf4kChk_'+key+'" onchange="cf4kToggleAsset(\''+key+'\')" style="width:16px;height:16px;cursor:pointer;flex:none">'+
+          '<span>'+titleTxt+'</span>'+
+        '</label>';
+      if (asset.steps && asset.steps.length) {
+        html += '<button type="button" onclick="cf4kCheckAllY(\''+key+'\')" style="font-size:10.5px;padding:5px 10px;border:1px solid #bfe3cc;border-radius:6px;background:#eaf9ef;color:#1a7a3d;cursor:pointer;font-weight:700;white-space:nowrap;flex:none">&#9989; Centang Semua Y</button>';
+      }
+      html += '</div>';
+      html += '<div id="cf4kBody_'+key+'" style="display:none">';
+      if (asset.type === 'feedercal') {
+        html += '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">'+
+          cf4kCalTableHtml(CF_CAL1_ROWS, 'CAL 1', 'Zero Calibration', 'cf4kcal1')+
+          cf4kCalTableHtml(CF_CAL2_ROWS, 'CAL 2', 'Span Calibration', 'cf4kcal2')+
+        '</div>';
+      } else if (asset.steps && asset.steps.length) {
+        html += '<table class="manual-table"><thead><tr>'+
+          '<th style="width:32px">NO</th><th>Step Of Work</th>'+
+          '<th style="width:40px">Y</th><th style="width:40px">N</th><th>Remark/Note</th>'+
+          '</tr></thead><tbody>';
+        asset.steps.forEach(function(step, i){
+          var rid = 'cf4k_'+key+'_'+(i+1);
+          html += '<tr>'+
+            '<td style="text-align:center;font-size:12px">'+(i+1)+'</td>'+
+            '<td style="font-size:12px">'+step.work+'</td>'+
+            '<td style="text-align:center"><input type="radio" name="'+rid+'_yn" id="'+rid+'_y" value="Y" onchange="cf4kAutoRemark(\''+rid+'\')" style="width:16px;height:16px;cursor:pointer"></td>'+
+            '<td style="text-align:center"><input type="radio" name="'+rid+'_yn" id="'+rid+'_n" value="N" onchange="cf4kAutoRemark(\''+rid+'\')" style="width:16px;height:16px;cursor:pointer"></td>'+
+            '<td><input type="text" class="cf4k-remark-input" id="'+rid+'_remark" placeholder="'+(step.remarkPlaceholder||'Remark/Note...')+'" data-hint="'+(step.remarkPlaceholder?String(step.remarkPlaceholder).replace(/"/g,'&quot;'):'')+'" data-fillin="'+(step.fillIn?'1':'0')+'"></td>'+
+            '</tr>';
+        });
+        html += '</tbody></table>';
+      } else {
+        html += '<div class="cf4k-placeholder">Tabel step of work belum ditambahkan \u2014 menyusul.</div>';
+      }
+      html += '<div class="cf4k-evid-title">&#128247; Evidence Photo</div>';
+      html += '<div id="cf4kDrop_'+key+'" style="position:relative;border:2px dashed var(--border);border-radius:4px;padding:14px;text-align:center;cursor:pointer;background:var(--bg2,#dceaf6)" onclick="toggleSourceChoices(\'cf4kSource_'+key+'\')" ondragover="event.preventDefault()" ondrop="cf4kHandleDrop(event,\''+key+'\')">'+
+        '<input type="file" id="cf4kInput_'+key+'" accept="image/*,.heic,.heif" multiple style="display:none" onchange="cf4kHandleFiles(this.files,\''+key+'\')">'+
+        '<div style="font-size:20px;margin-bottom:4px">&#128444;&#65039;</div>'+
+        '<div style="font-size:11px;color:var(--text3)">Klik untuk pilih sumber atau drag file untuk upload</div>'+
+        '<div id="cf4kSource_'+key+'" style="display:none;position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.98);border:1px solid rgba(0,0,0,0.12);border-radius:8px;box-shadow:0 12px 28px rgba(0,0,0,0.12);padding:8px;gap:6px;z-index:10">'+
+          '<button type="button" onclick="event.stopPropagation();openFileInputSource(\'cf4kInput_'+key+'\',\'storage\')" style="padding:7px 10px;border:1px solid rgba(0,0,0,.08);border-radius:6px;background:#fff;color:#111;font-size:11px;cursor:pointer;min-width:88px;display:block;margin-bottom:4px">Penyimpanan</button>'+
+          '<button type="button" onclick="event.stopPropagation();openFileInputSource(\'cf4kInput_'+key+'\',\'camera\')" style="padding:7px 10px;border:1px solid rgba(0,0,0,.08);border-radius:6px;background:#fff;color:#111;font-size:11px;cursor:pointer;min-width:88px;display:block">Kamera</button>'+
+        '</div>'+
+      '</div>';
+      html += '<div id="cf4kPreview_'+key+'" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>';
+      html += '</div>'; // /cf4kBody
+      html += '</div>'; // /cf4k-asset
+    });
+    html += '</div>'; // /panel
+  });
+  wrap.innerHTML = html;
+}
+
+// "Centang Semua Y" per asset — sekali klik, semua step di tabel asset INI
+// (bukan grup/global) langsung ditandai Y, dan Remark/Note ikut auto-terisi.
+function cf4kCheckAllY(key) {
+  var asset = null;
+  CF4K_GROUPS.forEach(function(group){
+    group.assets.forEach(function(a){ if (group.key+'_'+a.slug === key) asset = a; });
+  });
+  if (!asset || !asset.steps) return;
+  asset.steps.forEach(function(step, i){
+    var rid = 'cf4k_'+key+'_'+(i+1);
+    var yEl = document.getElementById(rid+'_y');
+    if (yEl) { yEl.checked = true; cf4kAutoRemark(rid); }
+  });
+}
+
+// Checkbox judul per-asset: tampilkan/sembunyikan tabel + evidence, dan
+// otomatis isi field Asset / Asset Description di panel Informasi Pekerjaan.
+function cf4kToggleAsset(key) {
+  var chk = document.getElementById('cf4kChk_'+key);
+  var body = document.getElementById('cf4kBody_'+key);
+  if (body) body.style.display = (chk && chk.checked) ? '' : 'none';
+  cf4kUpdateAssetInfo();
+}
+function cf4kUpdateAssetInfo() {
+  var codes = [], descs = [];
+  CF4K_GROUPS.forEach(function(group){
+    group.assets.forEach(function(asset){
+      var key = group.key+'_'+asset.slug;
+      var chk = document.getElementById('cf4kChk_'+key);
+      if (chk && chk.checked) {
+        if (asset.code) { codes.push(asset.code); descs.push(asset.code+' \u2014 '+asset.desc); }
+        else { descs.push(asset.desc); }
+      }
+    });
+  });
+  var elCode = document.getElementById('cfAssetList');
+  var elDesc = document.getElementById('cfAssetDescList');
+  if (elCode) elCode.value = codes.join('\n');
+  if (elDesc) elDesc.value = descs.join('\n');
+}
+
+function cf4kHandleDrop(e, key) { e.preventDefault(); cf4kHandleFiles(e.dataTransfer.files, key); }
+
+function cf4kHandleFiles(files, key) {
+  if (!cf4kEvidence[key]) cf4kEvidence[key] = [];
+  var fileArr = Array.from(files);
+  if (!fileArr.length) return;
+  if (fileArr.length > 1) { puHandleMultiUpload(fileArr, cf4kEvidence[key], key, 'cf4k'); return; }
+  fileArr.forEach(function(file) {
+    if (!isImageFile(file)) {
+      var r = new FileReader();
+      r.onload = function(ev) { cf4kEvidence[key].push({name:file.name, dataUrl:ev.target.result, type:file.type||'', caption:''}); cf4kRenderPreviews(key); };
+      r.readAsDataURL(file); return;
+    }
+    fileToJpegDataUrl(file, function(dataUrl) {
+      if (!dataUrl) return;
+      imgOpenCropper(dataUrl, file.name.replace(/\.[^.]+$/,'.jpg'), 'image/jpeg', cf4kEvidence[key], key, 'cf4k', -1);
+    });
+  });
+}
+
+// Fitur O: Urutkan Foto (tukar posisi kiri/kanan) — state per 'key'
+var cf4kReorderState = {};
+function cf4kToggleReorder(key) {
+  var st = cf4kReorderState[key] || (cf4kReorderState[key] = {active:false, selectedIdx:null});
+  st.active = !st.active; st.selectedIdx = null;
+  cf4kRenderPreviews(key);
+}
+function cf4kSelectForReorder(key, idx, checked) {
+  var st = cf4kReorderState[key] || (cf4kReorderState[key] = {active:false, selectedIdx:null});
+  st.selectedIdx = checked ? idx : null;
+  cf4kRenderPreviews(key);
+}
+function cf4kMoveImg(key, dir) {
+  var st = cf4kReorderState[key];
+  if (!st || st.selectedIdx === null) return;
+  var arr = cf4kEvidence[key];
+  var i = st.selectedIdx, j = i + dir;
+  if (j < 0 || j >= arr.length) return;
+  var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp; // swap 1 object utuh — caption/crop/offset ikut
+  st.selectedIdx = j;
+  cf4kRenderPreviews(key);
+}
+
+function cf4kRenderPreviews(key) {
+  // Fitur Q: TIDAK sync caption dari DOM di sini lagi — caption sudah live-synced
+  // lewat oninput per keystroke. Sync di sini dulu bikin caption ketuker kalau
+  // dipanggil sesudah array berubah urutan/isi (cf4kRemoveImg/cf4kMoveImg), karena
+  // DOM lama masih dipakai buat nulis ke index array yang sudah baru.
+  var container = document.getElementById('cf4kPreview_'+key);
+  if (!container) return;
+  var arr = cf4kEvidence[key] || [];
+  container.innerHTML = '';
+  var st = cf4kReorderState[key] || (cf4kReorderState[key] = {active:false, selectedIdx:null});
+  arr.forEach(function(img, idx) {
+    if (!img || !img.name) return;
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;display:inline-block;text-align:center;width:112px';
+    var isImg = IMG_EXTS.test(img.name) || (img.type && img.type.startsWith('image/'));
+    var safe = function(s) { return String(s||'').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+    var thumb = isImg
+      ? '<div style="width:112px;height:84px;border-radius:4px;border:2px solid var(--ok);overflow:hidden;display:flex;align-items:center;justify-content:center"><img src="'+safe(img.dataUrl)+'" style="width:100%;height:100%;object-fit:contain;'+(st.active?'':'cursor:pointer')+'" '+(st.active?'':'onclick="cf4kReEdit(\''+key+'\','+idx+')"')+' title="Klik crop ulang"></div>'
+      : '<div style="width:112px;height:84px;border-radius:4px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;background:#f5f5f5;font-size:28px">'+fileIcon(img.name)+'</div>';
+    var cropBtn = (isImg && !st.active) ? '<button onclick="cf4kReEdit(\''+key+'\','+idx+')" style="position:absolute;top:56px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);color:#fff;border:none;border-radius:4px;font-size:9px;padding:2px 6px;cursor:pointer;white-space:nowrap">&#9988; Crop</button>' : '';
+    var nudgeHtml = !st.active ? ('<div class="img-nudge"><div class="img-nudge-controls">'+
+      '<button type="button" onclick="event.stopPropagation();nudgeImageInArray(cf4kEvidence[\''+key+'\'],'+idx+',-0.5,function(){cf4kRenderPreviews(\''+key+'\')})" title="Geser posisi gambar ini ke kiri di hasil PDF">&#9664;</button>'+
+      '<span>'+(img.offsetX||0)+'cm</span>'+
+      '<button type="button" onclick="event.stopPropagation();nudgeImageInArray(cf4kEvidence[\''+key+'\'],'+idx+',0.5,function(){cf4kRenderPreviews(\''+key+'\')})" title="Geser posisi gambar ini ke kanan di hasil PDF">&#9654;</button>'+
+      '</div></div>') : '';
+    var cornerBtn = !st.active
+      ? '<button onclick="cf4kRemoveImg(\''+key+'\','+idx+')" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--fail);color:#fff;border:none;cursor:pointer;font-size:10px;line-height:18px;text-align:center;padding:0">&#215;</button>'
+      : '<label style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid var(--accent,#1d4ed8);display:flex;align-items:center;justify-content:center;cursor:pointer">'
+        + '<input type="checkbox" '+(st.selectedIdx===idx?'checked':'')+' onchange="cf4kSelectForReorder(\''+key+'\','+idx+',this.checked)" style="margin:0;width:14px;height:14px;cursor:pointer"></label>';
+    wrap.innerHTML = thumb + cropBtn + cornerBtn +
+      '<div style="font-size:9px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+safe(img.name)+'</div>'+
+      '<input id="cf4kCap_'+key+'_'+idx+'" type="text" placeholder="Keterangan" value="'+safe(img.caption||'')+'" '+(st.active?'disabled':'')+' oninput="cf4kEvidence[\''+key+'\']['+idx+'].caption=this.value" style="width:100%;margin-top:6px;padding:5px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:#fff;color:#111;box-sizing:border-box">'+
+      nudgeHtml;
+    container.appendChild(wrap);
+  });
+  if (arr.length > 1) {
+    var ctrl = document.createElement('div');
+    ctrl.style.cssText = 'display:inline-flex;flex-direction:column;align-items:stretch;width:112px;vertical-align:top';
+    var toggleBtn = '<button type="button" onclick="cf4kToggleReorder(\''+key+'\')" style="background:'+(st.active?'var(--ok,#2563eb)':'#eef2f7')+';color:'+(st.active?'#fff':'#333')+';border:1px solid var(--border);border-radius:4px;font-size:10px;padding:6px 8px;cursor:pointer;white-space:nowrap">'+(st.active?'&#10003; Selesai':'&#128256; Urutkan Foto')+'</button>';
+    var arrowsHtml = '';
+    if (st.active && st.selectedIdx !== null) {
+      var atStart = st.selectedIdx <= 0, atEnd = st.selectedIdx >= arr.length - 1;
+      arrowsHtml = '<div style="display:flex;gap:4px;margin-top:4px">'
+        + '<button type="button" '+(atStart?'disabled':'')+' onclick="cf4kMoveImg(\''+key+'\',-1)" style="flex:1;opacity:'+(atStart?'0.4':'1')+';padding:6px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:10px;cursor:pointer">&#9664;</button>'
+        + '<button type="button" '+(atEnd?'disabled':'')+' onclick="cf4kMoveImg(\''+key+'\',1)" style="flex:1;opacity:'+(atEnd?'0.4':'1')+';padding:6px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:10px;cursor:pointer">&#9654;</button>'
+        + '</div>';
+    }
+    ctrl.innerHTML = toggleBtn + arrowsHtml;
+    container.appendChild(ctrl);
+  }
+}
+
+function cf4kReEdit(key, idx) {
+  var img = cf4kEvidence[key][idx];
+  imgOpenCropper(img.dataUrl, img.name, img.type, cf4kEvidence[key], key, 'cf4k', idx);
+}
+
+function cf4kRemoveImg(key, idx) { pmDeleteImgFromArr(cf4kEvidence[key], idx); cf4kRenderPreviews(key); }
+
+function cf4kGetYN(rid) {
+  var y = document.getElementById(rid+'_y'), n = document.getElementById(rid+'_n');
+  if (y && y.checked) return 'Y';
+  if (n && n.checked) return 'N';
+  return '';
+}
+function cf4kSetYN(rid, val) {
+  var y = document.getElementById(rid+'_y'), n = document.getElementById(rid+'_n');
+  if (y) y.checked = (val === 'Y');
+  if (n) n.checked = (val === 'N');
+}
+// Auto-isi Remark/Note begitu Y/N dicentang:
+// - kolom isian nilai terukur (mis. "R = ... Ohm", "Pressure : ... Kpa") → JANGAN diubah otomatis, biarkan user isi manual
+// - step punya hint format "KataY/KataN" (mis. Good/Leak, atau Good/Jammed/Sized) → dipecah di garis miring PERTAMA saja,
+//   supaya nilai N yang mengandung garis miring lagi (mis. "Jammed/Sized") tidak ikut kepotong
+// - step punya hint tapi bukan format pasangan (mis. "Clean", "Good") → Y = hint apa adanya, N = "Not <hint>"
+// - step belum ada hint remark sama sekali → Y=Completed, N=Not Completed
+function cf4kAutoRemark(rid) {
+  var yn = cf4kGetYN(rid);
+  var remarkEl = document.getElementById(rid+'_remark');
+  if (!remarkEl || !yn) return;
+  if (remarkEl.getAttribute('data-fillin') === '1') return; // kolom isian angka, bukan penilaian Y/N
+  var hint = remarkEl.getAttribute('data-hint') || '';
+  var val;
+  var slashIdx = hint.indexOf('/');
+  if (slashIdx > -1) {
+    var yWord = hint.substring(0, slashIdx).trim();
+    var nWord = hint.substring(slashIdx+1).trim();
+    val = (yn === 'Y') ? yWord : nWord;
+  } else if (hint) {
+    val = (yn === 'Y') ? hint : ('Not ' + hint);
+  } else {
+    val = (yn === 'Y') ? 'Completed' : 'Not Completed';
+  }
+  remarkEl.value = val;
+}
+
+// Kumpulkan semua isian 4000HR (checkbox aktif, step Y/N + remark, evidence foto tiap asset,
+// dan isian tabel Feeder Calibration yang dipakai ulang di Feeder Floor Area)
+function cf4kCollectData() {
+  var out = {};
+  CF4K_GROUPS.forEach(function(group){
+    group.assets.forEach(function(asset){
+      var key = group.key+'_'+asset.slug;
+      var chk = document.getElementById('cf4kChk_'+key);
+      var entry = { checked: !!(chk && chk.checked), steps: [], evidence: (cf4kEvidence[key]||[]).map(function(img){
+        var o = {name:img.name, dataUrl:img.dataUrl||'', type:img.type||'image/jpeg', caption:img.caption||'', offsetX:img.offsetX||0};
+        if (img.widthCm) o.widthCm = img.widthCm;
+        if (img.heightCm) o.heightCm = img.heightCm;
+        return o;
+      })};
+      if (asset.steps && asset.steps.length) {
+        asset.steps.forEach(function(step, i){
+          var rid = 'cf4k_'+key+'_'+(i+1);
+          entry.steps.push({ work: step.work, yn: cf4kGetYN(rid), remark: (document.getElementById(rid+'_remark')||{}).value || '' });
+        });
+      }
+      if (asset.type === 'feedercal') {
+        entry.calValues = cf4kCollectCalValues();
+      }
+      out[key] = entry;
+    });
+  });
+  return out;
+}
+function cf4kCollectCalValues() {
+  var vals = {};
+  [['cf4kcal1',CF_CAL1_ROWS],['cf4kcal2',CF_CAL2_ROWS]].forEach(function(pair){
+    var prefix = pair[0], rows = pair[1];
+    rows.forEach(function(row){
+      var suffix = row.id.split('_')[1];
+      [1,2,3].forEach(function(n){
+        var id = prefix+'_'+suffix+n;
+        var el = document.getElementById(id);
+        if (el) vals[id] = el.value;
+      });
+    });
+  });
+  return vals;
+}
+// Remap array baris CAL1/CAL2 supaya id-nya pakai prefix lain (dipakai untuk baca
+// input dari tabel Feeder Calibration yang di-reuse di 4000HR, tanpa bentrok
+// dengan tabel aslinya di section Feeder Calibration).
+function cf4kRemapCalRows(rows, prefix) {
+  return rows.map(function(r){
+    var suffix = r.id.split('_')[1];
+    var c = {}; for (var k in r) c[k] = r[k];
+    c.id = prefix+'_'+suffix;
+    return c;
+  });
+}
+
+// Terapkan data 4000HR yang tersimpan (dipanggil dari applyRecordToForm)
+function cf4kApplyData(saved) {
+  if (!saved) return;
+  CF4K_GROUPS.forEach(function(group){
+    group.assets.forEach(function(asset){
+      var key = group.key+'_'+asset.slug;
+      var entry = saved[key];
+      if (!entry) return;
+      var chk = document.getElementById('cf4kChk_'+key);
+      if (chk) { chk.checked = !!entry.checked; cf4kToggleAsset(key); }
+      if (entry.steps && asset.steps) {
+        entry.steps.forEach(function(s, i){
+          var rid = 'cf4k_'+key+'_'+(i+1);
+          cf4kSetYN(rid, s.yn||'');
+          var remarkEl = document.getElementById(rid+'_remark');
+          if (remarkEl) remarkEl.value = s.remark || '';
+        });
+      }
+      if (entry.calValues) {
+        Object.keys(entry.calValues).forEach(function(id){
+          var el = document.getElementById(id);
+          if (el) el.value = entry.calValues[id];
+        });
+      }
+      if (entry.evidence && entry.evidence.length) {
+        cf4kEvidence[key] = entry.evidence.map(function(img){
+          var o = {name:img.name, dataUrl:img.dataUrl, type:img.type||'image/jpeg', caption:img.caption||''};
+          if (img.offsetX) o.offsetX = img.offsetX;
+          if (img.widthCm) o.widthCm = img.widthCm;
+          if (img.heightCm) o.heightCm = img.heightCm;
+          return o;
+        });
+        cf4kRenderPreviews(key);
+      }
+    });
+  });
+}
+
+
+// ── BACKGROUND ───────────────────────────────────────────────────────────────
+var reportBgImg = null;
+var reportBgReady = false;
+var reportBgCallbacks = [];
+
+function initReportBackground() {
+  if (reportBgImg) return;
+  reportBgImg = new Image();
+  reportBgImg.onload = function() {
+    reportBgReady = true;
+    var cbs = reportBgCallbacks.splice(0);
+    for (var i = 0; i < cbs.length; i++) cbs[i]();
+  };
+  reportBgImg.onerror = function() {
+    reportBgReady = false;
+    var cbs = reportBgCallbacks.splice(0);
+    for (var i = 0; i < cbs.length; i++) cbs[i]();
+  };
+  reportBgImg.src = 'DRAFT PM KOSONG.jpg';
+}
+
+function ensureReportBackground(callback) {
+  if (!reportBgImg) { reportBgCallbacks.push(callback); initReportBackground(); return; }
+  if (reportBgReady) { callback(); return; }
+  if (reportBgImg.complete && reportBgImg.naturalWidth > 0) { reportBgReady = true; callback(); return; }
+  reportBgCallbacks.push(callback);
+}
+
+function drawBg(doc, pw, ph) {
+  if (!reportBgImg || !reportBgImg.naturalWidth) return;
+  try { doc.addImage(reportBgImg, 'JPEG', 0, 0, pw, ph); } catch(e) {}
+}
+
+// ── IMAGES ───────────────────────────────────────────────────────────────────
+function cfHandleDrop(e) { e.preventDefault(); cfHandleFiles(e.dataTransfer.files); }
+
+function cfHandleFiles(files) {
+  var fileArr = Array.from(files);
+  if (fileArr.length > 1) { puHandleMultiUpload(fileArr, cfImages, null, 'cf'); return; }
+  fileArr.forEach(function(file) {
+    if (!isImageFile(file)) {
+      var r = new FileReader();
+      r.onload = function(ev) { cfImages.push({name:file.name, dataUrl:ev.target.result, type:file.type||'', caption:''}); cfRenderPreviews(); };
+      r.readAsDataURL(file); return;
+    }
+    fileToJpegDataUrl(file, function(dataUrl) {
+      if (!dataUrl) return;
+      imgOpenCropper(dataUrl, file.name.replace(/\.[^.]+$/,'.jpg'), 'image/jpeg', cfImages, null, 'cf', -1);
+    });
+  });
+}
+
+// Fitur O: Urutkan Foto (tukar posisi kiri/kanan) — galeri cfImages (tanpa key)
+var cfReorderState = {active:false, selectedIdx:null};
+function cfToggleReorder() {
+  cfReorderState.active = !cfReorderState.active;
+  cfReorderState.selectedIdx = null;
+  cfRenderPreviews();
+}
+function cfSelectForReorder(idx, checked) {
+  cfReorderState.selectedIdx = checked ? idx : null;
+  cfRenderPreviews();
+}
+function cfMoveImg(dir) {
+  if (cfReorderState.selectedIdx === null) return;
+  var i = cfReorderState.selectedIdx, j = i + dir;
+  if (j < 0 || j >= cfImages.length) return;
+  var tmp = cfImages[i]; cfImages[i] = cfImages[j]; cfImages[j] = tmp; // swap 1 object utuh
+  cfReorderState.selectedIdx = j;
+  cfRenderPreviews();
+}
+
+function cfRenderPreviews() {
+  // Fitur Q: TIDAK sync caption dari DOM di sini lagi — caption sudah live-synced
+  // lewat oninput per keystroke. Sync di sini dulu bikin caption ketuker kalau
+  // dipanggil sesudah array berubah urutan/isi (cfRemoveImg/cfMoveImg). Sync
+  // manual sebelum save/PDF (cfSyncCaptions) di tempat lain tetap dipertahankan.
+  var container = document.getElementById('cfImgPreview');
+  if (!container) return;
+  container.innerHTML = '';
+  var st = cfReorderState;
+  cfImages.forEach(function(img, idx) {
+    if (!img || !img.name) return;
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;display:inline-block;text-align:center;width:112px';
+    var isImg = IMG_EXTS.test(img.name) || (img.type && img.type.startsWith('image/'));
+    var safe = function(s) { return String(s||'').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+    var thumb = isImg
+      ? '<div style="width:112px;height:84px;border-radius:4px;border:2px solid var(--ok);overflow:hidden;display:flex;align-items:center;justify-content:center"><img src="'+safe(img.dataUrl)+'" style="width:100%;height:100%;object-fit:contain;'+(st.active?'':'cursor:pointer')+'" '+(st.active?'':'onclick="cfReEdit('+idx+')"')+' title="Klik crop ulang"></div>'
+      : '<div style="width:112px;height:84px;border-radius:4px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;background:#f5f5f5;font-size:28px">'+fileIcon(img.name)+'</div>';
+    var cropBtn = (isImg && !st.active) ? '<button onclick="cfReEdit('+idx+')" style="position:absolute;top:56px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);color:#fff;border:none;border-radius:4px;font-size:9px;padding:2px 6px;cursor:pointer;white-space:nowrap">&#9988; Crop</button>' : '';
+    var cornerBtn = !st.active
+      ? '<button onclick="cfRemoveImg('+idx+')" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--fail);color:#fff;border:none;cursor:pointer;font-size:10px;line-height:18px;text-align:center;padding:0">&#215;</button>'
+      : '<label style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid var(--accent,#1d4ed8);display:flex;align-items:center;justify-content:center;cursor:pointer">'
+        + '<input type="checkbox" '+(st.selectedIdx===idx?'checked':'')+' onchange="cfSelectForReorder('+idx+',this.checked)" style="margin:0;width:14px;height:14px;cursor:pointer"></label>';
+    wrap.innerHTML = thumb + cropBtn + cornerBtn +
+      '<div style="font-size:9px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+safe(img.name)+'</div>'+
+      '<input id="cfCap_'+idx+'" type="text" placeholder="Keterangan" value="'+safe(img.caption||'')+'" '+(st.active?'disabled':'')+' oninput="cfImages['+idx+'].caption=this.value" style="width:100%;margin-top:6px;padding:5px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:#fff;color:#111;box-sizing:border-box">';
+    container.appendChild(wrap);
+  });
+  if (cfImages.length > 1) {
+    var ctrl = document.createElement('div');
+    ctrl.style.cssText = 'display:inline-flex;flex-direction:column;align-items:stretch;width:112px;vertical-align:top';
+    var toggleBtn = '<button type="button" onclick="cfToggleReorder()" style="background:'+(st.active?'var(--ok,#2563eb)':'#eef2f7')+';color:'+(st.active?'#fff':'#333')+';border:1px solid var(--border);border-radius:4px;font-size:10px;padding:6px 8px;cursor:pointer;white-space:nowrap">'+(st.active?'&#10003; Selesai':'&#128256; Urutkan Foto')+'</button>';
+    var arrowsHtml = '';
+    if (st.active && st.selectedIdx !== null) {
+      var atStart = st.selectedIdx <= 0, atEnd = st.selectedIdx >= cfImages.length - 1;
+      arrowsHtml = '<div style="display:flex;gap:4px;margin-top:4px">'
+        + '<button type="button" '+(atStart?'disabled':'')+' onclick="cfMoveImg(-1)" style="flex:1;opacity:'+(atStart?'0.4':'1')+';padding:6px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:10px;cursor:pointer">&#9664;</button>'
+        + '<button type="button" '+(atEnd?'disabled':'')+' onclick="cfMoveImg(1)" style="flex:1;opacity:'+(atEnd?'0.4':'1')+';padding:6px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:10px;cursor:pointer">&#9654;</button>'
+        + '</div>';
+    }
+    ctrl.innerHTML = toggleBtn + arrowsHtml;
+    container.appendChild(ctrl);
+  }
+  updateSizeIndicator('cf', null);
+}
+
+function cfSyncCaptions() {
+  cfImages.forEach(function(img, idx) {
+    var inp = document.getElementById('cfCap_'+idx);
+    if (inp) img.caption = inp.value || '';
+  });
+}
+
+function cfReEdit(idx) {
+  var img = cfImages[idx];
+  imgOpenCropper(img.dataUrl, img.name, img.type, cfImages, null, 'cf', idx);
+}
+
+function cfRemoveImg(idx) { pmDeleteImgFromArr(cfImages, idx); cfRenderPreviews(); }
+
+// ── RESET ─────────────────────────────────────────────────────────────────────
+function cfReset() {
+  if (!confirm('Reset dan buat entri baru? Isian saat ini akan dikosongkan, dan penyimpanan berikutnya akan membuat data BARU (data yang sudah tersimpan sebelumnya tidak akan tertimpa/hilang).')) return;
+  window._editingId = null; // mulai entri baru — jangan lagi update record lama
+  var allIds = [
+    'cal1_dev1','cal1_dev2','cal1_dev3',
+    'cal1_ppl1','cal1_ppl2','cal1_ppl3',
+    'cal1_bcn1','cal1_bcn2','cal1_bcn3',
+    'cal1_bt1','cal1_bt2','cal1_bt3',
+    'cal2_dev1','cal2_dev2','cal2_dev3',
+    'cal2_ppl1','cal2_ppl2','cal2_ppl3',
+    'cal2_bcn1','cal2_bcn2','cal2_bcn3',
+    'cal2_rctw1','cal2_rctw2','cal2_rctw3',
+    'cfDate','cfPIC','cfWO','cfNote','cfAssetList','cfAssetDescList',
+    'td_ai3_100','td_ao1_100','td_ao2_100','td_fr_act_100','td_sp_100','td_rpm_100','td_freq_100','td_load_100','td_volt_100','td_curr_100','td_blt_100',
+    'td_ai3_75','td_ao1_75','td_ao2_75','td_fr_act_75','td_sp_75','td_rpm_75','td_freq_75','td_load_75','td_volt_75','td_curr_75','td_blt_75',
+    'td_ai3_50','td_ao1_50','td_ao2_50','td_fr_act_50','td_sp_50','td_rpm_50','td_freq_50','td_load_50','td_volt_50','td_curr_50','td_blt_50',
+    'td_ai3_25','td_ao1_25','td_ao2_25','td_fr_act_25','td_sp_25','td_rpm_25','td_freq_25','td_load_25','td_volt_25','td_curr_25','td_blt_25',
+    'td_ai3_0','td_ao1_0','td_ao2_0','td_fr_act_0','td_sp_0','td_rpm_0','td_freq_0','td_load_0','td_volt_0','td_curr_0','td_blt_0'
+  ];
+  allIds.forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  document.getElementById('cfFeederNo').value = 'UNIT 7A';
+  document.getElementById('cfRef').value = 'PI-10-01-175-F01';
+  cfImages = [];
+  var p = document.getElementById('cfImgPreview'); if(p) p.innerHTML='';
+  updateSizeIndicator('cf', null);
+  cf4kEvidence = {};
+  render4kAssets();
+  // Reset toggle "tampil di print" Feeder Calibration & Test Demand Signal ke kondisi awal (off, section tersembunyi)
+  ['feeder','demand','4000hr'].forEach(function(type){
+    var chkMap = {feeder:'chk-feeder', demand:'chk-demand', '4000hr':'chk-4000hr'};
+    var secMap = {feeder:'section-feeder', demand:'section-demand', '4000hr':'section-4000hr'};
+    var lblMap = {feeder:'lbl-feeder', demand:'lbl-demand', '4000hr':'lbl-4000hr'};
+    var chk = document.getElementById(chkMap[type]);
+    var sec = document.getElementById(secMap[type]);
+    var lbl = document.getElementById(lblMap[type]);
+    if (chk) chk.checked = false;
+    if (sec) sec.style.display = 'none';
+    if (lbl) { lbl.style.background = '#fff'; lbl.style.color = 'var(--steel)'; lbl.style.borderColor = 'var(--border)'; }
+  });
+  if (typeof autosaveClear === 'function') autosaveClear();
+  if (window.history && window.history.replaceState) {
+    var url = new URL(window.location.href);
+    url.searchParams.delete('id');
+    url.searchParams.delete('print');
+    window.history.replaceState({}, '', url.toString());
+  }
+}
+
+// ── COLLECT DATA (for dbSave) ─────────────────────────────────────────────────
+function dbCollectData(modul) {
+  if (modul !== 'coal_feeder') return null;
+  cfSyncCaptions();
+  var gv = function(id){ var e=document.getElementById(id); return e?e.value:''; };
+  var ki = function(img){ var o = {name:img.name, dataUrl:img.dataUrl||'', type:img.type||'image/jpeg', caption:img.caption||''}; if (img.widthCm) o.widthCm = img.widthCm; if (img.heightCm) o.heightCm = img.heightCm; if (img.offsetX) o.offsetX = img.offsetX; return o; };
+  var pcts = ['100','75','50','25','0'];
+  var dfields = ['ai3','ao1','ao2','fr_act','sp','rpm','freq','load','volt','curr','blt'];
+  var demandRows = {};
+  pcts.forEach(function(p) {
+    demandRows[p] = {};
+    dfields.forEach(function(f){ demandRows[p][f] = gv('td_'+f+'_'+p); });
+  });
+  return {
+    modul: 'Coal Feeder Calibration',
+    tanggal: gv('cfDate'),
+    pic: gv('cfPIC'),
+    work_order: gv('cfWO'),
+    unit: 'Unit 7',
+    data: {
+      checked_by: gv('cfCheckedBy'),
+      feeder_no: gv('cfFeederNo'),
+      reference: gv('cfRef'),
+      asset_list: gv('cfAssetList'),
+      asset_desc_list: gv('cfAssetDescList'),
+      print_feeder: document.getElementById('chk-feeder') ? document.getElementById('chk-feeder').checked : false,
+      print_demand: document.getElementById('chk-demand') ? document.getElementById('chk-demand').checked : false,
+      print_4000hr: document.getElementById('chk-4000hr') ? document.getElementById('chk-4000hr').checked : false,
+      cf4k: cf4kCollectData(),
+      cal1: {
+        deviation:         [gv('cal1_dev1'),  gv('cal1_dev2'),  gv('cal1_dev3')],
+        pulses_per_length: [gv('cal1_ppl1'),  gv('cal1_ppl2'),  gv('cal1_ppl3')],
+        belt_circuit_no:   [gv('cal1_bcn1'),  gv('cal1_bcn2'),  gv('cal1_bcn3')],
+        basic_tare:        [gv('cal1_bt1'),   gv('cal1_bt2'),   gv('cal1_bt3')]
+      },
+      cal2: {
+        deviation:           [gv('cal2_dev1'),  gv('cal2_dev2'),  gv('cal2_dev3')],
+        pulses_per_length:   [gv('cal2_ppl1'),  gv('cal2_ppl2'),  gv('cal2_ppl3')],
+        belt_circuit_no:     [gv('cal2_bcn1'),  gv('cal2_bcn2'),  gv('cal2_bcn3')],
+        range_correction_tw: [gv('cal2_rctw1'), gv('cal2_rctw2'), gv('cal2_rctw3')]
+      },
+      demand: demandRows,
+      note: gv('cfNote'),
+      images: cfImages.map(ki)
+    }
+  };
+}
+
+// ── PDF ───────────────────────────────────────────────────────────────────────
+function cfDownloadPdf() {
+  var fChk = document.getElementById('chk-feeder');
+  var dChk = document.getElementById('chk-demand');
+  var hChk = document.getElementById('chk-4000hr');
+  var doFeeder = fChk && fChk.checked;
+  var doDemand = dChk && dChk.checked;
+  var doPulv = hChk && hChk.checked;
+  // Auto-detect: if none checked but one has data, include it
+  if (!doFeeder && !doDemand && !doPulv) {
+    // Check if any feeder field has data
+    var feederHasData = ['cal1_dev1','cal1_dev2','cal1_dev3','cal2_dev1','cal2_dev2','cal2_dev3'].some(function(id){
+      var e = document.getElementById(id); return e && e.value && e.value !== '0.000' && e.value !== '';
+    });
+    var demandHasData = ['td_ai3_100','td_ao1_100','td_fr_act_100'].some(function(id){
+      var e = document.getElementById(id); return e && e.value && e.value !== '' && e.value !== '-';
+    });
+    if (!feederHasData && !demandHasData) { alert('Pilih minimal satu section untuk di-print.'); return; }
+    doFeeder = feederHasData;
+    doDemand = demandHasData;
+  }
+  dbShowSavingOverlay(true, 'Membuat PDF, mohon tunggu...', 'Memproses gambar & tabel');
+  ensureReportBackground(function() {
+    try {
+      cfSyncCaptions();
+      var jsPDF = window.jspdf.jsPDF;
+      var doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+      var pw = doc.internal.pageSize.getWidth();
+      var ph = doc.internal.pageSize.getHeight();
+
+      var marginX      = 20;
+      var marginTop    = 20;
+      var marginBottom = 20;
+      var contentW     = pw - marginX * 2;
+
+      var now = new Date();
+      var BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+      var dd = String(now.getDate()).padStart(2,'0');
+      var yy = now.getFullYear();
+      var nowStr = dd+' '+BULAN[now.getMonth()]+' '+yy+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+
+      function gv(id){ var e=document.getElementById(id); return e?e.value:''; }
+      function safe(s){ return String(s||''); }
+      function pad(n){ return String(n).padStart(2,'0'); }
+      // Ambil SATU bagian buat nama file PDF -- kalau field-nya berisi beberapa
+      // baris (misal Work Order/Asset diisi lebih dari satu nomor), yang dipakai
+      // cuma baris PALING DEPAN/PERTAMA. Karakter yang tidak valid di nama file
+      // (\ / : * ? " < > |) dibuang, spasi dirapikan jadi tanpa-spasi.
+      function pdfNamePart(s, maxLen) {
+        s = String(s || '').trim();
+        s = s.split(/\r?\n/)[0] || '';
+        s = s.replace(/[\\\/:*?"<>|]/g, '');
+        s = s.replace(/\s+/g, '');
+        if (maxLen && s.length > maxLen) s = s.substring(0, maxLen);
+        return s;
+      }
+
+      var y = marginTop;
+
+      function checkPage(need) {
+        if (y + need > ph - marginBottom) {
+          doc.addPage(); drawBg(doc, pw, ph); y = marginTop;
+        }
+      }
+
+      // Halaman pertama \u2014 draw background
+      drawBg(doc, pw, ph);
+
+      // ── INFO BOX — Fitur L: Tabel Info Pekerjaan Bergaris (2 kolom x 3 baris) ──
+      var infoRowH = 7.3;
+      var infoBoxH = infoRowH * 3;
+      var infoLabelColW = 24;
+      var infoMidX = marginX + contentW/2;
+
+      doc.setFillColor(255, 251, 214);
+      doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.35);
+      doc.rect(marginX, y, contentW, infoBoxH, 'FD');
+
+      doc.setLineWidth(0.25);
+      // Garis vertikal: setelah label kolom kiri, tengah (pemisah 2 kolom), setelah label kolom kanan
+      doc.line(marginX+infoLabelColW, y, marginX+infoLabelColW, y+infoBoxH);
+      doc.line(infoMidX, y, infoMidX, y+infoBoxH);
+      doc.line(infoMidX+infoLabelColW, y, infoMidX+infoLabelColW, y+infoBoxH);
+      // Garis horizontal antar baris
+      doc.line(marginX, y+infoRowH, marginX+contentW, y+infoRowH);
+      doc.line(marginX, y+infoRowH*2, marginX+contentW, y+infoRowH*2);
+
+      var pairs = [
+        [marginX+3, marginX+infoLabelColW+3, [['Feeder No.', gv('cfFeederNo')], ['Date', gv('cfDate')], ['PIC', gv('cfPIC')]]],
+        [infoMidX+3, infoMidX+infoLabelColW+3, [['Reference', gv('cfRef')], ['Work Order', gv('cfWO')], ['Dicetak', nowStr]]]
+      ];
+      pairs.forEach(function(pair) {
+        pair[2].forEach(function(it, i) {
+          var iy = y + infoRowH*i + 4.8;
+          doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(55,80,140);
+          doc.text(it[0], pair[0], iy);
+          doc.setFont('helvetica','bold'); doc.setTextColor(20,30,25);
+          doc.text(safe(it[1]).substring(0,42), pair[1], iy);
+        });
+      });
+      y += infoBoxH + 5;
+
+      // ── ASSET INFO (auto-terisi dari checkbox 4000HR) — tampil kalau ada isinya ──
+      // Cuma "Asset Description" saja yang ditampilkan (satu kolom penuh) — kode
+      // asset-nya sudah ikut tertulis di depan tiap baris deskripsi, jadi kolom
+      // "Asset" terpisah dulu dihapus karena isinya duplikat.
+      var assetDescVal = gv('cfAssetDescList');
+      if (assetDescVal) {
+        function toBulletLines(raw, w) {
+          var items = raw.split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+          var out = [];
+          items.forEach(function(it){ out = out.concat(doc.splitTextToSize('- '+safe(it), w)); });
+          return out;
+        }
+        var descLines = toBulletLines(assetDescVal, contentW-6);
+        var lineH = 4.4;
+        var assetBoxH = (descLines.length+1)*lineH + 4;
+        checkPage(assetBoxH+2);
+        doc.setFillColor(255, 251, 214);
+        doc.setDrawColor(0,0,0); doc.setLineWidth(0.35);
+        doc.rect(marginX, y, contentW, assetBoxH, 'FD');
+
+        var aiy = y + 4.6;
+        doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(55,80,140);
+        doc.text('Asset Description:', marginX+3, aiy);
+        aiy += lineH;
+
+        doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(20,30,25);
+        // Digambar baris per baris dengan jarak lineH manual (BUKAN doc.text(array,...))
+        // karena jsPDF punya jarak antar-baris bawaan sendiri (lebih rapat dari lineH),
+        // sehingga kalau dipakai array langsung, isi teks jadi lebih pendek dari tinggi
+        // kotak yang sudah dihitung -> nyisa ruang kosong di bawah kotak.
+        descLines.forEach(function(line) {
+          doc.text(line, marginX+3, aiy);
+          aiy += lineH;
+        });
+
+        y += assetBoxH + 5;
+      }
+
+      // ── SECTION HEADER ──
+      function secHeader(title) {
+        checkPage(12);
+        doc.setFillColor(232,240,253);
+        doc.rect(marginX, y, contentW, 8, 'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(30,64,175);
+        doc.text(title, marginX+3, y+5.5);
+        y += 11;
+      }
+
+      // ── SUB HEADER ──
+      function subHeader(title) {
+        checkPage(10);
+        doc.setFillColor(243, 248, 255);
+        doc.rect(marginX, y, contentW, 7, 'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(50,80,160);
+        doc.text(title, marginX+3, y+4.8);
+        y += 9;
+      }
+
+      // ── EVIDENCE PHOTO (flow layout, HORMATI ukuran/orientasi hasil crop) ──
+      // Sebelumnya semua foto dipaksa ukuran tetap (imgW/imgH hardcoded) di PDF,
+      // jadi preset ukuran & orientasi (potrait/lanskap/A4/Letter/dst) yang dipilih
+      // saat crop tidak pernah kepakai di hasil cetak. Sekarang tiap foto digambar
+      // sesuai widthCm/heightCm yang tersimpan dari crop-nya masing-masing, dengan
+      // layout flow (baris baru otomatis kalau lebar sisa tidak cukup).
+      //
+      // Dua tahap (sama seperti maintenance_report_form.html): Pass 1 kelompokkan
+      // gambar ke baris-baris dulu berdasarkan lebar yang tersisa (sambil hitung
+      // wMm/hMm final setelah dikecilkan kalau melebihi lebar halaman), baru Pass 2
+      // gambar tiap baris RATA TENGAH terhadap lebar konten halaman -- perlu tahu
+      // dulu total lebar 1 baris sebelum bisa dipusatkan, makanya dipisah jadi 2 pass.
+      function drawEvidenceFlow(arr) {
+        if (!arr || !arr.length) return;
+        var gap = 4, rowGapExtra = 8;
+        var maxW = contentW - 6;
+        var rowStartX = marginX + 3, maxRowRight = marginX + contentW - 3;
+        var rowAvailW = maxRowRight - rowStartX;
+
+        // Pass 1: kelompokkan ke baris-baris.
+        var rows = [];
+        var curRow = [];
+        var curRowW = 0;
+        arr.forEach(function(img){
+          var wMm = (img.widthCm || DEFAULT_CROP_W_CM) * 10;
+          var hMm = (img.heightCm || DEFAULT_CROP_H_CM) * 10;
+          if (wMm > maxW) { var scale = maxW / wMm; wMm = maxW; hMm = hMm * scale; }
+          var addedW = curRow.length ? (gap + wMm) : wMm;
+          if (curRow.length && (curRowW + addedW) > rowAvailW) {
+            rows.push(curRow); curRow = []; curRowW = 0; addedW = wMm;
+          }
+          curRow.push({img:img, wMm:wMm, hMm:hMm});
+          curRowW += addedW;
+        });
+        if (curRow.length) rows.push(curRow);
+
+        // Pass 2: gambar tiap baris rata tengah terhadap lebar konten halaman.
+        rows.forEach(function(row) {
+          var rowMaxH = 0;
+          var totalRowW = row.reduce(function(s,r,idx){ return s + r.wMm + (idx>0?gap:0); }, 0);
+          row.forEach(function(r){ rowMaxH = Math.max(rowMaxH, r.hMm); });
+
+          checkPage(rowMaxH + rowGapExtra + 4);
+          var curX = marginX + (contentW - totalRowW) / 2;
+          row.forEach(function(r) {
+            var img = r.img, wMm = r.wMm, hMm = r.hMm;
+            var x = Math.max(marginX, Math.min(curX + ((img.offsetX||0)*10), marginX+contentW-wMm));
+            try { doc.addImage(img.dataUrl,'JPEG', x, y, wMm, hMm); } catch(e){}
+            doc.setDrawColor(200,200,200); doc.setLineWidth(0.25); doc.rect(x, y, wMm, hMm);
+            var cap = safe(img.caption||'');
+            if (cap) {
+              doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(50,70,130);
+              doc.text(doc.splitTextToSize(cap, wMm), x, y+hMm+3);
+            }
+            curX += wMm + gap;
+          });
+          y += rowMaxH + rowGapExtra;
+        });
+        y += 2;
+      }
+
+      // col widths: 20+55+30+30+30+15 = 180 (contentW 170 \u2014 tweak)
+      // contentW=170: 18+52+28+28+28+16 = 170
+      var COL_W = [22, 52, 26, 26, 26, 18];
+
+      function drawCalTable(calRows, calNumber) {
+        var HEAD_H = 9;
+        checkPage(HEAD_H + calRows.length * 8 + 4);
+
+        // header \u2014 draw ALL rects first, then ALL text on top
+        var hx = marginX;
+        var headers = ['Self Test', 'Description', 'TEST #1', 'TEST #2', 'TEST #3', 'Accept.'];
+        // Step 1: fill entire header background in one shot
+        doc.setFillColor(30,58,138);
+        doc.setDrawColor(20,40,110);
+        doc.setLineWidth(0.3);
+        doc.rect(marginX, y, contentW, HEAD_H, 'FD');
+        // Step 2: column dividers only (stroke, no fill \u2014 so background stays blue)
+        hx = marginX;
+        headers.forEach(function(h, i) {
+          doc.rect(hx, y, COL_W[i], HEAD_H, 'S');
+          hx += COL_W[i];
+        });
+        // Step 3: draw ALL text on top last
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(255,255,255);
+        hx = marginX;
+        headers.forEach(function(h, i) {
+          doc.text(h, hx + COL_W[i]/2, y + 6, {align:'center'});
+          hx += COL_W[i];
+        });
+        doc.setDrawColor(200,215,230); doc.setLineWidth(0.3);
+        y += HEAD_H;
+
+        // rows
+        calRows.forEach(function(row, ri) {
+          var rowH = 9;
+          checkPage(rowH + 2);
+          var bg = (ri % 2 === 0) ? [255,255,255] : [246,249,253];
+          var rx = marginX;
+          doc.setFillColor(bg[0],bg[1],bg[2]);
+          COL_W.forEach(function(w){ doc.rect(rx, y, w, rowH, 'FD'); rx += w; });
+          doc.setDrawColor(200,215,230); doc.setLineWidth(0.3);
+
+          // selfTest
+          doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(30,58,138);
+          doc.text(safe(row.selfTest), marginX + COL_W[0]/2, y+5.8, {align:'center'});
+          // desc
+          doc.setFont('helvetica','normal'); doc.setTextColor(20,30,25);
+          doc.text(safe(row.desc), marginX+COL_W[0]+2, y+5.8);
+          // test values
+          var t = [gv(row.id+'1'), gv(row.id+'2'), gv(row.id+'3')];
+          t.forEach(function(tv, ti) {
+            var tx = marginX + COL_W[0] + COL_W[1] + COL_W[2]*ti;
+            var unit = row.unit || '';
+            var displayVal = (tv !== undefined && tv !== '') ? (tv + (unit ? ' '+unit : '')) : '-';
+            doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(20,20,60);
+            doc.text(displayVal, tx + COL_W[2]/2, y+5.8, {align:'center'});
+          });
+          // acceptance
+          doc.setFont('helvetica','italic'); doc.setFontSize(7.5); doc.setTextColor(80,100,130);
+          doc.text(safe(row.acceptance), marginX+COL_W[0]+COL_W[1]+COL_W[2]*3+COL_W[5]/2, y+5.8, {align:'center'});
+          y += rowH;
+        });
+        y += 4;
+      }
+
+      if (doFeeder) { secHeader('FEEDER NO-LOAD AND TEST WEIGHT CALIBRATION');
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(60,80,120);
+      doc.text('Feeder No: '+safe(gv('cfFeederNo'))+'   Reference: '+safe(gv('cfRef'))+'   \u2014 4 pieces of tape used', marginX+3, y);
+      y += 8;
+
+      subHeader('CAL 1 \u2014 Zero Calibration');
+      drawCalTable(CF_CAL1_ROWS, 1);
+
+      checkPage(5);
+      subHeader('CAL 2 \u2014 Span Calibration');
+      drawCalTable(CF_CAL2_ROWS, 2);
+
+      // ── CATATAN & EVIDENCE ──
+      var note = safe(gv('cfNote'));
+      if (note || cfImages.length) {
+        secHeader('CATATAN & EVIDENCE PHOTO');
+        if (note) {
+          checkPage(10);
+          doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(30,30,30);
+          var lines = doc.splitTextToSize(note, contentW-6);
+          lines.forEach(function(l){ checkPage(5); doc.text(l, marginX+3, y); y+=4.5; });
+          y += 3;
+        }
+        if (cfImages.length) {
+          drawEvidenceFlow(cfImages);
+        }
+      }
+
+      } // end if(doFeeder)
+
+      // ── TEST DEMAND SECTION ──
+      if (doDemand) {
+        if (doFeeder) { doc.addPage(); drawBg(doc, pw, ph); y = marginTop; }
+        secHeader('TEST DEMAND SIGNAL \u2014 AC TECH MC1000 Inverter');
+        doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(60,80,120);
+        doc.text('Demand Signal: A02 \u2192 AI3  \u00b7  Belt Load: A01  \u00b7  Reference: PI-10-01-175-F01', marginX+3, y);
+        y += 8;
+
+        // demand table col widths total = contentW = 170
+        var DW = [20, 22, 28, 28, 26, 22, 20, 22, 24, 28]; // 240? let's scale: 170/240
+        // simpler: fixed cols
+        var DW = [18, 20, 24, 24, 22, 20, 18, 22, 22, 20]; // sum=190, trim
+        // use: [16,18,22,22,20,18,17,20,20,17] = 190 still. Let's just do 7 cols visible
+        // From PDF: %Ma | Setpoint | Actual FR | Demand/SP | RPM | FREQ | LOAD | VOLT | CURR | BelLoad
+        var DW = [14, 18, 22, 22, 20, 17, 16, 20, 20, 21]; // sum=190 but contentW=170
+        // scale down: *170/190
+        // 13 cols: %Ma | mA Source | AI3 | AO1 | AO2 | ActualFR | FRDemand/SP | RPM | FREQ | LOAD | VOLT | CURR | BelLoad
+        var rawDW = [12, 14, 13, 13, 13, 20, 18, 16, 14, 13, 16, 16, 18];
+        var rawSum = rawDW.reduce(function(a,b){return a+b;},0);
+        var DW = rawDW.map(function(w){ return Math.round(w * contentW / rawSum); });
+        var dSum = DW.reduce(function(a,b){return a+b;},0);
+        DW[DW.length-1] += (contentW - dSum);
+
+        var DHEADS = ['%Ma','mA Source','AI3 (mA)','AO1 (mA)','AO2 (mA)','Actual FR on Display (t/h)','Feed Rate Demand/ Setpoint','Motor Speed (rpm)','FREQ (Hz) P527','LOAD (%) P507','VOLT (VAC) P506','CURR (A) P508','Bel Load (kg/m) A01'];
+
+        // ── Auto-wrap header: hitung tinggi header dari baris terpanjang ──
+        doc.setFont('helvetica','bold'); doc.setFontSize(5.8);
+        var lineH = 3.2;
+        var wrappedHeads = DHEADS.map(function(h, i){
+          return doc.splitTextToSize(h, DW[i] - 1.5);
+        });
+        var maxLines = wrappedHeads.reduce(function(mx, lines){ return Math.max(mx, lines.length); }, 1);
+        var DHEAD_H = Math.max(12, maxLines * lineH + 4);
+
+        checkPage(DHEAD_H + 5*9 + 4);
+
+        // draw header background
+        doc.setFillColor(30,58,138);
+        doc.setDrawColor(20,40,110);
+        doc.setLineWidth(0.3);
+        doc.rect(marginX, y, contentW, DHEAD_H, 'FD');
+        var dhx = marginX;
+        DHEADS.forEach(function(h, i){ doc.rect(dhx, y, DW[i], DHEAD_H, 'S'); dhx += DW[i]; });
+        doc.setFont('helvetica','bold'); doc.setFontSize(5.8); doc.setTextColor(255,255,255);
+        dhx = marginX;
+        wrappedHeads.forEach(function(lines, i) {
+          var totalH = lines.length * lineH;
+          var ty = y + (DHEAD_H - totalH) / 2 + lineH;
+          lines.forEach(function(line, li) {
+            doc.text(line, dhx + DW[i]/2, ty + li*lineH, {align:'center'});
+          });
+          dhx += DW[i];
+        });
+        doc.setDrawColor(200,215,230); doc.setLineWidth(0.3);
+        y += DHEAD_H;
+
+        var DPCTS = [
+          {label:'100%', ma:'20 mA', keys:['td_ai3_100','td_ao1_100','td_ao2_100','td_fr_act_100','td_sp_100','td_rpm_100','td_freq_100','td_load_100','td_volt_100','td_curr_100','td_blt_100']},
+          {label:'75%',  ma:'16 mA', keys:['td_ai3_75', 'td_ao1_75', 'td_ao2_75', 'td_fr_act_75', 'td_sp_75', 'td_rpm_75', 'td_freq_75', 'td_load_75', 'td_volt_75', 'td_curr_75', 'td_blt_75']},
+          {label:'50%',  ma:'12 mA', keys:['td_ai3_50', 'td_ao1_50', 'td_ao2_50', 'td_fr_act_50', 'td_sp_50', 'td_rpm_50', 'td_freq_50', 'td_load_50', 'td_volt_50', 'td_curr_50', 'td_blt_50']},
+          {label:'25%',  ma:'8 mA',  keys:['td_ai3_25', 'td_ao1_25', 'td_ao2_25', 'td_fr_act_25', 'td_sp_25', 'td_rpm_25', 'td_freq_25', 'td_load_25', 'td_volt_25', 'td_curr_25', 'td_blt_25']},
+          {label:'0%',   ma:'4 mA',  keys:['td_ai3_0',  'td_ao1_0',  'td_ao2_0',  'td_fr_act_0',  'td_sp_0',  'td_rpm_0',  'td_freq_0',  'td_load_0',  'td_volt_0',  'td_curr_0',  'td_blt_0']}
+        ];
+
+        DPCTS.forEach(function(row, ri) {
+          var rowH = 9;
+          checkPage(rowH+2);
+          var bg = (ri%2===0) ? [255,255,255] : [246,249,253];
+          doc.setFillColor(bg[0],bg[1],bg[2]);
+          var rx = marginX;
+          DW.forEach(function(w){ doc.rect(rx, y, w, rowH, 'FD'); rx += w; });
+          doc.setDrawColor(200,215,230); doc.setLineWidth(0.3);
+          // % label col 0
+          doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(29,116,199);
+          doc.text(row.label, marginX + DW[0]/2, y+5.8, {align:'center'});
+          // mA source col 1
+          doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(41,76,111);
+          doc.text(row.ma, marginX+DW[0] + DW[1]/2, y+5.8, {align:'center'});
+          // data cells cols 2..12
+          row.keys.forEach(function(kid, ki) {
+            var val = safe(gv(kid)) || '-';
+            var colIdx = ki + 2;
+            var cx2 = marginX;
+            for (var cc=0; cc<colIdx; cc++) cx2 += DW[cc];
+            doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(20,20,60);
+            doc.text(val, cx2 + DW[colIdx]/2, y+5.8, {align:'center'});
+          });
+          y += rowH;
+        });
+        y += 4;
+      } // end if(doDemand)
+
+      // ── 4000 HR PM PULVERIZER INSTRUMENTATION ──
+      if (doPulv) {
+        if (doFeeder || doDemand) { doc.addPage(); drawBg(doc, pw, ph); y = marginTop; }
+        secHeader('4000 HR PM PULVERIZER INSTRUMENTATION');
+
+        var PULV_COLS = [14, 90, 16, 16, 34]; // NO, Step of Work, Y, N, Remark/Note → total 170 = contentW
+
+        // Kotak centang digambar sebagai checkbox visual (kotak + centang vektor),
+        // bukan karakter unicode ✓ — karena font standar jsPDF (helvetica) tidak
+        // punya glyph untuk \u2713 sehingga tercetak sebagai titik.
+        function drawCheckboxBs(doc, x, y, w, h, checked, tone){
+          var size = Math.min(w, h) * 0.55;
+          var bx = x + w/2 - size/2, by = y + h/2 - size/2;
+          doc.setLineWidth(0.4);
+          if (checked) {
+            var fill = tone === 'red' ? [204,60,60] : [46,204,113];
+            var strk = tone === 'red' ? [140,30,30] : [30,140,74];
+            doc.setDrawColor(strk[0],strk[1],strk[2]); doc.setFillColor(fill[0],fill[1],fill[2]);
+            doc.rect(bx, by, size, size, 'FD');
+            doc.setDrawColor(255,255,255); doc.setLineWidth(0.6);
+            doc.line(bx+size*0.18, by+size*0.52, bx+size*0.40, by+size*0.76);
+            doc.line(bx+size*0.40, by+size*0.76, bx+size*0.84, by+size*0.22);
+          } else {
+            doc.setDrawColor(150,160,155); doc.setFillColor(255,255,255);
+            doc.rect(bx, by, size, size, 'FD');
+          }
+        }
+
+        function drawPulvStepTable(steps, key) {
+          var HEAD_H = 8;
+          checkPage(HEAD_H + 12);
+          var headers = ['NO','STEP OF WORK','Y','N','REMARK/NOTE'];
+          var hx = marginX;
+          doc.setFillColor(30,58,138); doc.setDrawColor(20,40,110); doc.setLineWidth(0.3);
+          doc.rect(marginX, y, contentW, HEAD_H, 'FD');
+          hx = marginX;
+          headers.forEach(function(h,i){ doc.rect(hx, y, PULV_COLS[i], HEAD_H, 'S'); hx += PULV_COLS[i]; });
+          doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(255,255,255);
+          hx = marginX;
+          headers.forEach(function(h,i){ doc.text(h, hx+PULV_COLS[i]/2, y+5.4, {align:'center'}); hx += PULV_COLS[i]; });
+          doc.setDrawColor(200,215,230); doc.setLineWidth(0.3);
+          y += HEAD_H;
+
+          steps.forEach(function(step, i){
+            var rid = 'cf4k_'+key+'_'+(i+1);
+            var yn = cf4kGetYN(rid);
+            var remark = gv(rid+'_remark');
+            // PENTING: font di-set SEBELUM splitTextToSize supaya lebar wrap yang
+            // dihitung PERSIS sama dengan font yang beneran dipakai buat gambar
+            // teksnya nanti -- kalau beda (misal masih kebawa font header sebelumnya),
+            // jumlah baris hasil wrap bisa meleset dari rowH yang dihitung, dan
+            // selnya jadi ada sisa ruang kosong (bug yang sama seperti kotak
+            // Asset Description sebelumnya).
+            doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+            var workLines = doc.splitTextToSize(step.work, PULV_COLS[1]-4);
+            doc.setFontSize(7);
+            var remLines = doc.splitTextToSize(safe(remark), PULV_COLS[4]-4);
+            var lineH = 3.6;
+            var rowH = Math.max(8, Math.max(workLines.length, remLines.length)*lineH + 3.2);
+            checkPage(rowH + 2);
+            var bg = (i%2===0) ? [255,255,255] : [246,249,253];
+            var rx = marginX;
+            doc.setFillColor(bg[0],bg[1],bg[2]);
+            PULV_COLS.forEach(function(w){ doc.rect(rx, y, w, rowH, 'FD'); rx += w; });
+            doc.setDrawColor(200,215,230); doc.setLineWidth(0.3);
+
+            doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(30,58,138);
+            doc.text(String(i+1), marginX+PULV_COLS[0]/2, y+5, {align:'center'});
+
+            doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(20,30,25);
+            // Digambar per-baris manual (bukan doc.text(array,...)) dengan jarak
+            // lineH yang SAMA dipakai buat hitung rowH -- jsPDF punya jarak
+            // antar-baris bawaan sendiri kalau dikasih array, yang bisa beda dari
+            // lineH kita, jadi teksnya berpotensi lebih pendek dari sel dan nyisa
+            // ruang kosong di bawah.
+            workLines.forEach(function(ln, li){ doc.text(ln, marginX+PULV_COLS[0]+2, y+4.8+li*lineH); });
+
+            var yx = marginX+PULV_COLS[0]+PULV_COLS[1];
+            var nx = yx+PULV_COLS[2];
+            if (yn === 'Y') { drawCheckboxBs(doc, yx, y, PULV_COLS[2], rowH, true, 'green'); }
+            if (yn === 'N') { drawCheckboxBs(doc, nx, y, PULV_COLS[3], rowH, true, 'red'); }
+
+            var rmx = nx+PULV_COLS[3];
+            doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(50,50,50);
+            remLines.forEach(function(ln, li){ doc.text(ln, rmx+2, y+4.8+li*lineH); });
+
+            y += rowH;
+          });
+          y += 3;
+        }
+
+        function drawPulvEvidence(key) {
+          drawEvidenceFlow(cf4kEvidence[key] || []);
+        }
+
+        // Estimasi tinggi tabel SEBELUM digambar, supaya judul asset bisa dipaksa
+        // pindah halaman BERSAMA tabelnya (tidak nyangkut sendirian di ujung halaman).
+        function estimatePulvStepTableHeight(steps, key) {
+          var h = 8; // tinggi header
+          steps.forEach(function(step, i){
+            var rid = 'cf4k_'+key+'_'+(i+1);
+            var remark = gv(rid+'_remark');
+            // Font di-set sama seperti render aslinya di drawPulvStepTable, supaya
+            // estimasi tinggi ini akurat (dipakai buat keputusan page-break).
+            doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+            var workLines = doc.splitTextToSize(step.work, PULV_COLS[1]-4);
+            doc.setFontSize(7);
+            var remLines = doc.splitTextToSize(safe(remark), PULV_COLS[4]-4);
+            h += Math.max(8, Math.max(workLines.length, remLines.length)*3.6 + 3.2);
+          });
+          return h + 3;
+        }
+        function estimateCalTableHeight(rows) { return 9 + rows.length*9 + 4; }
+
+        CF4K_GROUPS.forEach(function(group){
+          var anyChecked = group.assets.some(function(asset){
+            var chk = document.getElementById('cf4kChk_'+group.key+'_'+asset.slug);
+            return chk && chk.checked;
+          });
+          if (!anyChecked) return;
+          subHeader(group.title);
+          group.assets.forEach(function(asset){
+            var key = group.key+'_'+asset.slug;
+            var chk = document.getElementById('cf4kChk_'+key);
+            if (!chk || !chk.checked) return;
+
+            var titleTxt = asset.code ? (asset.code+' \u2014 '+asset.desc) : asset.desc;
+            var titleLines = doc.splitTextToSize(titleTxt, contentW-4);
+            var titleH = titleLines.length*4.2 + 3;
+
+            // Hitung perkiraan tinggi tabel yang mengikuti judul ini
+            var contentH;
+            if (asset.type === 'feedercal') {
+              contentH = estimateCalTableHeight(CF_CAL1_ROWS) + estimateCalTableHeight(CF_CAL2_ROWS);
+            } else if (asset.steps && asset.steps.length) {
+              contentH = estimatePulvStepTableHeight(asset.steps, key);
+            } else {
+              contentH = 8;
+            }
+            // Batasi supaya tidak melebihi 1 halaman penuh (kalau tabelnya sendiri
+            // memang lebih panjang dari 1 halaman, biarkan checkPage per-baris yang urus)
+            var maxUsable = ph - marginTop - marginBottom - 10;
+            checkPage(titleH + Math.min(contentH, maxUsable));
+
+            doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(20,30,25);
+            doc.text(titleLines, marginX+2, y+4);
+            y += titleH;
+
+            if (asset.type === 'feedercal') {
+              drawCalTable(cf4kRemapCalRows(CF_CAL1_ROWS,'cf4kcal1'), 1);
+              checkPage(5);
+              drawCalTable(cf4kRemapCalRows(CF_CAL2_ROWS,'cf4kcal2'), 2);
+            } else if (asset.steps && asset.steps.length) {
+              drawPulvStepTable(asset.steps, key);
+            } else {
+              checkPage(8);
+              doc.setFont('helvetica','italic'); doc.setFontSize(8); doc.setTextColor(140,140,140);
+              doc.text('Tabel step of work belum ditambahkan.', marginX+2, y+4);
+              y += 8;
+            }
+            drawPulvEvidence(key);
+            y += 2;
+          });
+        });
+      } // end if(doPulv)
+
+
+      var nPages = doc.internal.getNumberOfPages();
+      for (var i=1; i<=nPages; i++) { doc.setPage(i); }
+
+      // Penamaan file PDF khusus modul Coal Feeder:
+      // - Kalau 4000 HR PM (Pulverizer Instrumentation) ikut dicetak -> ini yang
+      //   menentukan nama, TIDAK PEDULI Feeder Calibration/Test Demand Signal
+      //   ikut dicentang atau tidak.
+      // - Kalau 4000 HR PM TIDAK dicentang (jadi cuma Feeder Calibration dan/atau
+      //   Test Demand Signal yang dicetak) -> pakai format Workorder_FeederCalibration_Feedernomor.
+      var feederNoPart = pdfNamePart(gv('cfFeederNo'), 20) || 'FeederNo';
+      var pdfFilename;
+      if (doPulv) {
+        pdfFilename = 'PM_4000Hr_and_Feedercalibration_' + feederNoPart + '.pdf';
+      } else {
+        var woPart = pdfNamePart(gv('cfWO'), 30) || 'NoWO';
+        pdfFilename = woPart + '_FeederCalibration_' + feederNoPart + '.pdf';
+      }
+      dbShowSavingOverlay(false);
+      showPdfPreview(doc, pdfFilename);
+
+    } catch(err) { dbShowSavingOverlay(false); alert('PDF Error: '+err.message); console.error(err); }
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+// init toggle label state
+toggleSections();
+setInterval(function(){
+  var el=document.getElementById('clockFeeder');
+  if(el) el.textContent=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+},1000);
+
+initReportBackground();
+renderPresetButtons();
+initCropDrag();
+render4kAssets();
+
+(function(){
+  var today=new Date();
+  var el=document.getElementById('cfDate');
+  if(el&&!el.value) el.value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+})();
+
+// ── LOAD FROM HISTORY (?id=xxx&print=1) / RESTORE DRAFT (autosave) ────────────
+function applyRecordToForm(rec, editingId) {
+  var data = rec.data || {};
+  if (typeof data === 'string') { try { data = JSON.parse(data); } catch(e) { data = {}; } }
+  window._editingId = editingId || null;
+  var sv = function(id2,val){ var e=document.getElementById(id2); if(e) e.value=val||''; };
+  sv('cfDate',     rec.tanggal    || data.tanggal    || '');
+  sv('cfPIC',      rec.pic        || data.pic        || '');
+  sv('cfWO',       rec.work_order || data.work_order || '');
+  sv('cfFeederNo', data.feeder_no||''); sv('cfRef', data.reference||''); sv('cfNote', data.note||'');
+  if (data.checked_by) sv('cfCheckedBy', data.checked_by);
+  sv('cfAssetList', data.asset_list||''); sv('cfAssetDescList', data.asset_desc_list||'');
+  if (data.cal1) {
+    var map1 = {deviation:'cal1_dev', pulses_per_length:'cal1_ppl', belt_circuit_no:'cal1_bcn', basic_tare:'cal1_bt'};
+    Object.keys(map1).forEach(function(k){
+      var arr=data.cal1[k]||[]; arr.forEach(function(v,i){ sv(map1[k]+(i+1),v); });
+    });
+  }
+  if (data.cal2) {
+    var map2 = {deviation:'cal2_dev', pulses_per_length:'cal2_ppl', belt_circuit_no:'cal2_bcn', range_correction_tw:'cal2_rctw'};
+    Object.keys(map2).forEach(function(k){
+      var arr=data.cal2[k]||[]; arr.forEach(function(v,i){ sv(map2[k]+(i+1),v); });
+    });
+  }
+  if (data.images) {
+    cfImages = data.images.map(function(img){
+      var o = {name:img.name,dataUrl:img.dataUrl,type:img.type||'image/jpeg',caption:img.caption||''};
+      if (img.widthCm) o.widthCm = img.widthCm;
+      if (img.heightCm) o.heightCm = img.heightCm;
+      if (img.offsetX) o.offsetX = img.offsetX;
+      return o;
+    });
+    cfRenderPreviews();
+  }
+  if (data.demand) {
+    var pcts = ['100','75','50','25','0'];
+    var dfields = ['ai3','ao1','ao2','fr_act','sp','rpm','freq','load','volt','curr','blt'];
+    pcts.forEach(function(p) {
+      if (!data.demand[p]) return;
+      dfields.forEach(function(f){ sv('td_'+f+'_'+p, data.demand[p][f]||''); });
+    });
+  }
+  if (data.print_feeder !== undefined) {
+    var fc = document.getElementById('chk-feeder'); if(fc) fc.checked = !!data.print_feeder;
+    var fsec = document.getElementById('section-feeder'); if(fsec) fsec.style.display = data.print_feeder ? '' : 'none';
+    cfUpdateToggleLabel('feeder', !!data.print_feeder);
+  }
+  if (data.print_demand !== undefined) {
+    var dc = document.getElementById('chk-demand'); if(dc) dc.checked = !!data.print_demand;
+    var dsec = document.getElementById('section-demand'); if(dsec) dsec.style.display = data.print_demand ? '' : 'none';
+    cfUpdateToggleLabel('demand', !!data.print_demand);
+  }
+  if (data.print_4000hr !== undefined) {
+    var hc = document.getElementById('chk-4000hr'); if(hc) hc.checked = !!data.print_4000hr;
+    var hsec = document.getElementById('section-4000hr'); if(hsec) hsec.style.display = data.print_4000hr ? '' : 'none';
+    cfUpdateToggleLabel('4000hr', !!data.print_4000hr);
+  }
+  if (data.cf4k) { if (typeof render4kAssets === 'function') render4kAssets(); cf4kApplyData(data.cf4k); }
+}
+
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var id = params.get('id'), doPrint = params.get('print')==='1';
+  if (params.get('embed') === '1') window._pdfEmbedMode = true;
+  var doAutosubmit = params.get('autosubmit') === '1';
+  if (!id) return;
+  dbLoad(id, function(rec) {
+    setTimeout(function(){
+      applyRecordToForm(rec, id);
+      dbShowToast('Data dimuat dari riwayat \u2713');
+      if (doPrint) { ensureReportBackground(function(){ setTimeout(cfDownloadPdf,300); }); }
+      if (doAutosubmit) { window._raBuildPdf = cfDownloadPdf; raSubmitReportAuto(); }
+    }, 800);
+  });
+})();
+
+/* ── AUTOSAVE DRAFT (fitur F, pola shared.js) ──
+   Melindungi isi form (belum sempat Simpan) kalau halaman tertutup/reload
+   tidak sengaja. dbCollectData('coal_feeder') sudah tersedia di atas. */
+window.CURRENT_MODUL = 'coal_feeder';
+function restoreDraftData(rec, editingId) {
+  applyRecordToForm(rec, editingId);
+  dbShowToast('📝 Draft sebelumnya dipulihkan');
+}
+
+</script>
+<div id="pdfPreviewModal" class="pdf-preview-modal">
+    <div class="pdf-preview-dialog">
+        <div class="pdf-preview-header">
+            <button type="button" class="pdf-preview-close-x" onclick="closePdfPreview()" aria-label="Tutup">✕</button>
+            <div class="pdf-preview-title">📄 Preview Hasil PDF</div>
+            <div class="pdf-preview-hint">Ini tampilan asli file PDF-nya, cek dulu sebelum download</div>
+        </div>
+        <div class="pdf-preview-body"><div id="pdfPreviewFrame" class="pdf-canvas-container"></div></div>
+        <div class="pdf-preview-footer">
+            <button class="crop-btn crop-btn-outline" onclick="closePdfPreview()">✏️ Tutup, Edit Lagi</button>
+            <button class="crop-btn crop-btn-save" onclick="confirmDownloadPdf()">⬇ Download PDF</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

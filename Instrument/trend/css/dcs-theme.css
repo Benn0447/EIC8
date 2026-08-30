@@ -1,0 +1,231 @@
+/**
+ * ==========================================================================
+ * TEMA — DCS TREND MONITORING SYSTEM (LIGHT / WHITE)
+ * ==========================================================================
+ * Semua warna lewat CSS variable di :root supaya konsisten di 3 halaman
+ * (index.html hub, trend_so2.html, trend_fegt.html) tanpa duplikasi.
+ * Font tetap monospace (nuansa engineering/DCS), tapi palet sekarang
+ * terang — bukan lagi dark-room SCADA.
+ * ========================================================================== 
+ */
+:root {
+  --bg-main: #ffffff;
+  --bg-panel: #f7f9fb;
+  --bg-panel-alt: #eef1f5;
+  --border-soft: #e2e7ec;
+  --border-strong: #c7d0d9;
+  --text-primary: #16212b;
+  --text-secondary: #56646f;
+  --text-dim: #8a97a1;
+
+  --accent-cyan: #0876a3;
+  --accent-cyan-tint: rgba(8, 118, 163, 0.08);
+  --accent-cyan-tint-strong: rgba(8, 118, 163, 0.14);
+  --accent-green: #17874a;
+  --accent-amber: #b5690a;
+  --accent-amber-tint: rgba(181, 105, 10, 0.1);
+  --accent-red: #c62839;
+
+  --status-ok: #17874a;
+  --status-warn: #b5690a;
+  --status-bad: #c62839;
+
+  --shadow-card: 0 1px 2px rgba(22, 33, 43, 0.05), 0 4px 16px rgba(22, 33, 43, 0.05);
+  --shadow-card-hover: 0 2px 4px rgba(22, 33, 43, 0.06), 0 10px 28px rgba(22, 33, 43, 0.08);
+}
+
+body { background: var(--bg-main); }
+
+.topbar {
+  background: linear-gradient(180deg, #ffffff 0%, var(--bg-panel) 100%);
+  border-bottom: 1px solid var(--border-strong);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset;
+}
+
+.topbar-title { color: var(--accent-cyan); }
+.topbar-home-link { color: var(--accent-cyan); text-decoration: none; border-bottom: 1px dotted var(--accent-cyan); }
+.topbar-home-link:hover { color: var(--text-primary); border-bottom-style: solid; }
+
+.topbar-status .dot { background: var(--status-ok); box-shadow: 0 0 4px rgba(23,135,74,0.5); }
+.topbar-status.disconnected .dot { background: var(--status-bad); box-shadow: 0 0 4px rgba(198,40,57,0.5); }
+
+.topbar-clock { color: var(--text-secondary); }
+
+.modebar {
+  background: var(--bg-panel-alt);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.modebar-label { color: var(--text-dim); }
+
+.mode-btn {
+  background: var(--bg-main);
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+.mode-btn:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+.mode-btn-active {
+  background: var(--accent-cyan-tint);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.panel-tags, .panel-details {
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border-soft);
+}
+.panel-details { border-right: none; border-left: 1px solid var(--border-soft); }
+
+.panel-header { color: var(--text-dim); border-bottom: 1px solid var(--border-soft); }
+
+.tag-search-wrap input {
+  background: var(--bg-main);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  color: var(--text-primary);
+}
+.tag-search-wrap input:focus { outline: none; border-color: var(--accent-cyan); box-shadow: 0 0 0 3px var(--accent-cyan-tint); }
+
+/* Aksen warna kiri per tag — dari warna series chart-nya sendiri (di-set
+   inline lewat --tag-accent di js/ui-manager.js), biar TAG LIST langsung
+   "berbicara" warna yang sama dengan garis di grafik. Fallback abu-abu
+   netral kalau --tag-accent belum di-set (mis. sebelum tag punya series). */
+.tag-row { position: relative; overflow: hidden; border: 1px solid var(--border-soft); background: var(--bg-main); }
+.tag-row::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--tag-accent, var(--border-strong));
+}
+.tag-row:hover { border-color: var(--border-strong); box-shadow: var(--shadow-card-hover); }
+.tag-row-active { border-color: var(--accent-cyan); background: var(--accent-cyan-tint); box-shadow: var(--shadow-card); }
+
+.tag-id { color: var(--accent-cyan); }
+.tag-name { color: var(--text-secondary); }
+.tag-meta { color: var(--text-dim); }
+.tag-empty, .details-empty { color: var(--text-dim); }
+
+.panel-chart, .panel-historical, .panel-extra { background: var(--bg-main); }
+
+.chart-toolbar { border-bottom: 1px solid var(--border-soft); }
+.chart-title { color: var(--text-primary); }
+
+.icon-btn {
+  background: var(--bg-main);
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+.icon-btn:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+.live-notice { color: var(--text-dim); border: 1px dashed var(--border-strong); margin: 20px; border-radius: 4px; }
+
+.historical-panel { background: var(--bg-panel-alt); border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); }
+.range-bar-label { color: var(--text-dim); }
+
+.range-btn { background: var(--bg-main); border: 1px solid var(--border-strong); color: var(--text-secondary); }
+.range-btn:hover { border-color: var(--accent-amber); color: var(--accent-amber); }
+.range-btn-active { background: var(--accent-amber-tint); border-color: var(--accent-amber); color: var(--accent-amber); }
+
+.custom-range-row input { background: var(--bg-main); border: 1px solid var(--border-soft); border-radius: 6px; color: var(--text-primary); }
+
+.load-btn { background: var(--accent-cyan); border: 1px solid var(--accent-cyan); color: #ffffff; font-weight: 700; box-shadow: var(--shadow-card); }
+.load-btn:hover { filter: brightness(1.1); box-shadow: var(--shadow-card-hover); }
+.load-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.loading-indicator { color: var(--accent-amber); }
+
+.detail-label { color: var(--text-dim); }
+.detail-value { color: var(--text-primary); }
+.detail-desc { color: var(--text-secondary); }
+
+.cursor-readout { color: var(--accent-amber); border-bottom: 1px solid var(--border-soft); }
+.value-row { background: var(--bg-main); border: 1px solid var(--border-soft); box-shadow: var(--shadow-card); }
+.value-num { color: var(--text-primary); }
+.value-unit { color: var(--text-dim); }
+
+.status-bar { background: var(--bg-panel); border-top: 1px solid var(--border-strong); color: var(--text-dim); }
+.status-bar .status-conn { color: var(--text-secondary); }
+.dot-ok { background: var(--status-ok); box-shadow: 0 0 4px rgba(23,135,74,0.5); }
+.dot-warn { background: var(--status-warn); box-shadow: 0 0 4px rgba(181,105,10,0.5); }
+.dot-bad { background: var(--status-bad); box-shadow: 0 0 4px rgba(198,40,57,0.5); }
+
+/* ==========================================================================
+   MODULE VIEW — tab per modul, KPI cards, panel deviasi, tabel log
+   (lihat js/module-view.js + config/modules/*.config.js)
+   ========================================================================== */
+.module-tab-bar {
+  display: flex; gap: 2px; padding: 0 12px;
+  background: var(--bg-panel-alt); border-bottom: 1px solid var(--border-soft);
+}
+.module-tab {
+  background: transparent; border: none; border-bottom: 2px solid transparent;
+  color: var(--text-secondary); padding: 8px 14px; font-family: inherit; font-size: 12px;
+  letter-spacing: .04em; cursor: pointer;
+}
+.module-tab:hover { color: var(--accent-cyan); }
+.module-tab-active { color: var(--accent-cyan); border-bottom-color: var(--accent-cyan); }
+
+.module-kpi-bar {
+  display: flex; flex-direction: column; gap: 8px; padding: 12px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+.module-tag-group-label {
+  color: var(--accent-cyan); font-size: 10.5px; letter-spacing: .04em;
+  margin: 6px 0 4px; text-transform: uppercase;
+}
+.kpi-card {
+  position: relative;
+  background: var(--bg-main); border: 1px solid var(--border-soft);
+  border-radius: 8px; padding: 9px 14px 9px 16px; min-width: 120px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow .15s, transform .15s;
+  overflow: hidden;
+}
+.kpi-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--accent-cyan);
+}
+/* 4 metrik per grup tag (baca/baca-2/deviasi/hari) dapat warna berbeda-beda
+   biar sekilas gampang dibedakan tanpa harus baca labelnya — masing-masing
+   .kpi-group-row grup punya urutan anak sendiri jadi nth-child ini otomatis
+   mulai dari 1 lagi tiap grup, bukan lanjut dari grup sebelumnya. */
+.kpi-group-row .kpi-card:nth-child(1)::before { background: var(--accent-cyan); }
+.kpi-group-row .kpi-card:nth-child(2)::before { background: var(--accent-amber); }
+.kpi-group-row .kpi-card:nth-child(3)::before { background: #7a52a8; }
+.kpi-group-row .kpi-card:nth-child(4)::before { background: var(--accent-green); }
+.kpi-card:hover { box-shadow: var(--shadow-card-hover); transform: translateY(-1px); }
+.kpi-card-label { color: var(--text-dim); font-size: 10px; letter-spacing: .05em; margin-bottom: 4px; }
+.kpi-card-value { color: var(--text-primary); font-size: 16px; font-weight: 600; }
+.module-log-empty { color: var(--text-dim); font-size: 11px; padding: 4px 0 10px; }
+
+.module-deviation-area { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+.deviation-panel {
+  background: var(--bg-main); border: 1px solid var(--border-soft); border-left: 3px solid var(--accent-green);
+  border-radius: 8px; padding: 10px 12px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow .15s, border-left-color .15s;
+}
+/* Deviasi terakhir di luar band toleransi -> aksen kiri jadi merah, tanpa
+   perlu JS tambahan (deteksi lewat kelas .deviation-out yang sudah dipasang
+   di dalam panel ini oleh module-view.js). */
+.deviation-panel:has(.deviation-out) { border-left-color: var(--accent-red); }
+.deviation-panel:hover { box-shadow: var(--shadow-card-hover); }
+.deviation-panel-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+.deviation-panel-title { color: var(--text-secondary); font-size: 11px; letter-spacing: .04em; }
+.deviation-panel-last { color: var(--accent-green); font-size: 13px; font-weight: 600; }
+.deviation-panel-last.deviation-out { color: var(--accent-red); }
+.deviation-panel-desc { color: var(--text-secondary); font-size: 10px; margin-bottom: 4px; }
+.deviation-panel-chart { height: 130px; width: 100%; }
+.deviation-panel-empty {
+  height: 40px; display: flex; align-items: center;
+  color: var(--text-dim); font-size: 10.5px; font-style: italic;
+}
+
+.module-log-wrap { padding: 10px 12px; overflow-x: auto; }
+.module-log-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.module-log-table th {
+  text-align: left; color: var(--text-dim); font-weight: 600; letter-spacing: .04em;
+  border-bottom: 1px solid var(--border-strong); padding: 6px 8px; position: sticky; top: 0; background: var(--bg-panel);
+}
+.module-log-table td { color: var(--text-primary); padding: 6px 8px; border-bottom: 1px solid var(--border-soft); }
+.module-log-table tr:hover td { background: var(--accent-cyan-tint); }

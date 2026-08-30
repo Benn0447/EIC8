@@ -1,0 +1,400 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ==========================================================================
+   HALAMAN SELALU BISA DISCROLL NATURAL — di semua ukuran layar.
+   ==========================================================================
+   Versi sebelumnya memakai desain "1 layar penuh, tidak discroll" ala SCADA
+   (html,body {overflow:hidden; height:100vh}) dengan HANYA .panel-center
+   yang boleh discroll internal. Itu jadi bug begitu konten modul (tab,
+   KPI cards, panel deviasi, tabel log) bertambah tinggi: .module-tab-bar
+   dan .module-kpi-bar ada DI LUAR .panel-center, jadi kalau kursor mouse
+   scroll di area itu (atau di panel-tags/panel-details), TIDAK ADA efek
+   sama sekali karena ancestor-nya overflow:hidden — user mengira halaman
+   "tidak bisa discroll", padahal cuma satu kolom sempit di tengah yang bisa.
+   Fix: halaman (html/body) sendiri yang discroll, seperti browser pada
+   umumnya. Tidak ada lagi area "mati" yang scroll-nya tidak nyambung.
+   ========================================================================== */
+html, body {
+  min-height: 100%;
+  font-family: 'Consolas', 'Courier New', monospace;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── TOP BAR ─────────────────────────────────────────────── */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  row-gap: 4px;
+  padding: 10px 16px;
+}
+
+.topbar-title {
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  font-size: 14px;
+}
+
+.topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.topbar-clock {
+  margin-left: auto;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+/* ── MODE BAR ────────────────────────────────────────────── */
+.modebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  row-gap: 6px;
+  padding: 8px 16px;
+}
+
+.modebar-label { font-size: 11px; letter-spacing: 1px; margin-right: 4px; }
+
+.mode-btn {
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 7px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, box-shadow .15s;
+}
+
+/* ── MODULE TAB / KPI BAR ────────────────────────────────── */
+.module-tab-bar {
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+/* ── MAIN GRID ───────────────────────────────────────────────────────────
+   Grid (bukan flex) supaya urutan SUMBER di HTML bisa mobile-first sesuai
+   alur pemakaian yang diminta: chart → historical (rentang waktu) → tags
+   (pilihan tag) → values (data yang dipilih) → kpi → extra (deviasi+log) —
+   sementara desktop tetap tampil 3 kolom klasik lewat grid-template-areas
+   (urutan baris di kolom tengah desktop TIDAK harus sama dengan urutan
+   sumber mobile, karena grid-area membaca posisi lewat nama, bukan DOM).
+   ────────────────────────────────────────────────────────────────────── */
+.main-grid {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 240px;
+  grid-template-areas:
+    "tags chart      values"
+    "tags kpi        values"
+    "tags historical values"
+    "tags extra      values";
+  align-items: start;
+}
+
+.panel-tags {
+  grid-area: tags;
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh; /* daftar tag panjang scroll sendiri di sini, bukan bikin sidebar raksasa */
+  position: sticky;
+  top: 0;
+}
+
+.panel-chart {
+  grid-area: chart;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.module-kpi-bar { grid-area: kpi; }
+.kpi-group-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.panel-historical {
+  grid-area: historical;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.panel-extra {
+  grid-area: extra;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.panel-details {
+  grid-area: values;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  max-height: 70vh;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+}
+
+.panel-header {
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 8px 12px;
+  flex-shrink: 0;
+}
+
+.tag-search-wrap { padding: 0 10px 8px; flex-shrink: 0; }
+.tag-search-wrap input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 6px 8px;
+}
+
+.tag-list-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 6px;
+}
+
+.tag-row {
+  padding: 8px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+
+.tag-row-top { display: flex; align-items: center; gap: 6px; }
+.tag-id { font-weight: 700; font-size: 12px; letter-spacing: 0.5px; }
+.tag-name { font-size: 10.5px; margin: 3px 0 2px 20px; }
+.tag-meta { margin-left: 20px; font-size: 9.5px; }
+.tag-empty, .details-empty { padding: 16px; text-align: center; font-size: 11px; }
+
+/* ── CHART AREA ──────────────────────────────────────────── */
+.chart-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 6px;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.chart-title { font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
+.chart-toolbar-spacer { flex: 1; }
+
+.icon-btn {
+  font-family: inherit;
+  font-size: 10.5px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, box-shadow .15s;
+}
+
+.chart-wrap {
+  /* Chart tetap besar & jelas (referensi: PI ProcessBook trend display),
+     tinggi mengikuti viewport dengan batas wajar — TAPI sekarang halaman
+     boleh discroll, jadi ini tidak perlu memaksa sisa layar habis. */
+  height: clamp(380px, 55vh, 620px);
+  position: relative;
+  padding: 4px 12px 12px;
+}
+
+#trendChart { width: 100%; height: 100%; }
+
+.live-notice {
+  display: none;
+  padding: 40px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+/* ── HISTORICAL CONTROL BAR ─────────────────────────────── */
+.historical-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.range-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.range-bar-label { font-size: 10.5px; letter-spacing: 1px; margin-right: 6px; }
+
+.range-btn {
+  font-family: inherit;
+  font-size: 10.5px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: 38px;
+  transition: border-color .15s, color .15s, box-shadow .15s;
+}
+
+.custom-range-row {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 10.5px;
+}
+.custom-range-open .custom-range-row { display: flex; }
+
+.custom-range-row input[type=date],
+.custom-range-row input[type=time] {
+  font-family: inherit;
+  font-size: 11px;
+  padding: 4px 6px;
+}
+
+.load-btn {
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 8px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: filter .15s, box-shadow .15s, transform .15s;
+}
+.load-btn:active { transform: translateY(1px); }
+
+.loading-indicator { font-size: 10.5px; display: none; }
+
+/* ── DETAILS PANEL ───────────────────────────────────────── */
+.detail-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 11px; }
+.detail-label { letter-spacing: 0.5px; }
+.detail-value { font-weight: 700; }
+.detail-desc { margin-top: 10px; font-size: 10.5px; line-height: 1.5; }
+
+/* ── VALUES PANEL (kanan) — nilai per series, ikut cursor grafik ───── */
+.cursor-readout {
+  font-size: 10px;
+  padding: 6px 12px;
+  display: none;
+  letter-spacing: 0.5px;
+}
+
+.value-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  transition: box-shadow .15s, border-color .15s;
+}
+
+.value-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.3px; }
+.value-num { font-size: 15px; font-weight: 700; }
+.value-unit { font-size: 10px; font-weight: 400; }
+
+/* ── STATUS BAR ──────────────────────────────────────────── */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  row-gap: 4px;
+  padding: 8px 14px;
+  font-size: 10.5px;
+}
+
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 3px; }
+
+/* ── SCROLLBARS ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ── RESPONSIVE / MOBILE ─────────────────────────────────────────────────
+   Mobile TIDAK LAGI sekadar "3 kolom desktop diperkecil" — itu bug lama
+   (sidebar tags/values ikut memaksa lebar minimum sehingga layar HP
+   menampilkan 3 kolom sempit berdampingan alih-alih ditumpuk).
+   Sekarang di lebar ini .main-grid berhenti jadi grid 3-kolom dan kontennya
+   mengalir sesuai URUTAN SUMBER di HTML — yang sengaja ditulis mobile-first:
+   1. chart (tampilan trend) → 2. historical (rentang waktu sampai 90D/
+   1-3 TAHUN + LOAD DATA) → 3. tags (pilihan tag) → 4. values (data tag
+   yang dipilih) → 5. kpi & extra (sisanya: KPI cards + deviasi + log).
+   Tidak perlu `order` sama sekali — DOM sudah dalam urutan ini.
+   Toolbar chart & baris KPI sengaja dibuat SATU BARIS yang discroll
+   horizontal (bukan wrap ke banyak baris) — sebelumnya tombol export/KPI
+   card wrap jadi 3-4 baris dan mendorong grafik jauh ke bawah.
+   ────────────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .topbar-title { flex-basis: 100%; }
+  .topbar-clock { margin-left: 0; }
+  .mode-btn { flex: 1 1 auto; }
+
+  .kpi-group-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .kpi-card { flex: 0 0 auto; min-width: 140px; }
+
+  .main-grid { display: block; }
+
+  .panel-chart, .panel-historical, .panel-extra, .module-kpi-bar { width: 100%; }
+
+  .panel-tags {
+    width: 100%;
+    max-height: 260px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-soft);
+    position: static;
+  }
+
+  .panel-details {
+    width: 100%;
+    max-height: 300px;
+    border-left: none;
+    border-top: 1px solid var(--border-soft);
+    position: static;
+  }
+
+  .chart-wrap { height: 300px; padding: 4px 8px 10px; }
+
+  /* Toolbar jadi 1 baris yang discroll horizontal, bukan wrap ke bawah
+     (dulu chart-toolbar-spacer dipaksa flex-basis:100% supaya tombol
+     turun ke baris baru — itu yang bikin area atas jadi tinggi sekali). */
+  .chart-toolbar { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .chart-title { flex-shrink: 0; }
+  .chart-toolbar-spacer { flex: 0 0 8px; }
+  .icon-btn, .loading-indicator { flex-shrink: 0; }
+
+  .historical-panel { padding: 8px; }
+  .range-btn { flex: 1 1 auto; }
+
+  .custom-range-row { row-gap: 6px; }
+  .custom-range-row input[type=date],
+  .custom-range-row input[type=time] { flex: 1 1 auto; min-width: 110px; }
+
+  .load-btn { width: 100%; padding: 10px 16px; }
+
+  .deviation-panel-chart { height: 140px; }
+
+  .module-log-wrap { max-height: 260px; overflow-y: auto; }
+  .module-log-table { font-size: 10px; }
+}
+
+@media (max-width: 480px) {
+  html, body { font-size: 12px; }
+  .panel-tags { max-height: 220px; }
+  .panel-details { max-height: 260px; }
+  .chart-wrap { height: 260px; }
+}
