@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>1 Monthly PM UPS — 7EB-UPS-A/B</title>
+<title>1 Monthly PM UPS — 8EB-UPS-A/B</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -186,7 +186,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
 <body>
 
 <div class="print-header" id="print-header">
-  <div><strong>POMI — 1 Monthly PM UPS — 7EB-UPS-A/B</strong><br>
+  <div><strong>POMI — 1 Monthly PM UPS — 8EB-UPS-A/B</strong><br>
     <span id="ph-equip">—</span></div>
   <div style="text-align:right">Date: <span id="ph-date">—</span><br>
     Checked by: <span id="ph-checked">—</span></div>
@@ -197,7 +197,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
   <div class="live-dot"></div>
   <span class="tb-logo">UPS <em>PM</em></span>
   <div class="tb-sep"></div>
-  <span class="tb-sub">7EB-UPS-A/B · 1 MONTHLY PREVENTIVE MAINTENANCE</span>
+  <span class="tb-sub">8EB-UPS-A/B · 1 MONTHLY PREVENTIVE MAINTENANCE</span>
   <div class="tb-right">
     <a class="btn-back" href="index.html" title="Back to Portal">&#8592; Portal</a>
     
@@ -213,7 +213,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
 <div class="hero">
   <div class="hero-eyebrow">1 Monthly Preventive Maintenance</div>
   <div class="hero-title">7EB-<em>UPS</em>-A/B</div>
-  <div class="hero-sub">Unit 7 · Uninterruptible Power Supply A &amp; B · 3-Cabinet: Rectifier (CAB1) / Inverter (CAB2) / Manual Back Pass (CAB3)</div>
+  <div class="hero-sub">Unit 8 · Uninterruptible Power Supply A &amp; B · 3-Cabinet: Rectifier (CAB1) / Inverter (CAB2) / Manual Back Pass (CAB3)</div>
   <div class="hero-stats">
     <div class="hstat"><span class="hstat-n" id="h-total">0</span><span class="hstat-l">Total</span></div>
     <div class="hstat"><span class="hstat-n ok" id="h-ok">0</span><span class="hstat-l">OK</span></div>
@@ -241,7 +241,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
       </div>
       <div class="mf"><label>Equipment</label>
         <select id="wo-equip">
-          <option>7EB-UPS-A/B</option><option>7EB-UPS-A</option><option>7EB-UPS-B</option>
+          <option>8EB-UPS-A/B</option><option>8EB-UPS-A</option><option>8EB-UPS-B</option>
         </select>
       </div>
       <div class="mf"><label>Checked By</label><input type="text" id="checked-by" placeholder="Full name"></div>
@@ -485,7 +485,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
 </div>
 
 <footer class="footer">
-  <div class="footer-l">UNIT 7 · 7EB-UPS-A/B · 1 MONTHLY PREVENTIVE MAINTENANCE</div>
+  <div class="footer-l">UNIT 7 · 8EB-UPS-A/B · 1 MONTHLY PREVENTIVE MAINTENANCE</div>
   <div class="footer-r" id="fdate">—</div>
 </footer>
 
@@ -873,7 +873,7 @@ async function generatePDF(opts){
   function miniHdr(){
     pdf.setFillColor(...NAVY);pdf.rect(0,0,W,8,'F');
     pdf.setTextColor(...SKY);pdf.setFont('times','bold');pdf.setFontSize(7);
-    pdf.text('1 MONTHLY PM UPS — 7EB-UPS-A/B',M,5.5);
+    pdf.text('1 MONTHLY PM UPS — 8EB-UPS-A/B',M,5.5);
     pdf.setFont('times','normal');pdf.setFontSize(6.5);
     pdf.text(`Date: ${fv('wo-date')||'—'}  By: ${fv('checked-by')||'—'}`,W-M,5.5,{align:'right'});
     y=12;
@@ -883,12 +883,12 @@ async function generatePDF(opts){
   pdf.setFillColor(...NAVY);pdf.rect(0,0,W,35,'F');
   pdf.setFillColor(...BLUE);pdf.rect(0,33,W,2,'F');
   pdf.setTextColor(255,255,255);pdf.setFont('times','bold');pdf.setFontSize(18);
-  pdf.text('7EB-UPS-A/B',M,13);
+  pdf.text('8EB-UPS-A/B',M,13);
   pdf.setFontSize(10);pdf.setTextColor(...SKY);
   pdf.text('1 Monthly Preventive Maintenance — Uninterruptible Power Supply',M,21);
   pdf.setFontSize(7.5);pdf.setFont('times','normal');
   pdf.text('Generated: '+new Date().toLocaleString('en-GB'),M,29);
-  pdf.text('POMI — Unit 7 Electrical Maintenance',W-M,29,{align:'right'});
+  pdf.text('POMI — Unit 8 Electrical Maintenance',W-M,29,{align:'right'});
   y=40;
 
   // Info box
@@ -1040,7 +1040,7 @@ async function generatePDF(opts){
     pdf.setPage(pg);
     pdf.setFont('times','normal');pdf.setFontSize(6.5);pdf.setTextColor(150);
     pdf.text(`Page ${pg}/${pages}`,W-M,H-5,{align:'right'});
-    pdf.text('POMI — Unit 7 · 7EB-UPS-A/B · 1 Monthly PM',M,H-5);
+    pdf.text('POMI — Unit 8 · 8EB-UPS-A/B · 1 Monthly PM',M,H-5);
   }
 
   const fname=`UPS_PM_${fv('wo-unit')||'7'}_${(fv('wo-date')||new Date().toISOString().slice(0,10)).replace(/-/g,'')}.pdf`;
@@ -1056,7 +1056,7 @@ async function generatePDF(opts){
 // ── PRINT ─────────────────────────────────────────
 function printPage(){
   document.getElementById('ph-date').textContent=fv('wo-date')||'—';
-  document.getElementById('ph-equip').textContent=fv('wo-equip')||'7EB-UPS-A/B';
+  document.getElementById('ph-equip').textContent=fv('wo-equip')||'8EB-UPS-A/B';
   document.getElementById('ph-checked').textContent=fv('checked-by')||'—';
   document.querySelectorAll('.sec-hdr').forEach(h=>h.classList.add('open'));
   document.querySelectorAll('.sec-body').forEach(b=>b.style.display='block');
@@ -1066,7 +1066,7 @@ function printPage(){
 // ── SUBMIT DB ──────────────────────────────────────
 async function submitToDb(){
   if(typeof DB==='undefined'){showNote('⚠️ DB helper tidak tersedia.','err');return;}
-  const data=DB.collectCheckSheetData('ups','7EB-UPS-A/B','1 Monthly PM UPS','PERIODIC');
+  const data=DB.collectCheckSheetData('ups','8EB-UPS-A/B','1 Monthly PM UPS','PERIODIC');
 
   const sFanRows=[];
   FANS.forEach(c=>{
@@ -1150,9 +1150,9 @@ async function submitToDb(){
       filesOk=await Approvals.submitWithFiles(id,{
         photos:{main:PHOTOS.map(p=>({src:p.dataUrl,caption:p.caption||''}))},
         pdfBuilder:()=>generatePDF({silent:true}),
-        assetTag:'7EB-UPS-A/B',
+        assetTag:'8EB-UPS-A/B',
         assetName:'1 Monthly PM UPS',
-        checksheetFile:'UPS_7EB-UPS-AB_Monthly.html',
+        checksheetFile:'UPS_8EB-UPS-AB_Monthly.html',
         submittedBy:data.checkedBy,
         revisionOf:(typeof LoadMergeModal!=='undefined')?LoadMergeModal.getReviseOfApprovalId():null,
         existingApprovalId: target.mode==='overwrite' ? target.approvalId : null,
@@ -1187,15 +1187,15 @@ PhotoKit.configure({maxWcm:8.5,maxHcm:9.5,defaultWcm:8.5,defaultHcm:6.1});  // 2
 loadDraft();
 updateStats();
 if(typeof LoadMergeModal!=='undefined'){
-  LoadMergeModal.init({assetTag:'7EB-UPS-A/B'});
+  LoadMergeModal.init({assetTag:'8EB-UPS-A/B'});
   LoadMergeModal.initRevisionBanner();
 TechnicianAuth.init({ checkedByFieldId: "checked-by" });
-SubmitGuard.init({ assetTag:'7EB-UPS-A/B' });
+SubmitGuard.init({ assetTag:'8EB-UPS-A/B' });
 }
 
 setTimeout(async()=>{
   if(typeof DB==='undefined')return;
-  const d=await DB.loadLastSubmission('7EB-UPS-A/B');
+  const d=await DB.loadLastSubmission('8EB-UPS-A/B');
   if(d)showNote('📂 Data terakhir dimuat dari database.','ok');
 },800);
 </script>

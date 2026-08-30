@@ -235,7 +235,7 @@ canvas.sigc{border:1.5px solid var(--pb);border-radius:8px;background:#f4f8f5;wi
 <body>
 <div class="print-header" id="print-header">
   <div><strong>POMI — TRANSFORMER AT INSPECTION (NO DGA)</strong><br>
-    Unit 7/8 · 7EX-XFMR-AT · Weekly</div>
+    Unit 7/8 · 8EX-XFMR-AT · Weekly</div>
   <div style="text-align:right">Date: <span id="ph-date">—</span><br>
     WO: <span id="ph-wo">—</span></div>
 </div>
@@ -287,7 +287,7 @@ canvas.sigc{border:1.5px solid var(--pb);border-radius:8px;background:#f4f8f5;wi
   </div>
 
   <div class="tpane on panel top" id="p-main">
-    <div class="slbl">7EX-XFMR-AT — Unit 7/8 Weekly (Without DGA)</div>
+    <div class="slbl">8EX-XFMR-AT — Unit 7/8 Weekly (Without DGA)</div>
     <p style="font-size:11px;color:var(--t3);margin-bottom:12px">EZ-XFMR-GSU · EY-XFMR-SU · EX-XFMR-UAT · EX-XFMR-EXC · EM-XFMR-A1 · EM-XFMR-B1 · EM-XFMR-C1</p>
     <div class="tbl-scroll-hint">← geser untuk scroll →</div>
     <div style="overflow-x:auto"><table class="ct"><thead><tr>
@@ -469,7 +469,7 @@ function mkSheet(tbId,pfx){
 }
 
 // ── EVIDENCE PHOTOS — free-count multi-upload gallery (PhotoKit) ──
-// Battery_7EB-BY-125-250.html / ESP_7BGPCP800A_B.html reference: source picker
+// Battery_8EB-BY-125-250.html / ESP_7BGPCP800A_B.html reference: source picker
 // -> EXIF-upright downscale (img-helper.js) -> crop modal that also fixes the
 // print size in cm. Each entry carries pixel size AND cm size so generatePDF()
 // draws it at its own aspect ratio and can never stretch it.
@@ -719,7 +719,7 @@ async function generatePDF(selSet,opts){
 
   function drawNote(label,text){text=sanitizeText(text||'').trim();if(!text)return;const lines=pdf.splitTextToSize(text, W-M*2);const need=10+lines.length*4.2;ck(need);pdf.setFont(BASE_FONT,'bold');pdf.setFontSize(7);pdf.setTextColor(...STL);pdf.text(sanitizeText(label), M, y);pdf.setFont(BASE_FONT,'normal');pdf.setFontSize(7);pdf.setTextColor(...DARK);pdf.text(lines, M, y+4);y+=need;}
 
-  if(selSet.has('main')){ensurePage();drawTbl('7EX-XFMR-AT (Without DGA)','tb-main',['EZ-GSU','EY-SU','EX-UAT','EX-EXC','EM-A1','EM-B1','EM-C1'],[72,22,22,22,22,22,22,22]);}
+  if(selSet.has('main')){ensurePage();drawTbl('8EX-XFMR-AT (Without DGA)','tb-main',['EZ-GSU','EY-SU','EX-UAT','EX-EXC','EM-A1','EM-B1','EM-C1'],[72,22,22,22,22,22,22,22]);}
 
   // Photos — free-count gallery, 3-up on landscape A4. Each photo drawn at the
   // size the technician picked in the crop modal (capped to its column), always
@@ -793,8 +793,8 @@ function generatePDFSelected(){if(!_pdfSel||_pdfSel.size===0){note('⚠️ Pilih
 mkSheet('tb-main','main');
 PhotoKit.configure({maxWcm:8.8,maxHcm:15,defaultWcm:8.8,defaultHcm:5.6});  // 3-up grid on a landscape A4 page: one column is 8.8cm wide
 renderPhotos();loadPhotoDraft();initSig('sig-tech');initSig('sig-super');loadDraft();upStats();loadLastSubmission();
-LoadMergeModal.init({ assetTag: '7EX-XFMR-AT' });
-SubmitGuard.init({ assetTag: '7EX-XFMR-AT' });
+LoadMergeModal.init({ assetTag: '8EX-XFMR-AT' });
+SubmitGuard.init({ assetTag: '8EX-XFMR-AT' });
 LoadMergeModal.initRevisionBanner();
 TechnicianAuth.init({ checkedByFieldId: "checked-by" });
 
@@ -855,7 +855,7 @@ function collectGISPanel(tbId, pfx) {
 
 async function submitToDb(){
   const data = {
-    assetTag: '7EX-XFMR-AT',
+    assetTag: '8EX-XFMR-AT',
     assetName: 'Transformer AT — Without DGA (Weekly)',
     frequency: 'WEEKLY',
     woNumber: vv('wo-no'),
@@ -918,7 +918,7 @@ async function submitToDb(){
       const filesOk = await Approvals.submitWithFiles(id, {
         photos: buildApprovalPhotos(),
         pdfBuilder: () => generatePDF(new Set(PDF_SHEETS.map(s => s.key)), { silent: true }),
-        assetTag: '7EX-XFMR-AT',
+        assetTag: '8EX-XFMR-AT',
         assetName: 'Transformer AT — Without DGA (Weekly)',
         checksheetFile: 'Transformer_AT_NoDGA_Weekly.html',
         submittedBy: data.checkedBy,
@@ -957,7 +957,7 @@ function buildApprovalPhotos(){
 async function loadLastSubmission() {
   try {
     const snap = await db.collection('checksheets')
-      .where('assetTag', '==', '7EX-XFMR-AT')
+      .where('assetTag', '==', '8EX-XFMR-AT')
       .orderBy('createdAt', 'desc').limit(1).get();
     if (snap.empty) return;
     const d = snap.docs[0].data();

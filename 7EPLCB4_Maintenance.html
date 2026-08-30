@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>7EP-LC-B4 Switchgear & Breaker Maintenance</title>
+<title>8EP-LC-B4 Switchgear & Breaker Maintenance</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -195,7 +195,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
 </head>
 <body>
 <div class="print-header" id="print-header">
-  <div><strong>POMI — 7EP-LC-B4 SWITCHGEAR &amp; BREAKER MAINTENANCE</strong><br>
+  <div><strong>POMI — 8EP-LC-B4 SWITCHGEAR &amp; BREAKER MAINTENANCE</strong><br>
     <span id="ph-tag">—</span> · <span id="ph-desc">—</span></div>
   <div style="text-align:right">Date: <span id="ph-date">—</span><br>
     WO: <span id="ph-wo">—</span></div>
@@ -206,7 +206,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
   <div class="live-dot"></div>
   <span class="tb-logo">LC-<em>B4</em></span>
   <div class="tb-sep"></div>
-  <span class="tb-sub">7EP-LC-B4 · SWITCHGEAR & BREAKER MAINTENANCE</span>
+  <span class="tb-sub">8EP-LC-B4 · SWITCHGEAR & BREAKER MAINTENANCE</span>
   <div class="tb-right">
     <a class="btn-back" href="index.html" title="Back to Portal">&#8592; Portal</a>
 
@@ -243,7 +243,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
     <div class="wo-grid">
       <div class="mf"><label>WO Number</label><input type="text" id="wo-no" placeholder="WO-2026-XXXX"></div>
       <div class="mf"><label>Date</label><input type="date" id="wo-date"></div>
-      <div class="mf"><label>Equipment</label><input type="text" id="equip" value="7EP-LC-B4"></div>
+      <div class="mf"><label>Equipment</label><input type="text" id="equip" value="8EP-LC-B4"></div>
       <div class="mf"><label>Location</label><input type="text" id="location" placeholder="Substation location"></div>
       <div class="mf"><label>Done By</label><input type="text" id="done-by" placeholder="Technician name"></div>
       <div class="mf"><label>Reviewed By</label><input type="text" id="reviewed-by" placeholder="Supervisor name"></div>
@@ -458,7 +458,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
 </div><!-- /wrap -->
 
 <footer class="footer">
-  <div class="footer-l">7EP-LC-B4 · LOAD CENTER SUBSTATION · SWITCHGEAR & BREAKER MAINTENANCE</div>
+  <div class="footer-l">8EP-LC-B4 · LOAD CENTER SUBSTATION · SWITCHGEAR & BREAKER MAINTENANCE</div>
   <div class="footer-r" id="fdate">—</div>
 </footer>
 
@@ -761,7 +761,7 @@ async function generatePDF(opts){
   function miniHdr(){
     pdf.setFillColor(...NAVY);pdf.rect(0,0,W,8,'F');
     pdf.setTextColor(...SKY);pdf.setFont('helvetica','bold');pdf.setFontSize(7);
-    pdf.text('7EP-LC-B4 SWITCHGEAR & BREAKER MAINTENANCE',M,5.5);
+    pdf.text('8EP-LC-B4 SWITCHGEAR & BREAKER MAINTENANCE',M,5.5);
     pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);
     pdf.text(`WO: ${v('wo-no')||'—'}  Date: ${v('wo-date')||'—'}  By: ${v('done-by')||'—'}`,W-M,5.5,{align:'right'});
     y=12;
@@ -786,7 +786,7 @@ async function generatePDF(opts){
   pdf.setFillColor(...NAVY);pdf.rect(0,0,W,38,'F');
   pdf.setFillColor(...BLUE);pdf.rect(0,36,W,2,'F');
   pdf.setTextColor(255,255,255);pdf.setFont('helvetica','bold');pdf.setFontSize(20);
-  pdf.text('7EP-LC-B4',M,16);
+  pdf.text('8EP-LC-B4',M,16);
   pdf.setFontSize(11);pdf.setTextColor(...SKY);
   pdf.text('Switchgear & Breaker Maintenance — Load Center Substation Unit B4',M,26);
   pdf.setFontSize(7.5);pdf.setTextColor(...SKY);pdf.setFont('helvetica','normal');
@@ -881,7 +881,7 @@ async function generatePDF(opts){
   for(let pg=1;pg<=pages;pg++){
     pdf.setPage(pg);pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);pdf.setTextColor(150);
     pdf.text(`Page ${pg}/${pages}`,W-M,H-5,{align:'right'});
-    pdf.text('7EP-LC-B4 — Switchgear & Breaker Maintenance',M,H-5);
+    pdf.text('8EP-LC-B4 — Switchgear & Breaker Maintenance',M,H-5);
   }
 
   const fn=`LCB4_Maintenance_${(v('wo-date')||new Date().toISOString().slice(0,10)).replace(/-/g,'')}.pdf`;
@@ -920,16 +920,16 @@ updateStats();
 // expect — remap it so a merged submission's checkedBy value lands in the
 // right input.
 LoadMergeModal.init({
-  assetTag:'7EP-LC-B4',
+  assetTag:'8EP-LC-B4',
   headerMap:{woNumber:'wo-no', executionDate:'wo-date', checkedBy:'done-by', reviewedBy:'reviewed-by', shift:'shift'}
 });
 LoadMergeModal.initRevisionBanner();
 TechnicianAuth.init({ checkedByFieldId: "done-by" });
-SubmitGuard.init({ assetTag:'7EP-LC-B4' });
+SubmitGuard.init({ assetTag:'8EP-LC-B4' });
 
 // Auto-load last submission from database
 setTimeout(async()=>{
-  const d=await DB.loadLastSubmission('7EP-LC-B4');
+  const d=await DB.loadLastSubmission('8EP-LC-B4');
   if(d)showNote('📂 Data terakhir dimuat dari database.','ok');
 },800);
 
@@ -973,7 +973,7 @@ function printPage(){
 }
 
 async function submitToDb(){
-  const data=DB.collectCheckSheetData('lcb4','7EP-LC-B4','Load Center B4 Switchgear','PERIODIC');
+  const data=DB.collectCheckSheetData('lcb4','8EP-LC-B4','Load Center B4 Switchgear','PERIODIC');
   data.checkedBy=data.checkedBy||document.getElementById('done-by')?.value.trim()||'';
 
   let curSection='';
@@ -1038,7 +1038,7 @@ async function submitToDb(){
     filesOk=await Approvals.submitWithFiles(id,{
       photos,
       pdfBuilder:()=>generatePDF({silent:true}),
-      assetTag:'7EP-LC-B4',
+      assetTag:'8EP-LC-B4',
       assetName:'Load Center B4 Switchgear',
       checksheetFile:'7EPLCB4_Maintenance.html',
       submittedBy:data.checkedBy,

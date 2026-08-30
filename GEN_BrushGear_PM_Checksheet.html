@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Generator Brush Gear PM — 7TG-GEN-100</title>
+<title>Generator Brush Gear PM — 8TG-GEN-100</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -294,7 +294,7 @@ body::before{content:none}
 <body>
 <div class="print-header" id="print-header">
   <div><strong>POMI — GEN BRUSHGEAR PM CHECK SHEET</strong><br>
-    <span id="ph-tag">7TG-GEN-100</span></div>
+    <span id="ph-tag">8TG-GEN-100</span></div>
   <div style="text-align:right">Date: <span id="ph-date">—</span><br>
     WO: <span id="ph-wo">—</span></div>
 </div>
@@ -303,7 +303,7 @@ body::before{content:none}
   <div class="live-ring"></div>
   <div class="tb-brand">GEN <span>BRUSH</span></div>
   <div class="tb-pipe"></div>
-  <div class="tb-tag">7TG-GEN-100 · BRUSHGEAR PM</div>
+  <div class="tb-tag">8TG-GEN-100 · BRUSHGEAR PM</div>
   <div class="tb-right">
     <a class="btn-back" href="index.html" title="Back to Portal">&#8592; Portal</a>
 
@@ -324,7 +324,7 @@ body::before{content:none}
 <div class="tagbar">
   <div class="tagbar-cell">Tag Number :
     <select id="wo-tag">
-      <option>7TG-GEN-100</option>
+      <option>8TG-GEN-100</option>
       <option>8TG-GEN-100</option>
     </select>
   </div>
@@ -576,7 +576,7 @@ body::before{content:none}
 </div><!-- /wrap -->
 
 <footer class="footer">
-  <div class="footer-txt">POMI · UNIT 7/8 · GENERATOR BRUSH GEAR PM · 7TG-GEN-100</div>
+  <div class="footer-txt">POMI · UNIT 7/8 · GENERATOR BRUSH GEAR PM · 8TG-GEN-100</div>
   <div class="footer-txt" id="fdate">—</div>
 </footer>
 
@@ -1095,7 +1095,7 @@ async function saveToDatabase(){
 
     const payload={
       ...raw,
-      assetTag:'7TG-GEN-100',
+      assetTag:'8TG-GEN-100',
       assetName:'Generator Brush Gear PM',
       frequency:'WEEKLY',
       woNumber:raw.woNo,
@@ -1130,7 +1130,7 @@ async function saveToDatabase(){
     filesOk=await Approvals.submitWithFiles(docId,{
       photos:{evidence:photoEntries},
       pdfBuilder:()=>generatePDF({silent:true}),
-      assetTag:'7TG-GEN-100',
+      assetTag:'8TG-GEN-100',
       assetName:'Generator Brush Gear PM',
       checksheetFile:'GEN_BrushGear_PM_Checksheet.html',
       submittedBy:gv2('checked-by'),
@@ -1157,7 +1157,7 @@ async function loadHistory(){
   const cont=document.getElementById('hist-container');
   cont.innerHTML='<div class="hist-empty"><div class="spinner" style="display:inline-block"></div> Memuat data…</div>';
   try{
-    const snap=await db.collection('checksheets').where('assetTag','==','7TG-GEN-100').orderBy('createdAt','desc').limit(20).get();
+    const snap=await db.collection('checksheets').where('assetTag','==','8TG-GEN-100').orderBy('createdAt','desc').limit(20).get();
     if(snap.empty){cont.innerHTML='<div class="hist-empty">Belum ada data tersimpan.</div>';return;}
     let rows='';
     snap.forEach(doc=>{
@@ -1275,7 +1275,7 @@ async function generatePDF(opts){
   function miniHdr(){
     pdf.setDrawColor(...BLUE);pdf.setLineWidth(0.6);pdf.line(0,9,W,9);
     pdf.setTextColor(...BLUE);pdf.setFont('helvetica','bold');pdf.setFontSize(8);
-    pdf.text('BRUSH GEAR ON-LINE MAINTENANCE CHECK SHEET — 7TG-GEN-100',M,6);
+    pdf.text('BRUSH GEAR ON-LINE MAINTENANCE CHECK SHEET — 8TG-GEN-100',M,6);
     pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);pdf.setTextColor(...GR);
     pdf.text(`Date: ${gv('wo-date')||'—'}  Tag: ${gv('wo-tag')||'—'}  By: ${gv('checked-by')||'—'}`,W-M,6,{align:'right'});
     y=13;
@@ -1455,7 +1455,7 @@ async function generatePDF(opts){
   for(let pg=1;pg<=pages;pg++){
     pdf.setPage(pg);pdf.setFont('helvetica','normal');pdf.setFontSize(6);pdf.setTextColor(150);
     pdf.text(`Page ${pg} / ${pages}`,W-M,H-4,{align:'right'});
-    pdf.text('POMI — Generator Brush Gear PM — 7TG-GEN-100',M,H-4);
+    pdf.text('POMI — Generator Brush Gear PM — 8TG-GEN-100',M,H-4);
   }
 
   const fn=`BrushGear_PM_${gv('wo-unit')||'7'}_${(gv('wo-date')||new Date().toISOString().slice(0,10)).replace(/-/g,'')}.pdf`;
@@ -1485,10 +1485,10 @@ updateFileCountLabel();
 
 // Review & Approval workflow — load/merge picker + revision banner
 // (?reviseOf=<approvalId>). See load-merge-modal.js's header comment.
-LoadMergeModal.init({assetTag:'7TG-GEN-100'});
+LoadMergeModal.init({assetTag:'8TG-GEN-100'});
 LoadMergeModal.initRevisionBanner();
 TechnicianAuth.init({ checkedByFieldId: "checked-by" });
-SubmitGuard.init({ assetTag:'7TG-GEN-100', submitFnName:'saveToDatabase' });
+SubmitGuard.init({ assetTag:'8TG-GEN-100', submitFnName:'saveToDatabase' });
 
 // Set default date/time
 const now=new Date();
@@ -1498,7 +1498,7 @@ document.getElementById('wo-time').value=now.toTimeString().slice(0,5);
 // Auto-load last submission from database
 setTimeout(async()=>{
   try{
-    const snap=await db.collection('checksheets').where('assetTag','==','7TG-GEN-100').orderBy('createdAt','desc').limit(1).get();
+    const snap=await db.collection('checksheets').where('assetTag','==','8TG-GEN-100').orderBy('createdAt','desc').limit(1).get();
     if(!snap.empty){
       const d=snap.docs[0].data();
       const map={'wo-date':'date','wo-time':'time','wo-tag':'tag','wo-unit':'unit',

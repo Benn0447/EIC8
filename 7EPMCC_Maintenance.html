@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>7EP-MCC — MCC Switchboard 4 Yearly PM</title>
+<title>8EP-MCC — MCC Switchboard 4 Yearly PM</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -199,7 +199,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
 </head>
 <body>
 <div class="print-header" id="print-header">
-  <div><strong>POMI — 7EP-MCC SHUTDOWN MAINTENANCE</strong><br>
+  <div><strong>POMI — 8EP-MCC SHUTDOWN MAINTENANCE</strong><br>
     <span id="ph-tag">—</span> · <span id="ph-desc">—</span></div>
   <div style="text-align:right">Date: <span id="ph-date">—</span><br>
     WO: <span id="ph-wo">—</span></div>
@@ -244,7 +244,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
   </div>
   <div class="sec-body">
     <div class="wo-grid">
-      <div class="mf"><label>Plant Tag No.</label><input type="text" id="tag-no" placeholder="7EP-MCC-XXX"></div>
+      <div class="mf"><label>Plant Tag No.</label><input type="text" id="tag-no" placeholder="8EP-MCC-XXX"></div>
       <div class="mf"><label>Date</label><input type="date" id="wo-date"></div>
       <div class="mf"><label>Tag Description</label><input type="text" id="tag-desc" placeholder="Motor Control Center XXX"></div>
       <div class="mf"><label>Done By</label><input type="text" id="done-by" placeholder="Technician name"></div>
@@ -380,7 +380,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
 </div><!-- /wrap -->
 
 <footer class="footer">
-  <div class="footer-l">7EP-MCC · MOTOR CONTROL CENTER · 4 YEARLY SHUTDOWN MAINTENANCE</div>
+  <div class="footer-l">8EP-MCC · MOTOR CONTROL CENTER · 4 YEARLY SHUTDOWN MAINTENANCE</div>
   <div class="footer-r" id="fdate">--</div>
 </footer>
 
@@ -755,7 +755,7 @@ async function generatePDF(opts){
       doc.rect(0,0,PW,10,'F');
       doc.setFont('helvetica','bold');doc.setFontSize(7);
       doc.setTextColor(SKY_C[0],SKY_C[1],SKY_C[2]);
-      doc.text('7EP-MCC  |  4 YEARLY MCC SHUTDOWN MAINTENANCE',LM,6.5);
+      doc.text('8EP-MCC  |  4 YEARLY MCC SHUTDOWN MAINTENANCE',LM,6.5);
       doc.setFont('helvetica','normal');doc.setFontSize(6.5);
       var info='WO: '+(gv('wo-no')||'-')+'   Date: '+(gv('wo-date')||'-')+'   By: '+(gv('done-by')||'-');
       doc.text(info,PW-RM,6.5,{align:'right'});
@@ -766,7 +766,7 @@ async function generatePDF(opts){
       doc.setDrawColor(200,210,220);doc.setLineWidth(0.3);
       doc.line(LM,PH-BM+2,PW-RM,PH-BM+2);
       doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(150,150,150);
-      doc.text('7EP-MCC  |  QCP & Work Completion Report  |  4 Yearly MCC Shutdown Maintenance',LM,PH-BM+6);
+      doc.text('8EP-MCC  |  QCP & Work Completion Report  |  4 Yearly MCC Shutdown Maintenance',LM,PH-BM+6);
       doc.text('Page '+pg,PW-RM,PH-BM+6,{align:'right'});
     }
 
@@ -793,7 +793,7 @@ async function generatePDF(opts){
     doc.text('QCP & WORK COMPLETION REPORT',LM,16);
 
     doc.setFontSize(28);doc.setTextColor(WHITE[0],WHITE[1],WHITE[2]);
-    doc.text('7EP-MCC',LM,36);
+    doc.text('8EP-MCC',LM,36);
 
     doc.setFontSize(10.5);doc.setTextColor(SKY_C[0],SKY_C[1],SKY_C[2]);
     doc.text('4 Yearly Motor Control Center Switchboard Shutdown Maintenance',LM,48);
@@ -1029,14 +1029,14 @@ PhotoKit.configure({maxWcm:8.5,maxHcm:20,defaultWcm:8.5,defaultHcm:6});
 buildCheckTable();
 loadDraft();
 updateStats();
-LoadMergeModal.init({assetTag:'7EP-MCC'});
-SubmitGuard.init({ assetTag:'7EP-MCC' });
+LoadMergeModal.init({assetTag:'8EP-MCC'});
+SubmitGuard.init({ assetTag:'8EP-MCC' });
 LoadMergeModal.initRevisionBanner();
 TechnicianAuth.init({ checkedByFieldId: "done-by" });
 
 // Auto-load last submission from database
 setTimeout(async()=>{
-  const d=await DB.loadLastSubmission('7EP-MCC');
+  const d=await DB.loadLastSubmission('8EP-MCC');
   if(d)showNote('📂 Data terakhir dimuat dari database.','ok');
 },800);
 
@@ -1080,7 +1080,7 @@ function printPage(){
 }
 
 async function submitToDb(){
-  const data=DB.collectCheckSheetData('mcc','7EP-MCC','MCC Switchboard PM','4 YEARLY');
+  const data=DB.collectCheckSheetData('mcc','8EP-MCC','MCC Switchboard PM','4 YEARLY');
   const iv=id=>{const e=document.getElementById(id);return e&&e.value.trim()?e.value.trim():'—'};
   data.checkedBy=data.checkedBy||document.getElementById('done-by')?.value.trim()||'';
   data.reviewedBy=data.reviewedBy||document.getElementById('ack-by')?.value.trim()||'';
@@ -1125,7 +1125,7 @@ async function submitToDb(){
     filesOk=await Approvals.submitWithFiles(id,{
       photos:buildPhotosForUpload(),
       pdfBuilder:()=>generatePDF({silent:true}),
-      assetTag:'7EP-MCC',
+      assetTag:'8EP-MCC',
       assetName:'MCC Switchboard PM',
       checksheetFile:'7EPMCC_Maintenance.html',
       submittedBy:data.checkedBy,

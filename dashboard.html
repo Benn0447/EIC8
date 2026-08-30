@@ -1573,10 +1573,10 @@ function renderCharts(stats) {
 //  no separate query.
 // ══════════════════════════════════════════════════
 const TREND_ASSETS = {
-  '7EX-XFMR-AT':     'Transformer AT — Without DGA (Weekly)',
-  '7EX-XFMR-AT-DGA': 'Transformer AT + DGA (Weekly)',
-  '7BG-PCP-800A/B':  'ESP Weekly Maintenance',
-  '7TG-GEN-100':     'Generator Brush Gear PM'
+  '8EX-XFMR-AT':     'Transformer AT — Without DGA (Weekly)',
+  '8EX-XFMR-AT-DGA': 'Transformer AT + DGA (Weekly)',
+  '8BG-PCP-800A/B':  'ESP Weekly Maintenance',
+  '8TG-GEN-100':     'Generator Brush Gear PM'
 };
 
 // Firestore only stores the technician's raw typed number (see
@@ -1587,7 +1587,7 @@ const TREND_ASSETS = {
 // SEPARATE per asset because the two sheets diverge on which rows are numeric
 // (B.1/B.2 are OK/NG toggles in the DGA sheet, % measurements in the other).
 const TREND_UNITS = {
-  '7EX-XFMR-AT': {
+  '8EX-XFMR-AT': {
     'A.1||Ambient Temperature': '°C', 'A.2||Oil Temperature': '°C', 'A.3||Winding Temperature': '°C',
     'A.4||Voltage': 'kV', 'A.5||Apparent Power': 'MVA',
     'B.1||Main Tank Oil Level': '%', 'B.2||OLTC Oil Level (if equipped)': '%',
@@ -1598,7 +1598,7 @@ const TREND_UNITS = {
     'K.1||N₂ Bottle Pressure': 'psi', 'K.2||XFMR Tank Pressure': 'psi',
     '||SF₆ Gas Pressure': 'MPa'
   },
-  '7EX-XFMR-AT-DGA': {
+  '8EX-XFMR-AT-DGA': {
     'A.1||Ambient Temperature': '°C', 'A.2||Oil Temperature': '°C', 'A.3||Winding Temperature': '°C',
     'A.4||Voltage': 'kV', 'A.5||Apparent Power': 'MVA',
     'B.3||Dissolve Gas Analysis — DGA (ppm)': 'ppm',
@@ -1610,7 +1610,7 @@ const TREND_UNITS = {
     'K.1||N₂ Bottle Pressure': 'psi', 'K.2||XFMR Tank Pressure': 'psi',
     '||SF₆ Gas Pressure': 'MPa'
   },
-  '7BG-PCP-800A/B': {
+  '8BG-PCP-800A/B': {
     '1||Ambient Temp. (°C)': '°C',
     '2||AC Input Voltage T/R (V)': 'V',
     '3||AC Input Current T/R (A)': 'A',
@@ -1622,7 +1622,7 @@ const TREND_UNITS = {
     '1||Overheating (°C)': '°C',
     '1||Hopper Heater Current (A)': 'A'
   },
-  '7TG-GEN-100': {
+  '8TG-GEN-100': {
     '5||Noise level (brush gear)': 'dB',
     '6||Operating temperature': '°C',
     '7||Air flow (cooling air)': 'm/s'
@@ -1630,7 +1630,7 @@ const TREND_UNITS = {
 };
 
 // Before the two weekly Transformer AT sheets were split into their own files,
-// every week's inspection was ONE combined submission — assetTag "7EX-XFMR",
+// every week's inspection was ONE combined submission — assetTag "8EX-XFMR",
 // assetName "Transformer Weekly Inspection" — with each section under its own
 // sheets key (s1 = AT+DGA, s2 = AT without DGA, s3 = USST, s4/s5 = Common SST,
 // gis/gis150/gis500 = GIS SF6). Confirmed by inspecting a real submission: s1
@@ -1640,8 +1640,8 @@ const TREND_UNITS = {
 // Without this, the trend only goes back to whenever the sheets were split
 // apart instead of to whenever weekly Transformer AT inspections started.
 const TREND_LEGACY_SOURCE = {
-  '7EX-XFMR-AT': { tag: '7EX-XFMR', sheetKey: 's2' },
-  '7EX-XFMR-AT-DGA': { tag: '7EX-XFMR', sheetKey: 's1' }
+  '8EX-XFMR-AT': { tag: '8EX-XFMR', sheetKey: 's2' },
+  '8EX-XFMR-AT-DGA': { tag: '8EX-XFMR', sheetKey: 's1' }
 };
 
 // Every other asset here saves ONE current sheet ('main'). ESP Weekly
@@ -1663,8 +1663,8 @@ const TREND_LEGACY_SOURCE = {
 // problem. Confirmed by reading getCurrentPMWeek()/getActiveMags() directly
 // rather than assuming from the field name.
 const TREND_SHEET_KEYS = {
-  '7BG-PCP-800A/B': ['sA', 'sB', 'sC', 'sD', 'sE', 'sF', 'sF2'],
-  '7TG-GEN-100': ['sA', 'sB']
+  '8BG-PCP-800A/B': ['sA', 'sB', 'sC', 'sD', 'sE', 'sF', 'sF2'],
+  '8TG-GEN-100': ['sA', 'sB']
 };
 function trendSheetKeysFor(tag) { return TREND_SHEET_KEYS[tag] || ['main']; }
 
@@ -2555,7 +2555,7 @@ async function showDetail(id) {
 
   html += `
     <div class="rpt-footer">
-      <div>ELECTRIC 7 — POMI · Electrical Maintenance Unit 7</div>
+      <div>ELECTRIC 7 — POMI · Electrical Maintenance Unit 8</div>
       <div>Generated ${new Date().toLocaleDateString('id-ID',{weekday:'long',year:'numeric',month:'long',day:'numeric'})} · ${new Date().toLocaleTimeString('id-ID')}</div>
     </div>`;
 

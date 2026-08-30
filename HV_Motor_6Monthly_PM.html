@@ -231,7 +231,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
   <div class="live-dot"></div>
   <span class="tb-logo">HV MOTOR <em>6M</em></span>
   <div class="tb-sep"></div>
-  <span class="tb-sub">6 MONTHLY PM CHECK SHEET · POMI UNIT 7</span>
+  <span class="tb-sub">6 MONTHLY PM CHECK SHEET · POMI UNIT 8</span>
   <div class="tb-right">
     <a class="btn-back" href="index.html" title="Back to Portal">&#8592; Portal</a>
     <span class="tb-time" id="clock">--:--:--</span>
@@ -261,7 +261,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
 <div class="hero">
   <div class="hero-eyebrow">Preventive Maintenance — 6 Monthly HV AC Motor &amp; Switchgear</div>
   <div class="hero-title">HV MOTOR <em>6 MONTHLY PM</em></div>
-  <div class="hero-sub">POMI Unit 7 · Maintenance Check Sheet · Work Completion Report</div>
+  <div class="hero-sub">POMI Unit 8 · Maintenance Check Sheet · Work Completion Report</div>
   <div class="hero-stats">
     <div class="hstat"><span class="hstat-n" id="h-total">0</span><span class="hstat-l">Total</span></div>
     <div class="hstat"><span class="hstat-n ok" id="h-ok">0</span><span class="hstat-l">OK</span></div>
@@ -446,8 +446,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:10
 
 <script>
 const HV_MOTORS=[
-  {"tag":"7EB-HV-001","desc":"HV Motor 1 — Main Boiler Feed Pump"},
-  {"tag":"7EB-HV-002","desc":"HV Motor 2 — Induced Draft Fan"}
+  {"tag":"8EB-HV-001","desc":"HV Motor 1 — Main Boiler Feed Pump"},
+  {"tag":"8EB-HV-002","desc":"HV Motor 2 — Induced Draft Fan"}
 ];
 
 // ═══════════════════════════════════════════════════
@@ -760,7 +760,7 @@ async function generatePDF(selectedSections, opts){
   pdf.text('PM Check Sheet — Work Completion Report', M, 27);
   pdf.setFontSize(8); pdf.setFont('helvetica','normal'); pdf.setTextColor(...SKY);
   pdf.text('Generated: '+new Date().toLocaleString('en-GB'), M, 36);
-  pdf.text('POMI — Unit 7 Electrical Maintenance', W-M, 36, {align:'right'});
+  pdf.text('POMI — Unit 8 Electrical Maintenance', W-M, 36, {align:'right'});
   y = 50;
 
   // ── Work info box ──

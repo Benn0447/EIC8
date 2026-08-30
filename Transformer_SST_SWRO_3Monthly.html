@@ -232,7 +232,7 @@ canvas.sigc{border:1.5px solid var(--pb);border-radius:8px;background:#f4f8f5;wi
 <div class="topbar">
   <span class="tl">PLTU</span><div class="tsep"></div>
   <span class="tsub">COMMON SST — SWRO/SCRUBBER/ADMIN</span><div class="tsep"></div>
-  <span class="tsub">7EM-A4 · 8EM-B4 · 7EN-B1A1 · 8EN-B1A1 · 7EM-A5 · 8EM-A5 · 7EM-B5</span>
+  <span class="tsub">8EM-A4 · 8EM-B4 · 8EN-B1A1 · 8EN-B1A1 · 8EM-A5 · 8EM-A5 · 8EM-B5</span>
   <div class="tr">
     <a class="btn-back" href="index.html" title="Back to Portal">&#8592; Portal</a>
 
@@ -276,17 +276,17 @@ canvas.sigc{border:1.5px solid var(--pb);border-radius:8px;background:#f4f8f5;wi
 
   <div class="tpane on panel top" id="p-main">
     <div class="slbl">Common SST — SWRO / Scrubber / Admin — Three Monthly PM</div>
-    <p style="font-size:11px;color:var(--t3);margin-bottom:12px">7EM-A4(SWRO) · 8EM-B4(SWRO) · 7EN-B1A1(SCRUB) · 8EN-B1A1(SCRUB) · 7EM-A5(ADMIN) · 8EM-A5(ADMIN) · 7EM-B5(ASH)</p>
+    <p style="font-size:11px;color:var(--t3);margin-bottom:12px">8EM-A4(SWRO) · 8EM-B4(SWRO) · 8EN-B1A1(SCRUB) · 8EN-B1A1(SCRUB) · 8EM-A5(ADMIN) · 8EM-A5(ADMIN) · 8EM-B5(ASH)</p>
     <div class="tbl-scroll-hint">← geser untuk scroll →</div>
     <div style="overflow-x:auto"><table class="ct"><thead><tr>
       <th style="width:30px">No.</th><th>Inspection Item</th>
-      <th class="ctr" style="min-width:72px">7EM-A4<br><small style="font-weight:300;letter-spacing:0;text-transform:none">(SWRO)</small></th>
+      <th class="ctr" style="min-width:72px">8EM-A4<br><small style="font-weight:300;letter-spacing:0;text-transform:none">(SWRO)</small></th>
       <th class="ctr" style="min-width:72px">8EM-B4<br><small>(SWRO)</small></th>
-      <th class="ctr" style="min-width:72px">7EN-B1A1<br><small>(SCRUB)</small></th>
       <th class="ctr" style="min-width:72px">8EN-B1A1<br><small>(SCRUB)</small></th>
-      <th class="ctr" style="min-width:72px">7EM-A5<br><small>(ADMIN)</small></th>
+      <th class="ctr" style="min-width:72px">8EN-B1A1<br><small>(SCRUB)</small></th>
       <th class="ctr" style="min-width:72px">8EM-A5<br><small>(ADMIN)</small></th>
-      <th class="ctr" style="min-width:72px">7EM-B5<br><small>(ASH)</small></th>
+      <th class="ctr" style="min-width:72px">8EM-A5<br><small>(ADMIN)</small></th>
+      <th class="ctr" style="min-width:72px">8EM-B5<br><small>(ASH)</small></th>
     </tr></thead><tbody id="tb-main"></tbody></table></div>
     <div class="mf" style="margin-top:14px"><label>Remark</label><textarea id="rmk-main" rows="2" placeholder="General remarks…"></textarea></div>
   </div>
@@ -403,7 +403,7 @@ function mkSheet(tbId,pfx){
 const PS={};
 const PSD={};
 const PE={};    // full PhotoKit entry per slot (crop result + chosen print size in cm)   // natural pixel size per photo id — the PDF needs it to keep each photo's aspect ratio
-const PSLOTS=[{"id": "ph1", "title": "SST SWRO/Scrubber Room Overview"}, {"id": "ph2", "title": "7EM-A4 / 8EM-B4 (SWRO) Condition"}, {"id": "ph3", "title": "7EN-B1A1 / 8EN-B1A1 (SCRUB) Condition"}, {"id": "ph4", "title": "7EM-A5 / 8EM-A5 (ADMIN) Condition"}, {"id": "ph5", "title": "7EM-B5 (ASH) Condition"}, {"id": "ph6", "title": "Thermal Scan — SST SWRO (IR)"}];
+const PSLOTS=[{"id": "ph1", "title": "SST SWRO/Scrubber Room Overview"}, {"id": "ph2", "title": "8EM-A4 / 8EM-B4 (SWRO) Condition"}, {"id": "ph3", "title": "8EN-B1A1 / 8EN-B1A1 (SCRUB) Condition"}, {"id": "ph4", "title": "8EM-A5 / 8EM-A5 (ADMIN) Condition"}, {"id": "ph5", "title": "8EM-B5 (ASH) Condition"}, {"id": "ph6", "title": "Thermal Scan — SST SWRO (IR)"}];
 function mkPhotos(){document.getElementById('photo-wrap').innerHTML=PSLOTS.map(p=>`<div><div class="pbtl">${p.title}</div><div class="pd" id="${p.id}" onclick="pickPhoto(this,'${p.id}')"><button class="cropbtn" onclick="recropPhoto('${p.id}',event)" title="Crop &amp; print size">✂</button><button class="delbtn" onclick="dpx('${p.id}',event)">×</button><div class="phi">📷</div><div class="pht">Click to upload</div></div><div class="pcap"><input type="text" id="${p.id}-cap" placeholder="Caption…"></div><div class="psz" id="${p.id}-sz"></div></div>`).join('');}
 // Photos go through PhotoKit: source picker -> EXIF-upright downscale (img-helper)
 // -> crop modal (Default / ratio preset / 1:1 / manual cm) -> entry that carries
@@ -596,7 +596,7 @@ async function generatePDF(selSet,opts){
 
   function drawNote(label,text){text=sanitizeText(text||'').trim();if(!text)return;const lines=pdf.splitTextToSize(text, W-M*2);const need=10+lines.length*4.2;ck(need);pdf.setFont(BASE_FONT,'bold');pdf.setFontSize(7);pdf.setTextColor(...STL);pdf.text(sanitizeText(label), M, y);pdf.setFont(BASE_FONT,'normal');pdf.setFontSize(7);pdf.setTextColor(...DARK);pdf.text(lines, M, y+4);y+=need;}
 
-  if(selSet.has('main')){ensurePage();drawTbl('Common SST — SWRO/Scrubber/Admin','tb-main',['7EM-A4','8EM-B4','7EN-B1A1','8EN-B1A1','7EM-A5','8EM-A5','7EM-B5'],[68,24,24,24,24,24,24,24]);drawNote('Remark',vv('rmk-main'));}
+  if(selSet.has('main')){ensurePage();drawTbl('Common SST — SWRO/Scrubber/Admin','tb-main',['8EM-A4','8EM-B4','8EN-B1A1','8EN-B1A1','8EM-A5','8EM-A5','8EM-B5'],[68,24,24,24,24,24,24,24]);drawNote('Remark',vv('rmk-main'));}
 
   // Photos
   if(selSet.has('photos')){
@@ -755,7 +755,7 @@ async function submitToDb(){
     sheets: {}
   };
 
-  const cols = ["7EM-A4(SWRO)", "8EM-B4(SWRO)", "7EN-B1A1(SCRUB)", "8EN-B1A1(SCRUB)", "7EM-A5(ADMIN)", "8EM-A5(ADMIN)", "7EM-B5(ASH)"];
+  const cols = ["8EM-A4(SWRO)", "8EM-B4(SWRO)", "8EN-B1A1(SCRUB)", "8EN-B1A1(SCRUB)", "8EM-A5(ADMIN)", "8EM-A5(ADMIN)", "8EM-B5(ASH)"];
   data.sheets.main = { title: 'Common SST — SWRO/Scrubber/Admin', columns: cols, rows: collectSheetData('tb-main', cols, 'main'), remark: vv('rmk-main') };
 
   data.items = [];
