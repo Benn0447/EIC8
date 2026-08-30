@@ -157,6 +157,7 @@
 <div class="tools-bar">
   <div class="tools-inner">
     <span class="tools-label">Alat Bantu</span>
+    <a class="tool-btn" href="dashboard.html">📊 Unified Dashboard</a>
     <a class="tool-btn elec" href="Electric/dashboard.html">📊 Dashboard Electric</a>
     <a class="tool-btn elec" href="Electric/Review_Approval_Dashboard.html">✅ Review &amp; Approval Electric</a>
     <a class="tool-btn" href="Instrument/trend/index.html">📈 Trend Instrument</a>
@@ -221,7 +222,7 @@ const DATA = [
   {dept:'electric', cat:'prot', tag:'8EB-REL-OC', name:'Overcurrent Relay (OCR)', freq:'2 YEARLY', status:'soon', href:'#', desc:'Setting verification, trip test, CT ratio check, timing test, event log review.'},
   {dept:'electric', cat:'prot', tag:'8EB-REL-DIFF', name:'Differential Relay (87T)', freq:'2 YEARLY', status:'soon', href:'#', desc:'Bias characteristic test, CT check, interposing CT, restraint current, trip test.'},
   {dept:'electric', cat:'prot', tag:'8EB-MET-KWHR', name:'Energy Meter (kWh)', freq:'YEARLY', status:'soon', href:'#', desc:'Meter accuracy, PT/CT secondary circuit, display reading, billing reconciliation.'},
-  {dept:'electric', cat:'ups', tag:'8EB-UPS-A / B', name:'UPS A & B — 1 Monthly PM', freq:'1 MONTHLY', status:'ready', href:'Electric/UPS_7EB-UPS-AB_Monthly.html', desc:'Cooling fans RPM, rectifier/inverter measurements, alarms, air filters, IR thermal.'},
+  {dept:'electric', cat:'ups', tag:'8EB-UPS-A / B', name:'UPS A & B — 1 Monthly PM', freq:'1 MONTHLY', status:'ready', href:'Electric/UPS_8EB-UPS-AB_Monthly.html', desc:'Cooling fans RPM, rectifier/inverter measurements, alarms, air filters, IR thermal.'},
   {dept:'electric', cat:'ups', tag:'8EB-INV-001', name:'Static Inverter', freq:'YEARLY', status:'soon', href:'#', desc:'DC input voltage, AC output voltage/frequency, thyristor temp, filter capacitor.'},
   {dept:'electric', cat:'esp', tag:'8BG-PCP-800A/B', name:'ESP Weekly Maintenance', freq:'WEEKLY', status:'ready', href:'Electric/ESP_8BGPCP800A_B.html', desc:'Rectifier T/R (16), CE Rapping (8+8), DE Rapping (16), GD Motors (8), Hopper Heater (8).'},
   {dept:'electric', cat:'esp', tag:'LV MOTOR MCC', name:'LV Motor MCC — PM Check Sheet', freq:'PERIODIC', status:'ready', href:'Electric/LV_Motor_MCC.html', desc:'876 MCC LV motors — searchable tag, auto-fill, OL heater lookup, megger, Firebase, PDF.'},
@@ -232,8 +233,8 @@ const DATA = [
   {dept:'electric', cat:'gnd', tag:'8EB-SPD-001', name:'Surge Protection Device (SPD)', freq:'YEARLY', status:'soon', href:'#', desc:'SPD indicator status, earth continuity, physical damage inspection, replacement check.'},
   {dept:'electric', cat:'lifting', tag:'HOIST INSPECTION', name:'Hoist Inspection & Maintenance', freq:'PERIODIC', status:'ready', href:'Electric/Hoist_Inspection_Maintenance.html', desc:'Brake system, electrical measurements, limit switch, panel inspection, photo editor.'},
   {dept:'electric', cat:'solar', tag:'PLTS-ASH-INV-01~11', name:'PV Ash Disposal 689 kWp — PM Check Sheet', freq:'YEARLY', status:'ready', href:'Electric/PLTS_AshDisposal_PM.html', desc:'11 inverters × 10 strings. Per-panel OK/NG/Repair condition grid with wiring position diagrams, selectable partial PDF export, pull last submission.'},
-  {dept:'electric', cat:'report', tag:'EIC7 — WEEKLY REPORT', name:'Weekly Report Dashboard', freq:'WEEKLY', status:'ready', href:'Electric/Weekly%20Report%20Dashboard%20EIC7.html', desc:'KPI summary, work order table, manpower & material recap, notes, Excel/PDF export.'},
-  {dept:'electric', cat:'report', tag:'EIC7 — VIEW ONLY', name:'Weekly Report — View Only (Read-Only)', freq:'WEEKLY', status:'ready', href:'Electric/Weekly%20Report%20Dashboard%20EIC7%20-%20View%20Only.html', desc:'Snapshot read-only untuk dibagikan ke tim — rekap KPI, progress, dan pie chart per work group. Tidak bisa diedit.'},
+  {dept:'electric', cat:'report', tag:'EIC8 — WEEKLY REPORT', name:'Weekly Report Dashboard', freq:'WEEKLY', status:'ready', href:'Electric/Weekly%20Report%20Dashboard%20EIC8.html', desc:'KPI summary, work order table, manpower & material recap, notes, Excel/PDF export.'},
+  {dept:'electric', cat:'report', tag:'EIC8 — VIEW ONLY', name:'Weekly Report — View Only (Read-Only)', freq:'WEEKLY', status:'ready', href:'Electric/Weekly%20Report%20Dashboard%20EIC8%20-%20View%20Only.html', desc:'Snapshot read-only untuk dibagikan ke tim — rekap KPI, progress, dan pie chart per work group. Tidak bisa diedit.'},
   {dept:'electric', cat:'report', tag:'WORK ACTIVITY RECORD', name:'Corrective Maintenance Report', freq:'CORRECTIVE', status:'ready', href:'Electric/Work_Activity_Record.html', desc:'Free-form report builder — text sections, multi-photo gallery, annotation, print to PDF.'},
   {dept:'electric', cat:'report', tag:'MCA — RCA REPORT', name:'Maintenance Corrective Action Report', freq:'CORRECTIVE', status:'ready', href:'Electric/Maintenance_Corrective_Action.html', desc:'Failure investigation report with structured Root Cause Analysis (5-Why / Fishbone / FMEA), narrative sections with in-context photos, PDF export & Review/Approval workflow.'},
   {dept:'electric', cat:'motor', tag:'LV MOTOR BEARING', name:'LV Motor Bearing Replacement', freq:'CORRECTIVE', status:'ready', href:'Electric/LV_Motor_Bearing_Replacement.html', desc:'Motor rebuild check sheet — 82-motor searchable tag with auto-fill, physical/electrical testing (RTD, cable insulation), Solo Run temperature & vibration trend, PDF export.'},

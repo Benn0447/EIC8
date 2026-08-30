@@ -42,5 +42,53 @@ service cloud.firestore {
         allow read, write: if true;
       }
     }
+
+    // ── Instrument department (migrated off Supabase) ──
+    // Same fully-open trust model as above, by explicit user decision —
+    // Supabase enforced workflow-state transitions via real Postgres RLS;
+    // this intentionally does not replicate that at the DB layer, matching
+    // Electric's own app-layer-only gating instead.
+
+    // pm_records: draft + workflow-state doc per Instrument check sheet
+    // submission (mutable in place — NOT the same shape as /checksheets,
+    // which is append-only/immutable; do not merge these two collections).
+    match /pm_records/{doc} {
+      allow read, write: if true;
+    }
+
+    // Gate Akses — trusted-device allowlist + gate password/config
+    match /trusted_devices/{doc} {
+      allow read, write: if true;
+    }
+    match /gate_config/{doc} {
+      allow read, write: if true;
+    }
+
+    // Report-auth profiles (checker/reviewer/SPV), keyed by Firebase Auth UID
+    match /pm_profiles/{doc} {
+      allow read, write: if true;
+    }
+
+    // Outage module (password-gated MOD-14)
+    match /outage_assets/{doc} {
+      allow read, write: if true;
+    }
+    match /outage_records/{doc} {
+      allow read, write: if true;
+    }
+
+    // Standalone Instrument modules with their own inline Supabase client
+    match /ts_checksheet/{doc} {
+      allow read, write: if true;
+    }
+    match /material_warehouse/{doc} {
+      allow read, write: if true;
+    }
+    match /material_jenis/{doc} {
+      allow read, write: if true;
+    }
+    match /material_pengambilan/{doc} {
+      allow read, write: if true;
+    }
   }
 }
