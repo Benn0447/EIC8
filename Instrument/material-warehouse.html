@@ -1672,51 +1672,44 @@ function switchTab(id) {
 }
 
 /* ══════════════════════════════════════════════
-   SUPABASE CONFIG
+   FIRESTORE CONFIG (eic8-3d7f1) — dulu Supabase
+   pmRest() (shared.js) menerjemahkan pola query PostgREST sederhana
+   (POST/PATCH/DELETE + GET eq/order/limit). Fitur PostgREST yang tidak
+   ada padanannya di Firestore (or=, ilike, not.like, Content-Range count,
+   offset besar) DIGANTI dengan filter/paginasi sisi klien di bawah:
+   seluruh koleksi di-cache sekali lalu difilter di browser.
 ══════════════════════════════════════════════ */
-var SUPA_URL  = 'https://ruvvximnnacpvvoogbzs.supabase.co';
-var SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1dnZ4aW1ubmFjcHZ2b29nYnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDE1NDAsImV4cCI6MjA5NDYxNzU0MH0.GRu5n0Jl2fP0V8L_QLN2Tkmd0Aw0JbMRu25I7t-R7l8';
 var ASSET_TABLE   = 'material_warehouse';
 var JENIS_TABLE   = 'material_jenis';
 var AMBIL_TABLE   = 'material_pengambilan';
 
-function supaFetch(method, path, body) {
-  var url = SUPA_URL + '/rest/v1/' + path;
-  var opts = {
-    method: method,
-    headers: {
-      'apikey': SUPA_KEY,
-      'Authorization': 'Bearer ' + SUPA_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': (method === 'POST' || method === 'PATCH') ? 'return=representation' : ''
-    }
-  };
-  if (body) opts.body = JSON.stringify(body);
-  return fetch(url, opts).then(function(r) {
-    if (!r.ok) return r.text().then(function(t){ throw new Error(t); });
-    return r.text().then(function(t){ try{ return t ? JSON.parse(t) : null; } catch(e){ return null; } });
+function supaFetch(method, path, body) { return pmRest(method, path, body); }
+
+/* ── Cache klien seluruh koleksi ── */
+var _mwAssetsAll = null;
+var _mwAmbilAll  = null;
+
+function mwLoadAssetsAll(force) {
+  if (_mwAssetsAll && !force) return Promise.resolve(_mwAssetsAll);
+  return pmRest('GET', ASSET_TABLE + '?select=*&order=created_at.desc&limit=100000')
+    .then(function(rows) { _mwAssetsAll = rows || []; return _mwAssetsAll; });
+}
+function mwLoadAmbilAll(force) {
+  if (_mwAmbilAll && !force) return Promise.resolve(_mwAmbilAll);
+  return pmRest('GET', AMBIL_TABLE + '?select=*&order=tanggal.desc&limit=100000')
+    .then(function(rows) { _mwAmbilAll = rows || []; return _mwAmbilAll; });
+}
+/* Multi-token AND, substring, case-insensitive -- pengganti _buildSearchOr. */
+function _mwMatch(row, q, cols) {
+  if (!q) return true;
+  var tokens = String(q).toLowerCase().split(/\s+/).filter(Boolean);
+  return tokens.every(function(tok) {
+    return cols.some(function(c) { return String(row[c] == null ? '' : row[c]).toLowerCase().indexOf(tok) !== -1; });
   });
 }
-
-function supaFetchPaged(path) {
-  var url = SUPA_URL + '/rest/v1/' + path;
-  return fetch(url, {
-    headers: {
-      'apikey': SUPA_KEY,
-      'Authorization': 'Bearer ' + SUPA_KEY,
-      'Prefer': 'count=exact'
-    }
-  }).then(function(r) {
-    if (!r.ok) return r.text().then(function(t){ throw new Error(t); });
-    var cr = r.headers.get('content-range') || '';
-    var m  = cr.match(/\/(\d+)$/);
-    var count = m ? parseInt(m[1]) : 0;
-    return r.text().then(function(t) {
-      var data = [];
-      try { data = t ? JSON.parse(t) : []; } catch(e) {}
-      return { data: data, count: count };
-    });
-  });
+function _mwPage(arr, page, per) {
+  var start = (page - 1) * per;
+  return { data: arr.slice(start, start + per), count: arr.length };
 }
 
 /* ══════════════════════════════════════════════
@@ -1787,41 +1780,23 @@ function loadAssets() {
   loadAssetsPage(assetPage, currentAssetQ());
 }
 
-// Warehouse filter: two separate AND conditions (avoids not.or= conflict with search or=)
-// Internal filter: single or= clause
-var _INTERNAL_INCLUDE  = 'or=(lokasi_barang.in.(White%20Container,A55),lokasi_barang.like.INT:*)';
-
-// Multi-keyword AND search: split by whitespace, each token generates one or= param.
-// PostgREST ANDs multiple or= params → "breaker MA25" finds rows with BOTH words.
-function _buildSearchOr(q, cols) {
-  var tokens = q.trim().split(/\s+/).filter(Boolean);
-  return tokens.map(function(tok) {
-    var enc = encodeURIComponent('*' + tok + '*');
-    return '&or=(' + cols.map(function(c){ return c + '.ilike.' + enc; }).join(',') + ')';
-  }).join('');
-}
-
 function loadAssetsPage(page, q) {
   assetPage = page;
   showToast('⏳ Memuat data...');
-  var offset = (page - 1) * ASSET_PER_PAGE;
-  // Warehouse = NOT internal: two separate column filters (ANDed by PostgREST)
-  var path = ASSET_TABLE + '?select=*&order=created_at.desc&limit=' + ASSET_PER_PAGE + '&offset=' + offset
-           + '&lokasi_barang=not.in.(White%20Container,A55)'
-           + '&lokasi_barang=not.like.INT:*';
-  if (q) {
-    path += _buildSearchOr(q, ['nomor','nama','jenis','lokasi_barang','lokasi','deskripsi']);
-  }
-  supaFetchPaged(path)
-    .then(function(res) {
-      assets = (res.data || []).map(mapAsset);
-      assetTotalCount = res.count;
+  mwLoadAssetsAll()
+    .then(function(all) {
+      // Warehouse = BUKAN internal (lihat isInternal()).
+      var rows = all.filter(function(r) { return !isInternal(r.lokasi_barang); });
+      if (q) rows = rows.filter(function(r) { return _mwMatch(r, q, ['nomor','nama','jenis','lokasi_barang','lokasi','deskripsi']); });
+      var pg = _mwPage(rows, page, ASSET_PER_PAGE);
+      assets = pg.data.map(mapAsset);
+      assetTotalCount = pg.count;
       updateBadge();
       renderTable();
-      showToast('✅ ' + res.count + ' total warehouse');
+      showToast('✅ ' + pg.count + ' total warehouse');
     })
     .catch(function(err) {
-      showToast('⚠️ Gagal memuat: ' + err.message);
+      showToast('⚠️ Gagal memuat: ' + (err.message || err));
       assets = [];
       updateBadge();
     });
@@ -1830,23 +1805,19 @@ function loadAssetsPage(page, q) {
 function loadInternalPage(page, q) {
   intPage = page;
   showToast('⏳ Memuat data internal...');
-  var offset = (page - 1) * INT_PER_PAGE;
-  // Internal = or= of two conditions; search adds a second or= (PostgREST ANDs them)
-  var path = ASSET_TABLE + '?select=*&order=created_at.desc&limit=' + INT_PER_PAGE + '&offset=' + offset
-           + '&' + _INTERNAL_INCLUDE;
-  if (q) {
-    path += _buildSearchOr(q, ['nomor','nama','jenis','lokasi','deskripsi']);
-  }
-  supaFetchPaged(path)
-    .then(function(res) {
-      internalAssets = (res.data || []).map(mapAsset);
-      intTotalCount = res.count;
+  mwLoadAssetsAll()
+    .then(function(all) {
+      var rows = all.filter(function(r) { return isInternal(r.lokasi_barang); });
+      if (q) rows = rows.filter(function(r) { return _mwMatch(r, q, ['nomor','nama','jenis','lokasi','deskripsi']); });
+      var pg = _mwPage(rows, page, INT_PER_PAGE);
+      internalAssets = pg.data.map(mapAsset);
+      intTotalCount = pg.count;
       updateBadge();
       renderInternalTable();
-      showToast('✅ ' + res.count + ' total internal');
+      showToast('✅ ' + pg.count + ' total internal');
     })
     .catch(function(err) {
-      showToast('⚠️ Gagal memuat: ' + err.message);
+      showToast('⚠️ Gagal memuat: ' + (err.message || err));
       internalAssets = [];
       updateBadge();
     });
@@ -3200,6 +3171,7 @@ function saveAsset() {
         showToast('✅ Asset berhasil diperbarui');
         if (typeof autosaveClear === 'function') autosaveClear();
         resetForm();
+        _mwAssetsAll = null; // cache basi -> muat ulang dari Firestore
         if (savedIsInternal) {
           switchTab('list-internal');
         } else {
@@ -3222,6 +3194,7 @@ function saveAsset() {
         showToast('✅ Asset berhasil disimpan! Masuk ke List ' + (savedIsInternal ? 'Internal 📦' : 'Warehouse 🏭'));
         if (typeof autosaveClear === 'function') autosaveClear();
         resetForm();
+        _mwAssetsAll = null; // cache basi -> muat ulang dari Firestore
         if (savedIsInternal) {
           switchTab('list-internal');
         } else {
@@ -3611,7 +3584,7 @@ function closeDeleteModal() {
 function confirmDelete() {
   if (!pendingDeleteId) return;
   supaFetch('DELETE', ASSET_TABLE + '?id=eq.' + pendingDeleteId)
-    .then(function(){ showToast('🗑️ Asset berhasil dihapus'); closeDeleteModal(); loadAssets(); })
+    .then(function(){ showToast('🗑️ Asset berhasil dihapus'); closeDeleteModal(); _mwAssetsAll = null; loadAssets(); })
     .catch(function(err){ showToast('⚠️ Gagal hapus: ' + err.message); closeDeleteModal(); });
 }
 
@@ -3709,13 +3682,12 @@ function _doAmbilSearch() {
   var container = document.getElementById('ambilSearchResults');
   container.innerHTML = '<div style="padding:16px;color:var(--text-light);font-size:12px;">⏳ Mencari...</div>';
 
-  var path = ASSET_TABLE + '?select=*&order=nomor.asc&limit=100&' + _INTERNAL_INCLUDE;
-  if (q) {
-    path += _buildSearchOr(q, ['nomor','nama']);
-  }
-
-  supaFetch('GET', path).then(function(data) {
-    var filtered = (data || []).map(mapAsset);
+  mwLoadAssetsAll().then(function(all) {
+    // Hanya material lokal (BUKAN Warehouse), urut nomor, maks 100 hasil.
+    var rows = all.filter(function(r) { return isInternal(r.lokasi_barang); });
+    if (q) rows = rows.filter(function(r) { return _mwMatch(r, q, ['nomor','nama']); });
+    rows.sort(function(a, b) { return String(a.nomor || '').localeCompare(String(b.nomor || '')); });
+    var filtered = rows.slice(0, 100).map(mapAsset);
     _ambilCache = filtered;   // cache for selectAmbilAsset lookup
 
     if (filtered.length === 0) {
@@ -3848,6 +3820,7 @@ function konfirmasiAmbil() {
       showToast('✅ Pengambilan berhasil dicatat! Sisa: ' + (sisaQty !== null ? sisaQty : '—'));
       cancelAmbil();
       document.getElementById('ambilSearch').value = '';
+      _mwAssetsAll = null; _mwAmbilAll = null; // qty asset + history berubah
       loadAssets();
     })
     .catch(function(err) {
@@ -3893,44 +3866,41 @@ function switchHistSubTab(sub) {
   loadHistoryPage(histPage, currentHistQ());
 }
 
-// Filter lokasi_barang persis sama seperti pembagian Warehouse/Internal di ASSET_TABLE
-// (lihat _INTERNAL_INCLUDE), supaya history pengambilan ikut kebagi konsisten.
-function _histSubtabFilter(sub) {
-  if (sub === 'internal') return '&or=(lokasi_barang.in.(White%20Container,A55),lokasi_barang.like.INT:*)';
-  return '&lokasi_barang=not.in.(White%20Container,A55)&lokasi_barang=not.like.INT:*';
-}
+// Pembagian Warehouse/Internal history = sama seperti isInternal() di ASSET_TABLE.
+function _mwHistIsInternal(r) { return isInternal(r.lokasi_barang); }
 
 function refreshHistSubtabCounts() {
-  var qs = currentHistQ() ? _buildSearchOr(currentHistQ(), ['nomor','nama','pengambil','keperluan']) : '';
-  supaFetchPaged(AMBIL_TABLE + '?select=id&limit=1' + _histSubtabFilter('warehouse') + qs)
-    .then(function(res){ document.getElementById('histSubCount-warehouse').textContent = res.count; })
-    .catch(function(){});
-  supaFetchPaged(AMBIL_TABLE + '?select=id&limit=1' + _histSubtabFilter('internal') + qs)
-    .then(function(res){ document.getElementById('histSubCount-internal').textContent = res.count; })
-    .catch(function(){});
+  var q = currentHistQ();
+  var cols = ['nomor','nama','pengambil','keperluan'];
+  mwLoadAmbilAll().then(function(all) {
+    var wh = all.filter(function(r){ return !_mwHistIsInternal(r) && _mwMatch(r, q, cols); });
+    var it = all.filter(function(r){ return _mwHistIsInternal(r) && _mwMatch(r, q, cols); });
+    var ew = document.getElementById('histSubCount-warehouse'); if (ew) ew.textContent = wh.length;
+    var ei = document.getElementById('histSubCount-internal'); if (ei) ei.textContent = it.length;
+  }).catch(function(){});
 }
 
 function loadHistoryPage(page, q) {
   histPage = page;
   showToast('⏳ Memuat history...');
-  var offset = (page - 1) * HIST_PER_PAGE;
-  var path = AMBIL_TABLE + '?select=*&order=tanggal.desc&limit=' + HIST_PER_PAGE + '&offset=' + offset
-           + _histSubtabFilter(histSubTab);
-  if (q) {
-    path += _buildSearchOr(q, ['nomor','nama','pengambil','keperluan']);
-  }
-  supaFetchPaged(path)
-    .then(function(res) {
-      historyData     = res.data || [];
-      histTotalCount  = res.count;
+  mwLoadAmbilAll()
+    .then(function(all) {
+      var rows = all.filter(function(r) {
+        return histSubTab === 'internal' ? _mwHistIsInternal(r) : !_mwHistIsInternal(r);
+      });
+      if (q) rows = rows.filter(function(r) { return _mwMatch(r, q, ['nomor','nama','pengambil','keperluan']); });
+      var pg = _mwPage(rows, page, HIST_PER_PAGE);
+      historyData    = pg.data;
+      histTotalCount = pg.count;
       var badge = document.getElementById('historyBadge');
       if (badge) badge.textContent = histTotalCount;
-      document.getElementById('statHistoryTotal').textContent = histTotalCount;
+      var stat = document.getElementById('statHistoryTotal');
+      if (stat) stat.textContent = histTotalCount;
       renderHistoryTable();
       showToast('✅ History: ' + histTotalCount + ' total record');
     })
     .catch(function(err) {
-      showToast('⚠️ Gagal memuat history: ' + err.message);
+      showToast('⚠️ Gagal memuat history: ' + (err.message || err));
       historyData = [];
     });
 }

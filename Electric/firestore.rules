@@ -69,6 +69,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Approver signature images (PNG data-URL), doc id = slug(display name)
+    match /pm_signatures/{doc} {
+      allow read, write: if true;
+    }
+
     // Outage module (password-gated MOD-14)
     match /outage_assets/{doc} {
       allow read, write: if true;

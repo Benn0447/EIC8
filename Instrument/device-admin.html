@@ -64,6 +64,22 @@
 </main>
 
 <script>
+/* Backend: Firestore (eic8-3d7f1). pmRest() dari shared.js menerjemahkan
+   pola query PostgREST lama ke Firestore. */
+function supaFetch(method, path, body) { return pmRest(method, path, body); }
+
+// "Online" sekarang = last_seen < 5 menit lalu (heartbeat pmTrackPresence
+// di shared.js menulis last_seen tiap 2 menit selama tab terlihat). Dulu
+// ini status Realtime instan; trade-off migrasi ke Firestore Spark.
+var DA_ONLINE_MS = 5 * 60 * 1000;
+function daComputeOnline() {
+  _daOnlineIds = {};
+  var now = Date.now();
+  _daRows.forEach(function(r) {
+    var t = r.last_seen ? new Date(r.last_seen).getTime() : 0;
+    if (t && (now - t) < DA_ONLINE_MS) _daOnlineIds[r.device_id] = true;
+  });
+}
 
 function daFmtDate(iso) {
   if (!iso) return '—';
@@ -98,10 +114,11 @@ function daLoadDevices() {
   supaFetch('GET', 'trusted_devices?order=last_seen.desc')
     .then(function(rows) {
       _daRows = rows;
+      daComputeOnline();
       daRenderList();
     })
     .catch(function(err) {
-      listEl.innerHTML = '<div class="empty-state"><div class="ic">⚠️</div>Gagal memuat data.<br>' + (err.message || err) + '<br><br>Pastikan tabel <code>trusted_devices</code> sudah dibuat di Supabase.</div>';
+      listEl.innerHTML = '<div class="empty-state"><div class="ic">⚠️</div>Gagal memuat data.<br>' + (err.message || err) + '<br><br>Pastikan collection <code>trusted_devices</code> ada di Firestore.</div>';
       countEl.textContent = '';
     });
 }
@@ -156,18 +173,12 @@ function daRenderList() {
   }).join('');
 }
 
-/* ── PRESENCE (Realtime, bukan query database) ──
-   Dulu di sini bikin channel('pm-presence', ...) SENDIRI sebagai "penonton"
-   -- padahal shared.js (lewat pmInitGate -> pmTrackPresence, jalan otomatis
-   di SETIAP halaman termasuk device-admin.html ini sendiri) SUDAH subscribe
-   ke channel 'pm-presence' yang sama duluan. Dua kali join ke topic Realtime
-   yang sama dari client yang sama bikin konflik di level koneksi, presence
-   jadi gak sinkron dengan benar. Sekarang numpang ke channel yang sama lewat
-   pmOnPresenceSync() -- tidak ada join/channel baru sama sekali. */
-pmOnPresenceSync(function(state) {
-  _daOnlineIds = state;
-  daRenderList();
-});
+/* ── PRESENCE (dari last_seen, bukan Realtime lagi) ──
+   Firestore Spark tidak punya presence instan seperti Supabase Realtime.
+   pmTrackPresence() di shared.js menulis last_seen tiap 2 menit selama tab
+   terlihat; di sini "online" = last_seen < 5 menit. Auto-refresh 60 detik
+   supaya badge Online ikut luruh saat device benar-benar menutup tab. */
+setInterval(daLoadDevices, 60000);
 
 function daToggleTrust(deviceId, trusted) {
   // access_revoked=true saat dicabut -> device itu dipaksa masukin password

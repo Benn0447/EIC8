@@ -89,39 +89,181 @@ if (!String.prototype.padEnd) {
 if (!Number.isNaN) { Number.isNaN = function(v) { return typeof v === 'number' && isNaN(v); }; }
 if (!Number.isInteger) { Number.isInteger = function(v) { return typeof v === 'number' && Math.floor(v) === v; }; }
 
-/* ── SUPABASE CONFIG ── */
-var SUPA_URL   = 'https://ruvvximnnacpvvoogbzs.supabase.co';
-var SUPA_KEY   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1dnZ4aW1ubmFjcHZ2b29nYnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDE1NDAsImV4cCI6MjA5NDYxNzU0MH0.GRu5n0Jl2fP0V8L_QLN2Tkmd0Aw0JbMRu25I7t-R7l8';
-var SUPA_TABLE = 'pm_records';
+/* ── FIREBASE BACKEND (Firestore) ──
+   Dulu modul ini pakai Supabase (tabel pm_records dkk). Sekarang SELURUHNYA
+   jalan di Firebase project milik user sendiri (eic8-3d7f1) -- lihat
+   firebase-config.js, yang WAJIB dimuat sebelum shared.js (window.db =
+   firebase.firestore()). Tidak ada lagi Supabase / project Firebase lain.
 
-/* ── SUPABASE REALTIME CLIENT (lazy-loaded) ──
-   Dipakai KHUSUS buat gate-check (lihat pmSubscribeGateChanges di bawah):
-   device subscribe SEKALI ke perubahan baris dirinya sendiri di
-   trusted_devices lewat WebSocket, jadi kalau admin revoke/hapus/ganti
-   password, device dapat notifikasi INSTAN dari server -- tanpa perlu
-   nanya (polling) berkali-kali ke REST API seperti sebelumnya. Jauh lebih
-   hemat request ke compute Postgres karena Realtime jalan lewat jalur
-   terpisah, dan koneksinya otomatis putus sendiri pas tab ditutup.
-   Library resmi @supabase/supabase-js dimuat on-demand (bukan selalu),
-   supaya halaman yang gak butuh gate-check gak ikut nambah beban load. */
-var _pmSupaClientPromise = null;
-function _pmGetSupaClient() {
-  if (_pmSupaClientPromise) return _pmSupaClientPromise;
-  _pmSupaClientPromise = new Promise(function(resolve, reject) {
-    if (window.supabase && window.supabase.createClient) {
-      resolve(window.supabase.createClient(SUPA_URL, SUPA_KEY));
-      return;
-    }
-    var script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
-    script.onload = function() {
-      try { resolve(window.supabase.createClient(SUPA_URL, SUPA_KEY)); }
-      catch (e) { reject(e); }
-    };
-    script.onerror = function() { reject(new Error('Gagal memuat supabase-js dari CDN')); };
-    document.head.appendChild(script);
+   Model kepercayaan sama seperti Electric: TIDAK ada auth per-request untuk
+   data check sheet (rules Firestore terbuka penuh, gating cuma di sisi
+   aplikasi). Alur review/approval (ReportAuthManager, prefix "ra") memakai
+   Firebase Auth email/password -- lihat _raGetAuth() di bawah. */
+var PM_COLLECTION = 'pm_records';
+
+/* Firestore doc -> bentuk "row" yang dipakai kode lama (dulu dari PostgREST).
+   Kolom `data` disimpan sebagai STRING JSON di Firestore (bukan map bersarang)
+   supaya bebas dari batasan nama-key Firestore -- di-parse balik ke object di
+   sini. skipData=true dipakai dbList()/history (tidak perlu payload berat). */
+function pmDocToRec(doc, skipData) {
+  var d = doc.data() || {};
+  d.id = doc.id;
+  if (!skipData && typeof d.data === 'string') {
+    try { d.data = JSON.parse(d.data); } catch (e) { d.data = {}; }
+  }
+  return d;
+}
+function pmSerializeRec(rec) {
+  var out = {};
+  Object.keys(rec).forEach(function(k){ if (rec[k] !== undefined) out[k] = rec[k]; });
+  if (out.data !== undefined && typeof out.data !== 'string') out.data = JSON.stringify(out.data);
+  return out;
+}
+/* Helper CRUD pm_records -- semua me-return Promise yang resolve ke bentuk
+   array (mirip respons PostgREST lama) supaya call site berubah seminimal
+   mungkin: [] kosong, atau [{id:...}] / [rec]. */
+function pmDbGet(id) {
+  return db.collection(PM_COLLECTION).doc(id).get()
+    .then(function(s){ return s.exists ? [pmDocToRec(s)] : []; });
+}
+function pmDbList() {
+  return db.collection(PM_COLLECTION).orderBy('updated_at', 'desc').limit(100).get()
+    .then(function(q){ return q.docs.map(function(d){ return pmDocToRec(d, true); }); });
+}
+function pmDbInsert(rec) {
+  var payload = pmSerializeRec(rec);
+  payload.created_at = payload.created_at || new Date().toISOString();
+  if (payload.status === undefined) payload.status = 'DRAFT';
+  if (payload.firebase_synced_at === undefined) payload.firebase_synced_at = null;
+  return db.collection(PM_COLLECTION).add(payload).then(function(ref){ return [{ id: ref.id }]; });
+}
+function pmDbUpdate(id, patch) {
+  return db.collection(PM_COLLECTION).doc(id).set(pmSerializeRec(patch), { merge: true })
+    .then(function(){ return [{ id: id }]; });
+}
+function pmDbDelete(id) {
+  return db.collection(PM_COLLECTION).doc(id).delete().then(function(){ return []; });
+}
+
+/* ── pmRest: penerjemah subset PostgREST -> Firestore ──
+   Dipakai halaman standalone (outage-*, material-warehouse, device-admin,
+   checksheet-temperature/level-switch) yang dulu punya `supaFetch(method,
+   path, body)` sendiri. Mereka cukup mengganti definisi lokalnya jadi
+   `var supaFetch = pmRest;`.
+
+   Didukung:
+     GET   TABLE?select=...&col=eq.val&col=is.null&col=in.(a,b)&order=col.desc&limit=N&offset=M
+     POST  TABLE            (body object -> .add(); return [{id,...body}])
+     PATCH TABLE?id=eq.X    (atau col=eq.X -> query lalu update semua)
+     DELETE TABLE?id=eq.X | id=in.(...) | col=eq.X
+   Return: Promise -> array (mirip PostgREST Prefer: return=representation).
+   TIDAK didukung: or=(...) ilike (cari teks) -> tangani sisi klien di
+   halaman ybs; Range/Content-Range -> pakai query .count() langsung. */
+function _pmRestVal(v) {
+  if (v === 'null') return null;
+  if (v === 'true') return true;
+  if (v === 'false') return false;
+  return v; // biarkan string -- jangan paksa jadi number (tipe field Firestore harus persis)
+}
+function pmRest(method, path, body) {
+  method = String(method || 'GET').toUpperCase();
+  var qi = path.indexOf('?');
+  var table = qi === -1 ? path : path.slice(0, qi);
+  var qs = qi === -1 ? '' : path.slice(qi + 1);
+  var params = {};
+  var filters = [];
+  qs.split('&').forEach(function(kv) {
+    if (!kv) return;
+    var eq = kv.indexOf('=');
+    var k = decodeURIComponent(kv.slice(0, eq));
+    var v = decodeURIComponent(kv.slice(eq + 1));
+    if (k === 'select' || k === 'order' || k === 'limit' || k === 'offset' || k === 'or') { params[k] = v; return; }
+    var dot = v.indexOf('.');
+    filters.push({ col: k, op: v.slice(0, dot), val: v.slice(dot + 1) });
   });
-  return _pmSupaClientPromise;
+  var coll = db.collection(table);
+
+  if (method === 'GET') {
+    var q = coll;
+    filters.forEach(function(f) {
+      if (f.op === 'eq') q = q.where(f.col, '==', _pmRestVal(f.val));
+      else if (f.op === 'neq') q = q.where(f.col, '!=', _pmRestVal(f.val));
+      else if (f.op === 'gt') q = q.where(f.col, '>', _pmRestVal(f.val));
+      else if (f.op === 'gte') q = q.where(f.col, '>=', _pmRestVal(f.val));
+      else if (f.op === 'lt') q = q.where(f.col, '<', _pmRestVal(f.val));
+      else if (f.op === 'lte') q = q.where(f.col, '<=', _pmRestVal(f.val));
+      else if (f.op === 'is') q = q.where(f.col, '==', _pmRestVal(f.val));
+      else if (f.op === 'in') {
+        var arr = f.val.replace(/^\(|\)$/g, '').split(',').map(function(x) { return _pmRestVal(x.replace(/^"|"$/g, '')); });
+        q = q.where(f.col, 'in', arr);
+      }
+    });
+    if (params.order) {
+      var od = params.order.split(',')[0].split('.');
+      q = q.orderBy(od[0], od[1] === 'desc' ? 'desc' : 'asc');
+    }
+    var offset = parseInt(params.offset, 10) || 0;
+    var limit = parseInt(params.limit, 10) || 0;
+    if (limit) q = q.limit(offset + limit); // Firestore tak punya offset -> ambil sampai offset+limit, potong di klien
+    return q.get().then(function(snap) {
+      var rows = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+      if (offset) rows = rows.slice(offset);
+      return rows;
+    });
+  }
+
+  if (method === 'POST') {
+    var recs = Array.isArray(body) ? body : [body];
+    return Promise.all(recs.map(function(rec) {
+      return coll.add(rec).then(function(ref) { return Object.assign({ id: ref.id }, rec); });
+    }));
+  }
+
+  // PATCH / DELETE -> cari doc target dari filter
+  var locate;
+  var idEq = filters.filter(function(f) { return f.col === 'id' && f.op === 'eq'; })[0];
+  var idIn = filters.filter(function(f) { return f.col === 'id' && f.op === 'in'; })[0];
+  if (idEq) {
+    locate = Promise.resolve([coll.doc(idEq.val)]);
+  } else if (idIn) {
+    locate = Promise.resolve(idIn.val.replace(/^\(|\)$/g, '').split(',').map(function(x) { return coll.doc(x.trim()); }));
+  } else {
+    var wq = coll;
+    filters.forEach(function(f) { if (f.op === 'eq') wq = wq.where(f.col, '==', _pmRestVal(f.val)); });
+    locate = wq.get().then(function(snap) { return snap.docs.map(function(d) { return d.ref; }); });
+  }
+
+  if (method === 'PATCH') {
+    return locate.then(function(refs) {
+      return Promise.all(refs.map(function(r) { return r.set(body, { merge: true }); }))
+        .then(function() { return refs.map(function(r) { return { id: r.id }; }); });
+    });
+  }
+  if (method === 'DELETE') {
+    return locate.then(function(refs) {
+      return Promise.all(refs.map(function(r) { return r.delete(); })).then(function() { return []; });
+    });
+  }
+  return Promise.reject(new Error('pmRest: metode tidak didukung: ' + method));
+}
+
+/* ── FIREBASE AUTH (lazy-loaded) ──
+   Dipakai KHUSUS oleh ReportAuthManager (raLogin/raGetCurrentProfile/dst) --
+   checker/reviewer/SPV login akun sungguhan buat menandatangani laporan.
+   firebase-auth-compat dimuat on-demand supaya halaman yang tidak memakai
+   alur review/approval tidak ikut menambah beban load. */
+var _raAuthPromise = null;
+function _raGetAuth() {
+  if (_raAuthPromise) return _raAuthPromise;
+  _raAuthPromise = new Promise(function(resolve, reject) {
+    if (firebase && firebase.auth) { resolve(firebase.auth()); return; }
+    var s = document.createElement('script');
+    s.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js';
+    s.onload = function() { try { resolve(firebase.auth()); } catch (e) { reject(e); } };
+    s.onerror = function() { reject(new Error('Gagal memuat firebase-auth dari CDN')); };
+    document.head.appendChild(s);
+  });
+  return _raAuthPromise;
 }
 
 /* ── GOOGLE DRIVE PHOTO STORAGE ──
@@ -471,111 +613,12 @@ function pmDeleteImgFromArr(imgArr, idx) {
   imgArr.splice(idx, 1);
 }
 
-function supaFetch(method, path, body) {
-  var opts = {
-    method: method,
-    headers: {
-      'apikey': SUPA_KEY,
-      'Authorization': 'Bearer ' + SUPA_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
-    }
-  };
-  if (body) opts.body = JSON.stringify(body);
-  return fetch(SUPA_URL + '/rest/v1/' + path, opts)
-    .then(function(res) {
-      if (!res.ok) return res.text().then(function(t){ throw new Error(t); });
-      return res.text().then(function(t){ return t ? JSON.parse(t) : []; });
-    });
-}
-
-/* ── SUPA FETCH DENGAN AUTO-RETRY (khusus GET) ──
-   Dipakai buat request yang aman diulang (idempotent, contoh: cek status
-   gate, ambil password hash) supaya gangguan sesaat (timeout/522 pas
-   Supabase lagi sibuk) tidak langsung gagal dan memaksa user refresh
-   manual berkali-kali -- yang justru menambah beban request baru ke
-   database yang lagi struggling. JANGAN dipakai untuk POST/PATCH/DELETE,
-   karena retry pada request yang mengubah data bisa bikin data duplikat
-   kalau request pertama sebenarnya sudah berhasil tapi responsnya hilang. */
-function supaFetchRetry(path, retries, delayMs) {
-  retries = (typeof retries === 'number') ? retries : 2;
-  delayMs = (typeof delayMs === 'number') ? delayMs : 1200;
-  return supaFetch('GET', path).catch(function(err) {
-    if (retries <= 0) throw err;
-    return new Promise(function(resolve) { setTimeout(resolve, delayMs); })
-      .then(function() { return supaFetchRetry(path, retries - 1, delayMs * 2); });
-  });
-}
-
 /* ── UKURAN BYTE (UTF-8) DARI STRING ──
-   Dipakai buat ngukur ukuran payload JSON yang beneran mau dikirim, supaya
-   nanti pas dbLoad progress-nya bisa dihitung dari ukuran ASLI (bukan
-   estimasi), meski respons Supabase gzip/chunked dan lengthComputable
-   selalu false. */
+   Dipakai buat ngukur ukuran payload JSON yang beneran mau dikirim, disimpan
+   sebagai `payload_size` di record supaya bisa jadi acuan estimasi. */
 function _dbByteLength(str) {
   if (window.TextEncoder) return new TextEncoder().encode(str).length;
   return unescape(encodeURIComponent(str)).length; // fallback browser lama
-}
-
-/* ── SUPA FETCH DENGAN PROGRESS (XMLHttpRequest) ──
-   fetch() tidak punya event progress bawaan utk upload (kirim data), jadi
-   dipakai XHR khusus di sini supaya dbSave (upload) & dbLoad (download) bisa
-   nampilin progress asli 0-100% berdasarkan ukuran data beneran, bukan
-   animasi kira-kira. onProgress(percent, phase) dipanggil berkali-kali
-   selama transfer; phase = 'upload' atau 'download'.
-
-   expectedTotal (opsional) = ukuran byte ASLI (uncompressed) dari payload
-   yang sudah kita tahu duluan (disimpan sebagai kolom payload_size waktu
-   dbSave). Kalau diisi, progress download dihitung manual dari e.loaded
-   (jumlah byte yang sudah diterima -- ini SELALU ada di event progress,
-   walau lengthComputable false) dibagi expectedTotal, karena Supabase GET
-   selalu dikirim gzip/chunked sehingga lengthComputable bawaan browser
-   tidak pernah true. Dibatasi maksimal 97% selama transfer (baru dipaksa
-   100% pas xhr.onload) sebab byte yang lewat jaringan = ukuran ter-gzip,
-   biasanya LEBIH KECIL dari expectedTotal (ukuran JSON asli sebelum
-   dikompres), jadi kalau tidak dibatasi progress bisa "mentok" duluan
-   sebelum respons beneran selesai diterima. */
-function supaFetchProgress(method, path, body, onProgress, expectedTotal) {
-  return new Promise(function(resolve, reject) {
-    var xhr = new XMLHttpRequest();
-    xhr.open(method, SUPA_URL + '/rest/v1/' + path, true);
-    xhr.setRequestHeader('apikey', SUPA_KEY);
-    xhr.setRequestHeader('Authorization', 'Bearer ' + SUPA_KEY);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Prefer', 'return=representation');
-    if (onProgress && xhr.upload) {
-      xhr.upload.onprogress = function(e) {
-        // Dibatasi maks 95% -- begitu semua byte selesai terkirim, e.loaded/e.total
-        // sudah 100% padahal Supabase masih proses INSERT/UPDATE + nyiapin respons
-        // di baliknya. Kalau gak dibatasi, progress keliatan "selesai" (100%) padahal
-        // masih proses beneran. Baru dianggap benar-benar kelar begitu xhr.onload
-        // kepanggil (lihat .then di dbSave -> overlay langsung ditutup).
-        if (e.lengthComputable) onProgress(Math.min(95, Math.round((e.loaded / e.total) * 100)), 'upload');
-      };
-    }
-    if (onProgress) {
-      xhr.onprogress = function(e) {
-        if (expectedTotal) {
-          var p = Math.min(97, Math.round((e.loaded / expectedTotal) * 100));
-          onProgress(p, 'download');
-        } else if (e.lengthComputable) {
-          onProgress(Math.round((e.loaded / e.total) * 100), 'download');
-        }
-      };
-    }
-    xhr.onload = function() {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        if (onProgress) onProgress(100, 'download'); // paksa 100% begitu respons full diterima
-        var text = xhr.responseText;
-        try { resolve(text ? JSON.parse(text) : []); }
-        catch (e) { resolve([]); }
-      } else {
-        reject(new Error(xhr.responseText || ('HTTP ' + xhr.status)));
-      }
-    };
-    xhr.onerror = function() { reject(new Error('Network error')); };
-    xhr.send(body ? JSON.stringify(body) : null);
-  });
 }
 
 /* ── GATE AKSES: LOGIC (device id, cek password, sinkron trusted device) ──
@@ -645,36 +688,31 @@ function pmShowGateError(msg) {
 }
 
 function pmFetchCurrentPwHash() {
-  // Ambil hash password yang BERLAKU SEKARANG langsung dari Supabase (live,
+  // Ambil hash password yang BERLAKU SEKARANG langsung dari Firestore (live,
   // bukan dari cache) — dipakai saat validasi submit password di gate supaya
-  // password baru yang baru diganti admin langsung berlaku, tanpa perlu
-  // device lain sempat "sinkron" duluan.
-  return supaFetchRetry(PM_GATE_CONFIG_TABLE + '?id=eq.1&select=password_hash&limit=1')
-    .then(function(rows) {
-      return (rows && rows.length) ? rows[0].password_hash : null;
-    });
+  // password baru yang baru diganti admin langsung berlaku. Doc tunggal
+  // gate_config/main { password_hash, updated_at }.
+  return db.collection(PM_GATE_CONFIG_TABLE).doc('main').get()
+    .then(function(s) { return s.exists ? (s.data().password_hash || null) : null; });
 }
 
 function pmSyncDeviceToSupabase(deviceId, name) {
   var ua = navigator.userAgent || '';
   var now = new Date().toISOString();
-  supaFetch('GET', PM_GATE_TABLE + '?device_id=eq.' + encodeURIComponent(deviceId) + '&limit=1')
-    .then(function(rows) {
-      if (rows && rows.length) {
+  var ref = db.collection(PM_GATE_TABLE).doc(deviceId);
+  ref.get()
+    .then(function(s) {
+      if (s.exists) {
         var patch = { last_seen: now, user_agent: ua };
         if (name) patch.device_name = name;
-        return supaFetch('PATCH', PM_GATE_TABLE + '?device_id=eq.' + encodeURIComponent(deviceId), patch);
+        return ref.set(patch, { merge: true });
       }
-      return supaFetch('POST', PM_GATE_TABLE, {
+      return ref.set({
         device_id: deviceId, device_name: name || '', user_agent: ua,
-        first_seen: now, last_seen: now, trusted: false
+        first_seen: now, last_seen: now, trusted: false, access_revoked: false
       });
     })
     .then(function(){
-      // Baru ditandai "sudah tercatat" kalau BENERAN berhasil sampai ke
-      // Supabase — supaya kalau gagal (mis. tabel belum dibuat saat itu),
-      // percobaan berikutnya (pmInitGate di kunjungan lain) otomatis coba
-      // kirim ulang, bukan dianggap selesai padahal belum pernah nyampe.
       // Disimpan sebagai timestamp (bukan flag '1') supaya pmInitGate() bisa
       // tahu kapan harus resync lagi biar last_seen gak beku selamanya.
       pmLS('set', 'pm_device_synced', String(Date.now()));
@@ -683,26 +721,21 @@ function pmSyncDeviceToSupabase(deviceId, name) {
 }
 
 function pmCheckAccessRemote(deviceId) {
-  // Cek status SEKALI pas halaman dibuka (background, tidak nge-block UI
-  // konten yang lagi dibuka):
+  // Cek status SEKALI pas halaman dibuka (background, tidak nge-block UI):
   // - trusted=true            -> lolos otomatis, cache lokal disimpan.
-  // - row device dihapus admin-> dianggap "device di-reset total": cache
-  //                              password & trusted lokal dihapus, jadi
-  //                              kunjungan berikutnya wajib password lagi.
-  // - access_revoked=true     -> admin sengaja klik "Cabut Trusted": cache
-  //                              password lokal ikut dihapus juga.
-  // - password_hash berubah   -> admin ganti password lewat device-admin ->
-  //                              cache password lokal yang lama dihapus,
-  //                              device (yang belum Trusted) wajib password
-  //                              baru di kunjungan berikutnya.
+  // - doc device dihapus admin -> "device di-reset total": cache password &
+  //                              trusted lokal dihapus.
+  // - access_revoked=true     -> admin "Cabut Trusted": cache password lokal
+  //                              ikut dihapus.
+  // - password_hash berubah   -> cache password lokal lama dihapus, device
+  //                              (yang belum Trusted) wajib password baru.
   //
-  // Setelah cek awal ini, pmSubscribeGateChanges() dipanggil buat pasang
-  // "telinga" Realtime -- jadi kalau admin revoke/hapus/ganti password
-  // SETELAH halaman ini terbuka, device dapat notifikasi INSTAN lewat
-  // WebSocket, tanpa perlu nanya (polling) berkali-kali ke REST API lagi.
-  supaFetchRetry(PM_GATE_TABLE + '?device_id=eq.' + encodeURIComponent(deviceId) + '&select=trusted,access_revoked&limit=1')
-    .then(function(rows) { _pmApplyGateRow(rows && rows.length ? rows[0] : null); })
-    .catch(function(){ /* gagal walau sudah di-retry -> biarin cache lokal lama tetap berlaku */ });
+  // pmSubscribeGateChanges() memasang listener onSnapshot -- kalau admin
+  // revoke/hapus/ganti SETELAH halaman terbuka, device dapat perubahan
+  // INSTAN dari Firestore tanpa polling.
+  db.collection(PM_GATE_TABLE).doc(deviceId).get()
+    .then(function(s) { _pmApplyGateRow(s.exists ? s.data() : null); })
+    .catch(function(){ /* gagal -> biarin cache lokal lama tetap berlaku */ });
 
   pmSubscribeGateChanges(deviceId);
 }
@@ -730,82 +763,42 @@ function _pmApplyGateRow(row) {
 var _pmGateChannel = null;
 function pmSubscribeGateChanges(deviceId) {
   if (_pmGateChannel) return; // sudah subscribe, jangan dobel
-  _pmGetSupaClient().then(function(client) {
-    if (_pmGateChannel) return; // race guard kalau kepanggil 2x pas loading
-    _pmGateChannel = client
-      .channel('pm-gate-' + deviceId)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: PM_GATE_TABLE,
-        filter: 'device_id=eq.' + deviceId
-      }, function(payload) {
-        // UPDATE/INSERT -> payload.new ada isinya. DELETE -> payload.new
-        // kosong, payload.old yang ada -> berarti device dihapus admin.
-        if (payload.eventType === 'DELETE') { _pmApplyGateRow(null); return; }
-        _pmApplyGateRow(payload.new);
-      })
-      .subscribe();
-  }).catch(function(err) {
-    // CDN gagal dimuat / Realtime gak available -> diamkan saja, app tetap
-    // jalan normal dengan hasil cek 1x di atas (cuma gak dapat notifikasi
-    // instan kalau ada perubahan setelah halaman dibuka).
-    console.error('Realtime gate subscribe gagal (fallback ke cek biasa):', err);
-  });
+  try {
+    // Firestore onSnapshot: doc device sendiri dipantau real-time. Kalau
+    // admin revoke/hapus/ganti trusted, callback ini kepanggil INSTAN.
+    _pmGateChannel = db.collection(PM_GATE_TABLE).doc(deviceId).onSnapshot(
+      function(s) { _pmApplyGateRow(s.exists ? s.data() : null); },
+      function(err) { console.error('Realtime gate subscribe gagal (fallback ke cek biasa):', err); }
+    );
+  } catch (e) {
+    console.error('Realtime gate subscribe gagal (fallback ke cek biasa):', e);
+  }
 }
 
 /* ── PRESENCE: "device mana yang lagi online sekarang" ──
-   Dipisah dari pmSubscribeGateChanges di atas (yang urusannya postgres_changes
-   ke tabel trusted_devices) karena Presence ini SAMA SEKALI TIDAK NULIS/BACA
-   ke Postgres -- cuma "hadir" di sebuah channel Realtime bareng device lain,
-   jadi device-admin.html bisa lihat siapa yang lagi buka halaman SEKARANG,
-   tanpa nambah beban query ke database sama sekali. Begitu tab ditutup /
-   koneksi putus, device otomatis hilang dari daftar "online" -- tidak perlu
-   ditulis atau dihapus manual dari mana pun. */
-var _pmPresenceChannel = null;
-// Halaman device-admin.html butuh lihat SELURUH presence state (semua device
-// yang lagi hadir), bukan cuma nge-track dirinya sendiri. Dulu itu dibikin
-// dengan channel('pm-presence', ...) KEDUA secara terpisah -- dua kali join
-// ke topic Realtime yang sama dari client yang sama bikin konflik (presence
-// jadi gak sinkron dengan benar). Sekarang pakai pub-sub internal ini:
-// listener didaftarkan di sini, lalu dipanggil ulang tiap ada event 'sync'
-// dari SATU channel yang sama yang di-subscribe oleh pmTrackPresence().
-var _pmPresenceSyncListeners = [];
-function _pmFirePresenceSync() {
-  var state = _pmPresenceChannel ? _pmPresenceChannel.presenceState() : {};
-  _pmPresenceSyncListeners.forEach(function(fn) {
-    try { fn(state); } catch (e) { console.error('pmOnPresenceSync listener error:', e); }
-  });
-}
+   Dulu lewat channel Realtime Supabase (auto-hilang saat tab ditutup).
+   Sekarang: heartbeat ringan ke trusted_devices/<id> (last_seen +
+   current_page) tiap 2 menit selama tab terlihat (interval agak longgar
+   supaya hemat kuota write Firestore Spark). device-admin.html (Phase 2)
+   menganggap device "online" kalau last_seen < ~5 menit lalu. */
+var _pmPresenceTimer = null;
 function pmTrackPresence(deviceId, name) {
-  if (_pmPresenceChannel) return; // sudah track, jangan dobel
-  _pmGetSupaClient().then(function(client) {
-    if (_pmPresenceChannel) return; // race guard kalau kepanggil 2x pas loading
-    _pmPresenceChannel = client
-      .channel('pm-presence', { config: { presence: { key: deviceId } } })
-      .on('presence', { event: 'sync' }, _pmFirePresenceSync)
-      .subscribe(function(status) {
-        if (status !== 'SUBSCRIBED') return;
-        _pmPresenceChannel.track({
-          device_name: name || '(tanpa nama)',
-          page: (location.pathname.split('/').pop() || 'index'),
-          since: new Date().toISOString()
-        });
-        _pmFirePresenceSync(); // kasih snapshot awal ke listener yang sudah daftar duluan
-      });
-  }).catch(function(err) {
-    console.error('Presence tracking gagal (bukan masalah kritis):', err);
-  });
+  if (_pmPresenceTimer) return; // sudah jalan, jangan dobel
+  function beat() {
+    if (document.hidden) return;
+    var patch = {
+      last_seen: new Date().toISOString(),
+      current_page: (location.pathname.split('/').pop() || 'index')
+    };
+    if (name) patch.device_name = name;
+    db.collection(PM_GATE_TABLE).doc(deviceId).set(patch, { merge: true }).catch(function(){});
+  }
+  beat();
+  _pmPresenceTimer = setInterval(beat, 120000);
 }
-// Dipakai halaman yang cuma mau LIHAT presence semua device (device-admin.html)
-// tanpa perlu join channel baru -- numpang di channel yang sama yang sudah
-// (atau akan) di-subscribe oleh pmTrackPresence() lewat pmInitGate() di atas.
-// callback dipanggil dengan presenceState() setiap kali ada sync, termasuk
-// segera dengan state terkini (kalau channel-nya sudah connect duluan) supaya
-// listener yang daftar belakangan tidak perlu nunggu event sync berikutnya.
-function pmOnPresenceSync(callback) {
-  if (typeof callback !== 'function') return;
-  _pmPresenceSyncListeners.push(callback);
-  if (_pmPresenceChannel) callback(_pmPresenceChannel.presenceState());
-}
+// Placeholder — implementasi asli (baca presence semua device) sekarang ada
+// di device-admin.html sendiri lewat query trusted_devices + filter last_seen.
+function pmOnPresenceSync(callback) { /* no-op: lihat device-admin.html (Phase 2) */ }
 
 function pmInitGate() {
   var deviceId = pmGetDeviceId();
@@ -989,18 +982,10 @@ function dbShowToast(msg) {
 /* ── DB LOAD (satu record by ID) ── */
 function dbLoad(id, callback) {
   dbShowSavingOverlay(true, 'Memuat data, mohon tunggu...', 'Data dengan banyak gambar membutuhkan waktu yang lama');
-  // Step 1: query ringan buat ambil payload_size (ukuran asli data) duluan,
-  // supaya progress bar di step 2 bisa dihitung dari ukuran ASLI -- bukan
-  // simulasi -- walau Supabase GET selalu gzip/chunked (lengthComputable browser
-  // gak pernah true). Kalau record lama belum punya payload_size (null),
-  // otomatis fallback ke simulasi asymptotic seperti biasa.
-  supaFetch('GET', SUPA_TABLE + '?id=eq.' + id + '&select=payload_size&limit=1')
-    .then(function(sizeRows) {
-      var expectedSize = (sizeRows && sizeRows[0] && sizeRows[0].payload_size) ? sizeRows[0].payload_size : null;
-      return supaFetchProgress('GET', SUPA_TABLE + '?id=eq.' + id + '&limit=1', null, function(percent, phase) {
-        if (phase === 'download') dbReportRealProgress(percent);
-      }, expectedSize);
-    })
+  // Firestore tidak punya event progress transfer -> pakai simulasi
+  // asymptotic (dbStartFakeProgress) sampai data & pemulihan foto selesai.
+  dbStartFakeProgress();
+  pmDbGet(id)
     .then(function(rows) {
       if (rows && rows[0]) {
         // Foto lama yang cuma punya driveUrl (base64-nya sudah dibuang saat
@@ -1008,6 +993,8 @@ function dbLoad(id, callback) {
         // supaya applyRecordToForm/render/PDF export tiap modul tetap nerima
         // bentuk data yang sama seperti biasa (selalu ada dataUrl).
         _pmRestoreBase64AfterLoad(rows[0].data).then(function(){
+          dbStopFakeProgress();
+          dbSetSavingProgress(100);
           dbShowSavingOverlay(false);
           callback(rows[0]);
         });
@@ -1020,7 +1007,7 @@ function dbLoad(id, callback) {
 /* ── DB DELETE ── */
 function dbDelete(id) {
   if (!confirm('Hapus data PM ini dari database?')) return;
-  supaFetch('DELETE', SUPA_TABLE + '?id=eq.' + id)
+  pmDbDelete(id)
     .then(function() {
       dbShowToast('Data berhasil dihapus');
       if (typeof dbLoadRiwayat === 'function') dbLoadRiwayat();
@@ -1267,24 +1254,16 @@ function dbSave(modul, arg2, arg3, arg4, arg5, arg6, arg7, arg8) {
       return; // hentikan di sini -- overlay error+retry sudah ditampilkan di atas, jangan lanjut simpan
     }
     _pmStripBase64ForSave(rec.data);
-    // Hitung ukuran byte ASLI (uncompressed) dari payload SETELAH base64 yang
-    // sudah punya driveUrl dibuang, dan simpan sebagai payload_size di record
-    // itu sendiri. Nanti dbLoad baca angka ini duluan supaya progress bar
-    // loading bisa dihitung dari ukuran data yang SEBENARNYA.
+    // Ukuran byte payload SETELAH base64 yang sudah punya driveUrl dibuang --
+    // disimpan sebagai payload_size buat acuan/estimasi.
     rec.payload_size = _dbByteLength(JSON.stringify(rec));
-    var path, method;
-    if (existingId) {
-      path  = SUPA_TABLE + '?id=eq.' + existingId;
-      method = 'PATCH';
-    } else {
-      path  = SUPA_TABLE;
-      method = 'POST';
-    }
-    supaFetchProgress(method, path, rec, function(percent, phase) {
-      if (phase === 'upload') dbReportRealProgress(percent);
-    })
+    dbStartFakeProgress();
+    var op = existingId ? pmDbUpdate(existingId, rec) : pmDbInsert(rec);
+    op
       .then(function(rows) {
         window._dbSaving = false;
+        dbStopFakeProgress();
+        dbSetSavingProgress(100);
         dbShowSavingOverlay(false);
         if (btn) { btn.innerHTML = origText; btn.disabled = false; }
         var savedId = (rows && rows[0] && rows[0].id) ? rows[0].id : existingId;
@@ -1347,10 +1326,13 @@ function raResaveInPlace(modul, callback) {
   });
 }
 
-/* ── DB LIST (untuk history page) ── */
+/* ── DB LIST (untuk history page) ──
+   Firestore tidak bisa "select kolom" -> pmDbList() ambil doc utuh tapi
+   TIDAK mem-parse `data` (skipData) supaya tetap ringan. orderBy('updated_at')
+   -> doc tanpa field itu tidak akan muncul; semua penyimpanan baru selalu
+   men-set updated_at, jadi aman untuk data yang dibuat sistem ini. */
 function dbList(modul, callback) {
-  var path = SUPA_TABLE + '?select=id,modul,tanggal,pic,work_order,created_at,updated_at,status,firebase_synced_at&order=updated_at.desc&limit=100';
-  supaFetch('GET', path)
+  pmDbList()
     .then(function(rows) {
       if (!modul) { callback(rows || []); return; }
       var normFilter = normalizeModul(modul);
@@ -1956,9 +1938,8 @@ function dbSaveSilent(modul) {
   waitForPendingDriveUploads().then(function() {
     _pmStripBase64ForSave(rec.data);
     rec.payload_size = _dbByteLength(JSON.stringify(rec));
-    var path = existingId ? (SUPA_TABLE + '?id=eq.' + existingId) : SUPA_TABLE;
-    var method = existingId ? 'PATCH' : 'POST';
-    supaFetch(method, path, rec)
+    var op = existingId ? pmDbUpdate(existingId, rec) : pmDbInsert(rec);
+    op
       .then(function(rows) {
         window._dbSaving = false;
         var savedId = (rows && rows[0] && rows[0].id) ? rows[0].id : existingId;
@@ -2036,81 +2017,70 @@ if (document.readyState === 'complete') {
        spv1/admin1) yang sedang bertindak atas SATU laporan tertentu
        (submit/check/approve), dicatat sebagai audit trail di pm_records.
 
-   Login pakai Supabase Auth (email+password), tapi user cukup ketik
+   Login pakai Firebase Auth (email+password), tapi user cukup ketik
    USERNAME -- dipetakan ke email internal @pmunit7.local di sini saja,
-   tidak pernah terlihat oleh user.
+   tidak pernah terlihat oleh user. firebase-auth-compat dimuat on-demand
+   lewat _raGetAuth() (lihat atas file).
 
-   Reuse _pmGetSupaClient() yang sudah ada di atas (lazy-load supabase-js
-   sekali saja, dipakai bareng oleh gate akses & modul ini) -- supaya
-   tidak load library Supabase Realtime dua kali.
-
-   Skema database yang dibutuhkan modul ini (lihat sql/001_report_auth_workflow.sql):
-     table pm_profiles (id uuid pk -> auth.users, username, role, display_name)
-     kolom tambahan di pm_records: status, submitted_by, submitted_at,
+   Skema Firestore yang dibutuhkan modul ini:
+     collection pm_profiles: doc id = Firebase Auth UID,
+       { username, role, display_name }
+     field tambahan di doc pm_records: status, submitted_by, submitted_at,
        checked_by_account, checked_by_name, checked_signature_url, checked_at,
        reviewed_by_account, review_signature_url, final_approved_at, return_reason
-     storage bucket 'signatures' (private, diisi manual oleh admin)
+     collection pm_signatures: doc id = slug(nama tampilan),
+       { display_name, dataurl } -- PNG tanda tangan sebagai data-URL base64
    ── */
 
 var RA_EMAIL_DOMAIN = '@pmunit7.local';
 var RA_PROFILE_TABLE = 'pm_profiles';
-var RA_SIGNATURE_BUCKET = 'signatures';
+var RA_SIGNATURE_COLLECTION = 'pm_signatures';
 
-/* Nama file tanda tangan di Supabase Storage bucket 'signatures',
-   di-mapping dari NAMA TAMPILAN (dropdown "Checked By" / nama SPV) --
-   BUKAN dari username akun login. File-nya diupload manual oleh admin
-   lewat Supabase Dashboard, nama file harus PERSIS sama dengan value
-   di sini. */
-var RA_SIGNATURE_FILE_MAP = {
-  'Zaini Nur Hidayat': 'zaini.png',
-  'Isyana Ray Sasongko': 'isyana.png',
-  'Fajar Dwi Saksana': 'fajar.png'
-};
+/* slug nama tampilan -> doc id di collection pm_signatures. Nama tampilan
+   berasal dari dropdown "Checked By" / nama SPV -- BUKAN username akun. */
+function _raSigSlug(name) {
+  return (name || 'ttd').toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '_').replace(/^_+|_+$/g, '') || 'ttd';
+}
 
 var _raProfileCache = null; // {id, username, role, display_name} | null kalau belum login
 
-function raGetClient() {
-  return _pmGetSupaClient();
-}
-
-/* Cek status login SEKARANG (dari session Supabase Auth yang sudah
-   persist otomatis di localStorage oleh supabase-js -- jadi tetap login
-   walau halaman direfresh, sampai logout eksplisit atau token expired). */
+/* Cek status login SEKARANG (dari session Firebase Auth yang persist
+   otomatis -- tetap login walau halaman direfresh sampai logout eksplisit
+   atau token expired). */
 function raGetCurrentProfile(callback) {
   if (_raProfileCache) { callback(_raProfileCache); return; }
-  raGetClient().then(function(client) {
-    return client.auth.getSession().then(function(res) {
-      var session = res.data && res.data.session;
-      if (!session) { callback(null); return; }
-      return client.from(RA_PROFILE_TABLE).select('*').eq('id', session.user.id).single()
-        .then(function(res2) {
-          _raProfileCache = res2.data || null;
+  _raGetAuth().then(function(auth) {
+    var unsub = auth.onAuthStateChanged(function(user) {
+      unsub();
+      if (!user) { callback(null); return; }
+      db.collection(RA_PROFILE_TABLE).doc(user.uid).get()
+        .then(function(s) {
+          _raProfileCache = s.exists ? Object.assign({ id: user.uid }, s.data()) : null;
           callback(_raProfileCache);
-        });
+        })
+        .catch(function() { callback(null); });
     });
   }).catch(function() { callback(null); });
 }
 
 function raLogin(username, password, callback) {
-  raGetClient().then(function(client) {
-    return client.auth.signInWithPassword({ email: username + RA_EMAIL_DOMAIN, password: password })
-      .then(function(res) {
-        if (res.error) { callback(res.error.message || 'Login gagal.', null); return; }
-        return client.from(RA_PROFILE_TABLE).select('*').eq('id', res.data.user.id).single()
-          .then(function(res2) {
-            if (res2.error || !res2.data) {
-              callback('Akun ditemukan tapi profil belum terdaftar di pm_profiles.', null);
-              return;
-            }
-            _raProfileCache = res2.data;
-            callback(null, _raProfileCache);
-          });
+  _raGetAuth().then(function(auth) {
+    return auth.signInWithEmailAndPassword(username + RA_EMAIL_DOMAIN, password)
+      .then(function(cred) {
+        return db.collection(RA_PROFILE_TABLE).doc(cred.user.uid).get().then(function(s) {
+          if (!s.exists) {
+            callback('Akun ditemukan tapi profil belum terdaftar di pm_profiles.', null);
+            return;
+          }
+          _raProfileCache = Object.assign({ id: cred.user.uid }, s.data());
+          callback(null, _raProfileCache);
+        });
       });
   }).catch(function(err) { callback((err && err.message) || String(err), null); });
 }
 
 function raLogout(callback) {
-  raGetClient().then(function(client) { return client.auth.signOut(); })
+  _raGetAuth().then(function(auth) { return auth.signOut(); })
     .then(function() { _raProfileCache = null; if (callback) callback(); })
     .catch(function() { _raProfileCache = null; if (callback) callback(); });
 }
@@ -2169,55 +2139,34 @@ function raRequireLogin(requiredRoles, title, onSuccess) {
   });
 }
 
-/* Update baris pm_records LEWAT SESSION USER YANG LOGIN (JWT-nya,
-   otomatis dilampirkan oleh supabase-js) -- BUKAN anon key seperti
-   dbSave/dbLoad biasa -- supaya RLS per-role di database benar-benar
-   berlaku (checker cuma bisa update saat SUBMITTED, dst). */
+/* Update doc pm_records lewat Firestore, lalu ambil ulang doc-nya supaya
+   callback dapat record lengkap terbaru (dulu PostgREST .select().single()).
+   Model kepercayaan: gating per-role SEKARANG di sisi aplikasi (rules
+   Firestore terbuka penuh, sama seperti Electric) -- dulu RLS Postgres. */
 function raUpdateRecord(recordId, patch, callback) {
-  raGetClient().then(function(client) {
-    return client.from(SUPA_TABLE).update(patch).eq('id', recordId).select().single();
-  }).then(function(res) {
-    if (res.error) { callback(res.error.message || 'Gagal update.', null); return; }
-    callback(null, res.data);
-  }).catch(function(err) { callback((err && err.message) || String(err), null); });
+  var ref = db.collection(PM_COLLECTION).doc(recordId);
+  ref.set(pmSerializeRec(patch), { merge: true })
+    .then(function() { return ref.get(); })
+    .then(function(s) { callback(null, s.exists ? pmDocToRec(s) : null); })
+    .catch(function(err) { callback((err && err.message) || String(err), null); });
 }
 
-/* Ambil signed URL (berlaku 1 jam) untuk gambar tanda tangan sesuai nama
-   tampilan (dari dropdown Checked By / nama SPV) -- bucket private,
-   jadi harus lewat client yang sudah login (authenticated). */
-function raGetSignatureUrl(displayName, callback) {
-  var filename = RA_SIGNATURE_FILE_MAP[displayName];
-  if (!filename) { callback('Tanda tangan untuk "' + displayName + '" belum terdaftar di RA_SIGNATURE_FILE_MAP.', null); return; }
-  raGetClient().then(function(client) {
-    return client.storage.from(RA_SIGNATURE_BUCKET).createSignedUrl(filename, 3600);
-  }).then(function(res) {
-    if (res.error) { callback(res.error.message || 'Gagal ambil tanda tangan.', null); return; }
-    callback(null, res.data.signedUrl);
-  }).catch(function(err) { callback((err && err.message) || String(err), null); });
-}
-
-/* Download URL gambar (mis. signed URL tanda tangan) & convert jadi base64
-   data-URL -- dibutuhkan jsPDF doc.addImage() (tidak bisa langsung dikasih
-   URL eksternal, harus data-URL atau elemen <img> yang sudah termuat). */
-function raFetchImageAsDataUrl(url, callback) {
-  fetch(url).then(function(res) {
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return res.blob();
-  }).then(function(blob) {
-    var reader = new FileReader();
-    reader.onload = function() { callback(null, reader.result); };
-    reader.onerror = function() { callback('Gagal membaca gambar tanda tangan.', null); };
-    reader.readAsDataURL(blob);
-  }).catch(function(err) { callback((err && err.message) || String(err), null); });
-}
-
-/* Gabungan raGetSignatureUrl + raFetchImageAsDataUrl -- langsung dapat
-   data-URL siap pakai buat doc.addImage(). */
+/* Ambil tanda tangan (PNG data-URL) untuk nama tampilan tertentu dari
+   collection pm_signatures. Doc id = slug(displayName). Isi diisi lewat
+   pad TTD (raSignPadSave) atau manual oleh admin. */
 function raGetSignatureDataUrl(displayName, callback) {
-  raGetSignatureUrl(displayName, function(err, url) {
-    if (err) { callback(err, null); return; }
-    raFetchImageAsDataUrl(url, callback);
-  });
+  db.collection(RA_SIGNATURE_COLLECTION).doc(_raSigSlug(displayName)).get()
+    .then(function(s) {
+      var u = s.exists && s.data().dataurl;
+      if (u) callback(null, u);
+      else callback('Tanda tangan untuk "' + displayName + '" belum ada.', null);
+    })
+    .catch(function(err) { callback((err && err.message) || String(err), null); });
+}
+
+/* Kompat: beberapa pemanggil lama minta "URL" -- sekarang data-URL langsung. */
+function raGetSignatureUrl(displayName, callback) {
+  raGetSignatureDataUrl(displayName, callback);
 }
 
 /* Dipanggil oleh tiap modul SEBELUM drawSignatureBlock() (lihat shared.js
@@ -2260,11 +2209,10 @@ function raResolveWorkflowSignatures(record, callback) {
 
   if (status === 'FINAL_APPROVED' && record.reviewed_by_account) {
     tasks.push(
-      raGetClient().then(function(client) {
-        return client.from(RA_PROFILE_TABLE).select('display_name,username').eq('id', record.reviewed_by_account).single();
-      }).then(function(res) {
-        if (res.error || !res.data) return;
-        result.reviewedByName = res.data.display_name || res.data.username;
+      db.collection(RA_PROFILE_TABLE).doc(record.reviewed_by_account).get().then(function(s) {
+        if (!s.exists) return;
+        var p = s.data();
+        result.reviewedByName = p.display_name || p.username;
         return new Promise(function(resolve) {
           raGetSignatureDataUrl(result.reviewedByName, function(err, dataUrl) {
             if (err) console.warn('[raResolveWorkflowSignatures] TTD reviewer:', err);
@@ -2366,17 +2314,16 @@ function raSendFinalPdfToFirebaseDashboard(record, submittedByName, onDone) {
     if (ok) {
       // Tandai "sudah nyampe" -- dicek oleh raRetryPendingFirebaseSyncs()
       // supaya record ini tidak dicoba kirim ulang lagi di kunjungan
-      // berikutnya. Fire-and-forget (RLS 008 mengizinkan ini untuk record
-      // yang statusnya SUBMITTED) -- gagal nulis kolom ini TIDAK dianggap
-      // gagal kirim (PDF-nya sendiri sudah beneran sampai di Firebase),
+      // berikutnya. Fire-and-forget -- gagal nulis field ini TIDAK dianggap
+      // gagal kirim (PDF-nya sendiri sudah beneran sampai di dashboard),
       // paling buruk cuma dicoba kirim ulang (duplikat) lain kali.
-      supaFetch('PATCH', SUPA_TABLE + '?id=eq.' + record.id, {
+      db.collection(PM_COLLECTION).doc(record.id).set({
         firebase_synced_at: new Date().toISOString(), firebase_sync_error: null
-      }).catch(function(){});
+      }, { merge: true }).catch(function(){});
     } else if (record && record.id) {
-      supaFetch('PATCH', SUPA_TABLE + '?id=eq.' + record.id, {
+      db.collection(PM_COLLECTION).doc(record.id).set({
         firebase_sync_error: String((err && err.message) || err || 'gagal tidak diketahui').slice(0, 500)
-      }).catch(function(){});
+      }, { merge: true }).catch(function(){});
     }
     if (onDone) onDone(ok, err);
   }
@@ -2490,7 +2437,8 @@ function raSendFinalPdfToFirebaseDashboard(record, submittedByName, onDone) {
 function raSubmitReportCore(onDone) {
   raUpdateRecord(window._editingId, {
     status: 'SUBMITTED',
-    submitted_at: new Date().toISOString()
+    submitted_at: new Date().toISOString(),
+    firebase_synced_at: null
   }, function(err, updated) {
     if (err) {
       if (onDone) onDone(false, err); else alert('Gagal submit: ' + err);
@@ -2554,13 +2502,10 @@ function raSubmitReportAuto() {
     } catch (e) {}
   }
   if (!window._editingId) { report(false, 'Tidak ada draft tersimpan untuk laporan ini.'); return; }
-  // Cek status TERKINI dulu (query ringan, TANPA kolom `data` yang berat) --
-  // kalau record ini SUDAH SUBMITTED (berarti dipanggil ulang buat retry,
-  // bukan submit pertama kali), JANGAN coba ubah status lagi: RLS
-  // "pm_records_submit_authenticated" cuma izinkan transisi DARI DRAFT,
-  // jadi re-update status SUBMITTED->SUBMITTED bakal ditolak RLS (0 baris
-  // ke-update, raUpdateRecord gagal). Cukup kirim ulang PDF-nya saja.
-  supaFetch('GET', SUPA_TABLE + '?id=eq.' + window._editingId + '&select=id,modul,tanggal,pic,work_order,status&limit=1')
+  // Cek status TERKINI dulu -- kalau record ini SUDAH SUBMITTED (berarti
+  // dipanggil ulang buat retry, bukan submit pertama kali), cukup kirim
+  // ulang PDF-nya saja, tidak perlu ubah status lagi.
+  pmDbGet(window._editingId)
     .then(function(rows) {
       var rec = rows && rows[0];
       if (rec && String(rec.status || '').toUpperCase() === 'SUBMITTED') {
@@ -2596,8 +2541,20 @@ function raRetryPendingFirebaseSyncs() {
   // dalam sini (cegah rekursi tak terkendali).
   if (/[?&]autosubmit=1(&|$)/.test(location.search)) return;
   _raSyncQueueRunning = true;
-  supaFetch('GET', SUPA_TABLE + '?select=id,modul&status=eq.SUBMITTED&firebase_synced_at=is.null&order=submitted_at.asc&limit=10')
-    .then(function(rows) { _raProcessSyncQueue(rows || [], 0); })
+  // where(status) + where(firebase_synced_at == null): butuh composite index
+  // (status ASC, firebase_synced_at ASC) -- sudah ada di firestore.indexes.json.
+  // Urut submitted_at di client (limit 10, murah). `== null` cuma cocok untuk
+  // doc yang field-nya EKSPLISIT null -- makanya insert/submit selalu set
+  // firebase_synced_at: null.
+  db.collection(PM_COLLECTION)
+    .where('status', '==', 'SUBMITTED')
+    .where('firebase_synced_at', '==', null)
+    .limit(10).get()
+    .then(function(q) {
+      var rows = q.docs.map(function(d) { var x = d.data() || {}; return { id: d.id, modul: x.modul, submitted_at: x.submitted_at }; });
+      rows.sort(function(a, b) { return String(a.submitted_at || '').localeCompare(String(b.submitted_at || '')); });
+      _raProcessSyncQueue(rows, 0);
+    })
     .catch(function() { _raSyncQueueRunning = false; });
 }
 function _raProcessSyncQueue(rows, idx) {
@@ -2762,9 +2719,8 @@ function raSignPadCancel() {
   if (el && el.parentNode) el.parentNode.removeChild(el);
 }
 
-/* Simpan TTD ke Supabase Storage bucket 'signatures' sebagai PNG,
-   dan update RA_SIGNATURE_FILE_MAP in-memory agar langsung bisa dipakai
-   di sesi ini tanpa reload. */
+/* Simpan TTD ke Firestore collection pm_signatures sebagai PNG data-URL
+   base64 (doc id = slug nama tampilan). Tidak ada Storage bucket lagi. */
 function raSignPadSave() {
   var state = _raSignPadState;
   if (!state.canvas || state.empty) {
@@ -2775,57 +2731,19 @@ function raSignPadSave() {
   var msg = document.getElementById('raSignPadMsg');
   if (msg) { msg.textContent = '⏳ Menyimpan...'; msg.style.color='#6b7280'; }
 
-  // Konversi canvas ke PNG blob
-  state.canvas.toBlob(function(blob) {
-    if (!blob) {
-      if (msg) { msg.textContent = '❌ Gagal membuat gambar. Coba lagi.'; msg.style.color='#e74c3c'; }
-      return;
-    }
-    // Filename: gunakan display_name → slug (lowercase, spasi→underscore)
-    var slug = (state.displayName || 'ttd')
-      .toLowerCase().replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,'_').trim() || 'ttd';
-    var filename = slug + '.png';
+  var dataUrl = state.canvas.toDataURL('image/png');
+  var slug = _raSigSlug(state.displayName);
 
-    raGetClient().then(function(client) {
-      // Upload ke Storage (upsert = overwrite kalau sudah ada)
-      return client.storage.from(RA_SIGNATURE_BUCKET).upload(filename, blob, {
-        contentType: 'image/png', upsert: true
-      });
-    }).then(function(res) {
-      if (res.error) {
-        if (msg) { msg.textContent = '❌ ' + (res.error.message || 'Gagal upload'); msg.style.color='#e74c3c'; }
-        return;
-      }
-      // Update in-memory map agar sesi ini langsung bisa pakai TTD baru
-      RA_SIGNATURE_FILE_MAP[state.displayName] = filename;
-      if (msg) { msg.textContent = '✓ Tanda tangan berhasil disimpan!'; msg.style.color='#16a085'; }
-
-      // Kirim dataUrl ke callback onSaved (untuk preview langsung di halaman)
-      var dataUrl = state.canvas.toDataURL('image/png');
-      if (typeof state.onSaved === 'function') state.onSaved(dataUrl);
-
-      setTimeout(function() { raSignPadCancel(); }, 1200);
-    }).catch(function(err) {
-      if (msg) { msg.textContent = '❌ ' + ((err && err.message) || String(err)); msg.style.color='#e74c3c'; }
-    });
-  }, 'image/png');
-}
-
-/* Ambil TTD sebagai dataUrl — coba Storage signed URL dulu (butuh login),
-   fallback ke nothing. Jika gagal (belum login / file belum ada), err berisi pesan. */
-function raGetSignatureDataUrl(displayName, callback) {
-  raGetSignatureUrl(displayName, function(err, signedUrl) {
-    if (err || !signedUrl) { callback(err || 'Tidak ada URL', null); return; }
-    // Fetch gambar lalu konversi ke dataUrl (cross-origin safe via blob)
-    fetch(signedUrl)
-      .then(function(r) { return r.blob(); })
-      .then(function(blob) {
-        var reader = new FileReader();
-        reader.onload = function(e) { callback(null, e.target.result); };
-        reader.onerror = function() { callback('Gagal membaca gambar', null); };
-        reader.readAsDataURL(blob);
-      })
-      .catch(function(e) { callback((e && e.message) || String(e), null); });
+  db.collection(RA_SIGNATURE_COLLECTION).doc(slug).set({
+    display_name: state.displayName || '',
+    dataurl: dataUrl,
+    updated_at: new Date().toISOString()
+  }, { merge: true }).then(function() {
+    if (msg) { msg.textContent = '✓ Tanda tangan berhasil disimpan!'; msg.style.color='#16a085'; }
+    if (typeof state.onSaved === 'function') state.onSaved(dataUrl);
+    setTimeout(function() { raSignPadCancel(); }, 1200);
+  }).catch(function(err) {
+    if (msg) { msg.textContent = '❌ ' + ((err && err.message) || String(err)); msg.style.color='#e74c3c'; }
   });
 }
 

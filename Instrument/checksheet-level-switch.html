@@ -521,27 +521,13 @@
 
 <script>
 /* ══════════════════════════════════════════════
-   SUPABASE CONFIG
+   FIRESTORE CONFIG (eic8-3d7f1) — dulu Supabase
+   Asset dari collection outage_assets. pmRest() (shared.js)
+   menerjemahkan pola query PostgREST lama.
 ══════════════════════════════════════════════ */
-var SUPA_URL    = 'https://ruvvximnnacpvvoogbzs.supabase.co';
-var SUPA_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1dnZ4aW1ubmFjcHZ2b29nYnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDE1NDAsImV4cCI6MjA5NDYxNzU0MH0.GRu5n0Jl2fP0V8L_QLN2Tkmd0Aw0JbMRu25I7t-R7l8';
 var ASSET_TABLE = 'outage_assets';
 
-function supaFetch(method, path, body) {
-  var headers = {
-    'apikey': SUPA_KEY,
-    'Authorization': 'Bearer ' + SUPA_KEY,
-    'Content-Type': 'application/json'
-  };
-  if (method !== 'GET') headers['Prefer'] = 'return=representation';
-  var opts = { method: method, headers: headers };
-  if (body) opts.body = JSON.stringify(body);
-  return fetch(SUPA_URL + '/rest/v1/' + path, opts)
-    .then(function(res) {
-      if (!res.ok) return res.text().then(function(t){ throw new Error(t); });
-      return res.text().then(function(t){ return t ? JSON.parse(t) : []; });
-    });
-}
+function supaFetch(method, path, body) { return pmRest(method, path, body); }
 
 /* ══════════════════════════════════════════════
    ASSET PICKER — Load dari outage_assets

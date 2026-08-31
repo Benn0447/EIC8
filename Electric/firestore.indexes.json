@@ -23,6 +23,22 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "firebase_synced_at", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "outage_assets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "input_category", "order": "ASCENDING" },
+        { "fieldPath": "asset_tag", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "outage_assets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "input_category", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

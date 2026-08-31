@@ -25,7 +25,7 @@
 
   <div class="page-header">
     <div>
-      <div class="page-header-sub">Database Supabase</div>
+      <div class="page-header-sub">Database Firebase</div>
       <div class="page-header-title">Riwayat <span>PM</span></div>
     </div>
   </div>
@@ -223,7 +223,7 @@ function renderAreaMapping() {
 
 function historyDelete(id) {
   if (!confirm('Hapus data ini?')) return;
-  supaFetch('DELETE', SUPA_TABLE + '?id=eq.' + id)
+  pmDbDelete(id)
     .then(function() {
       dbShowToast('Data berhasil dihapus');
       setTimeout(function(){ loadHistory(''); }, 500);

@@ -408,32 +408,15 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);cursor:po
 
 <script>
 /* ══════════════════════════════════════
-   SUPABASE CONFIG
-   Tabel khusus: ts_checksheet
+   FIRESTORE CONFIG (eic8-3d7f1) — dulu Supabase
+   Collection: ts_checksheet
    Asset dari: outage_assets
+   pmRest() (dari shared.js) menerjemahkan pola query PostgREST lama.
 ══════════════════════════════════════ */
-var TS_SUPA_URL  = 'https://ruvvximnnacpvvoogbzs.supabase.co';
-var TS_SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1dnZ4aW1ubmFjcHZ2b29nYnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDE1NDAsImV4cCI6MjA5NDYxNzU0MH0.GRu5n0Jl2fP0V8L_QLN2Tkmd0Aw0JbMRu25I7t-R7l8';
 var ASSET_TBL    = 'outage_assets';
 var TS_TABLE     = 'ts_checksheet';
 
-function tsSupaFetch(method, path, body) {
-  var opts = {
-    method: method,
-    headers: {
-      'apikey': TS_SUPA_KEY,
-      'Authorization': 'Bearer ' + TS_SUPA_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
-    }
-  };
-  if (body) opts.body = JSON.stringify(body);
-  return fetch(TS_SUPA_URL + '/rest/v1/' + path, opts)
-    .then(function(r){
-      if (!r.ok) return r.text().then(function(t){ throw new Error(t); });
-      return r.text().then(function(t){ return t ? JSON.parse(t) : []; });
-    });
-}
+function tsSupaFetch(method, path, body) { return pmRest(method, path, body); }
 
 /* ══════════════════════════════════════
    STATE
